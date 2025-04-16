@@ -5,9 +5,7 @@ PURPOSE:  This document describes the business question provoking an investigati
 
 HISTORY:  On 13 February 2025, Bill Prisbrey presented his Powerpoint slides titled "Grants Exploratory Phase I Winning 7b" to Dr. Erin Rothwell and others.  His section describing win rates by principal investigator (PI) characteristics elicited several questions on whether we can identify "low" and "high" performing investigators; how we can support them better; and whether we are retaining our top performers.
 
-BACKGROUND: In order to achieve Dr. Taylor Randall's objective to increase research to a $1 B milestone, the Office of Sponsored Projects believes that a disproportionately small percentage of investigators are responsible for the majority of research funds (consistent with the Pareto principal, where 20% of the population are responsible for 80% of the results.) The Office wonders if the high-performing few are experiencing high turn-over due to being poached or are departing for other institutions, and the financial impact if they can be retained.
-
-SCOPE:  28,790 proposals over ten years by 2,936 principal investigators.
+BACKGROUND: In order to achieve Dr. Taylor Randall's objective to increase research to a $1 B milestone, the Office of Sponsored Projects wishes to explore improving retention of high-performing principal investigators.  The Office has found that a disproportionately small percentage of investigators are responsible for the majority of research funds (consistent with the Pareto principal, where 20% of the population are responsible for 80% of the results.) The Office wonders if the high-performing few are experiencing high turn-over due to being poached or are departing for other institutions, and the financial impact if they can be retained.
 
 STAKEHOLDERS:
 Dr. Erin Rothwell
@@ -15,18 +13,59 @@ Dr. Erin Rothwell
   
   Her primary objective is accelerating the University of Utah's accomplishment of the $1 B milestone through improved retention of top-performing principal investigators.
 
-  She is limited in her ability to directly affect retention and turn-over, as she does not sit on tenure committees nor is consulted in faculty hiring decisions.  However, she can affect policy by making recommendations to President Randall 
+  She is limited in her ability to directly affect retention and turn-over, as she does not sit on tenure committees nor is consulted in faculty hiring decisions.  However, she can affect policy by making recommendations to President Randall. 
   
   Although she does not sit on hiring or tenure committees and cannot directly determine faculty hiring or tenure, she can provide recommendations to President Taylor who in turn can direct HR policy and influence the Deans in recruiting and retention.
   
-  
-  
-  
 Deans of the colleges
-Tenure committees
-HR
-
+  Deans of the colleges directly affect recruitment and retention policies and decisions.  They have various distinct priorities and unique criteria from one another, and unknown current policies and objectives.
   
+Tenure committees
+  Tenure committees consist of faculty [and who else?] who decide which faculty are awarded tenure.  Similar to the deans of the various colleges, they have distinct priorities and unique criteria from one another, and unknown current policies and objecives.  
+  
+Human Resources
+  University HR will have knowledge of objectives, criteria, and policies for recruitment and retention.  They may be a key partner in implementing any suggested changes.  
+  
+  Analysts at HR may have already conducted turnover analyses by college and department. 
+
+COMMUNICATION PLANNING: 
+  The study findings will be provided to Dr. Rothwell, who will share with other parties and individuals at her discretion. 
+
+Managing negative outcomes and perspectives:
+  TBD
+  
+RISKS:
+  An analysis of historical data carries the inherent assumption that the future will continue as the past.  However, the university faces a historical discontinuity in how federal funding is awarded and administered. 
+  Despite this discontinuity and uncertainity, it is suggested that a better understanding of past behavior will optimally inform future decisions.  
+
+AMENABILITY TO ANALYTICS: 
+  
+DATA AVAILABILITY:  
+   - 28,790 proposals over ten years by 2,936 principal investigators from Grants Exploratory (Phase I.)
+   - HR data describing employment terms
+   - Funding spent [not yet analyzed]
+   - Faculty database
+    There may be a faculty database that contains information on faculty performance.
+
+METHODOLOGY SELECTION:  
+  Employee turn-over is a standard HR metric that is readily calculated and reasonably compared across groups using chi-squared, ANOVA, and Kruskal-Wallis methods.  More complicated approaches to predict and describe turnover include logistical regression, decisions trees, and survivor models.
+  
+DEPLOYABILITY:    
+  Because the main study sponsor is limited in her ability to directly affect change in recruitment and retention policies, there is a risk that this study will not be actionable.
+  
+
+
+COSTS AND BENEFITS: 
+
+NEXT STEP:
+Refine this document based on feedback.
+
+REFINE: 
+Refine the initial problem statement and identify business constraints.    
+
+
+
+
   
   Interests
   Potential issues that could disrupt the project
