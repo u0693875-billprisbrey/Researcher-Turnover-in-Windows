@@ -7,7 +7,7 @@ output:
     keep_md: TRUE
 ---
 
-**PURPOSE:**  This document creates the initial business framing describing an investigation into turnover by principal investigators.    
+**PURPOSE:**  This document creates the initial business framing describing an investigation into turnover by principal investigators.  This is a living document and may be continuously updated with feedback and new information.   
 
 **PROBLEM STATEMENT:** ***Can the University of Utah improve research spending by improving retention of high performing and high potential researchers?***
 
