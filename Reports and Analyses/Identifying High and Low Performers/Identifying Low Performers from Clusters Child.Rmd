@@ -1,0 +1,1081 @@
+---
+output:
+  html_document:
+    keep_md: true
+---
+
+```{r include = FALSE}
+
+# Maybe my "At Bat" cluster is just called "Inefficient" -- becuase aren't I calling my "Cluster 5" my high performers?  I mean, at least some of Cluster 5 are high performers.  Where's the dividing line between "high" and "low" performers in cluster 5?  I think I want to look at that "At Bat" overlap a little closer.
+
+# How big of a gap is it between Complex 1 (no wins) and Complex 2 (low wins) ?  Is it mild changes by degree, or is there a clear gap?
+
+# An idea for a graph is to plot the Complex Clusters on top of the percentile bands.  I might need to change pch for added clarity.  I'm not sure if I want to show Win Rates by Funds Requested Won colored by percentile .... that's a lot to walk through (?)  Sounds like a report?  Maybe put them side by side, with a line over the first one?
+
+# I am going to need a philosophical discussion on who is a "low performer."
+
+# This report is going to need a pretty big over-haul in flow and graphics.
+
+
+# I have copied and pasted from "Comparing clusters" child
+
+```
+
+
+
+```{r include = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE, fig.height=7, fig.width=10)
+
+# adjust graphic parameters
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+```
+
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+# PREP SCRIPT
+
+source(here::here("Prep scripts", "Prep Script from Win Rates by College.R"))
+
+# PER PI
+
+piClusters <- lapply(list.files(here::here("Robjects", "Clustering PIs"), full.names = TRUE), readRDS)
+
+###########
+## MERGE ## 
+###########
+
+piEmplid <- Reduce(function(x, y) {
+  merged <- merge(x, y, by = "emplid", all = FALSE)
+  merged <- merged[, !duplicated(sub("\\.x$|\\.y$", "", names(merged)))]  # Remove duplicate columns
+  
+  # Rename columns to remove ".x"
+  names(merged) <- sub("\\.x$", "", names(merged))
+  
+  merged
+}, piClusters)
+# piEmplid <- Reduce(function(x, y) merge(x, y, by = "emplid", all = FALSE), piClusters)
+# piEmplid <- do.call(merge, piClusters)
+
+
+
+prepData <- merge(prepData, piEmplid[,c("emplid","complex_cluster","rate_cluster")], by.x =  "PROPOSAL_PI_EMPLID", by.y = "emplid", all.x = TRUE)
+
+##########
+## PREP ##
+##########
+
+piEmplid$combined_cluster <-  factor(paste(piEmplid$complex_cluster, piEmplid$rate_cluster, sep = ", "))
+
+prepData$combined_cluster <- factor(paste(prepData$complex_cluster, prepData$rate_cluster, sep = ", "))
+
+###############
+## LIBRARIES ##
+###############
+
+library(viridis)
+library(pheatmap)
+
+# I'll probably want my per-cluster wins as well
+
+# I am going to want to bring in the colors
+
+filterThreeCount <- piEmplid$count.total > 3
+
+piMap <- data.frame(college = row.names(piEmplid), abbrv = row.names(piEmplid), color = NA, pch = 19, cex = 0.7 )
+
+
+```
+
+
+
+```{r}
+             
+# Manage colors
+
+#############
+## COMPLEX ##
+#############
+
+complexClusterColors <- c("forestgreen", "deepskyblue", "goldenrod",  
+                            "firebrick", "darkslategray", "chartreuse",  
+                            "slateblue", "darkkhaki", "coral")
+
+clusterComplexMapping <- piMap
+clusterComplexMapping[,"pch"] <- rep(19, nrow(clusterComplexMapping))
+
+clusterComplexMapping[,"color"] <- complexClusterColors [piEmplid$complex_cluster]
+
+# clusterComplexMapping[,"color"] <- complexClusterColors[complexHCPC$data.clust$clust[match(clusterComplexMapping[,"college"], row.names(complexHCPC$data.clust))] ]
+
+##############
+## COMBINED ##
+##############
+
+combinedClusterColors <- c("forestgreen", "deepskyblue", "goldenrod",  
+  "firebrick", "darkslategray", "chartreuse",  
+  "slateblue", "darkkhaki", "coral",  
+  "mediumorchid", "dodgerblue", "tomato",  
+  "orchid", "darkseagreen", "sienna",  
+  "royalblue", "indianred", "seagreen",  
+  "peru", "cadetblue", "plum",  
+  "midnightblue", "lawngreen", "darkorange",  
+  "lightsteelblue")
+
+clusterCombinedMapping <- piMap
+clusterCombinedMapping[,"pch"] <- rep(19, nrow(clusterCombinedMapping))
+
+clusterCombinedMapping[,"color"] <- combinedClusterColors [piEmplid$combined_cluster]
+
+
+
+
+################
+## PERCENTILE ##
+################
+
+percentileColors <- viridis(10,direction = -1)[c(1:7,10)]
+percentileMapping <- piMap
+
+percentileMapping[,"pch"] <- rep(19, nrow(percentileMapping))
+
+percentileMapping[,"color"] <- percentileColors[as.numeric(cut(piEmplid$win.sum_percentile, breaks = seq(0.2,1,by=0.1)))]
+
+```
+
+
+
+# Low Performers
+
+Low performers are in Rates Cluster 1 (<20% win rates by count and sum.)
+
+**Strike outs:**
+
+These PI's have never won a proposal.  Strike-outs are located in the overlap with Complex Cluster 3 ("Pipe Dreams").
+
+**Sputtering:**
+
+These PI's submit a decent number of proposals with relatively few wins.
+
+They are located in the overlap with Complex Cluster 4 ("Plucky"). 
+
+
+**Many at bats, few hits:**
+
+These PI's submit a large number of proposals with relatively few wins.
+
+They are located in the overlap with Complex Cluster 5 ("Prolific"). 
+
+# "Inefficent" Performers
+
+These PI's simultaneously carry less than a 20% win rate while also being a Top 20% performer.  They contribute to 80% of the total funds won over the last ten years.  (Maybe exclude them from the other clusters?)
+
+
+Notes:
+
+Try showing the boxplots, win and loss, for each of these sub-categories
+
+I need to set the same scale for timeDots
+I need to modify timeDots according to my new and improved functions
+I should show the tick marks (timeLine) as well as the timeDots
+
+```{r}
+
+# Elapsed calculations
+
+piYr <- elapsed(data = prepData)
+piYrMon <- elapsedCash(data = prepData)
+
+# clYr <- elapsed(target = "complex_cluster", data = prepData )
+# clYrMon <- elapsedCash(target = "complex_cluster", data = prepData )
+
+```
+
+
+```{r}
+
+# strike-out
+strikeOutPI <- piEmplid$emplid[piEmplid$rate_cluster == 1 & piEmplid$complex_cluster == 3]
+
+strikeOutFilter <- piYrMon$each$PROPOSAL_PI_EMPLID %in% strikeOutPI
+
+timeDots(piYrMon$each[strikeOutFilter,])
+
+
+```
+
+```{r}
+
+# sputtering
+sputteringPI <- piEmplid$emplid[piEmplid$rate_cluster == 1 & piEmplid$complex_cluster == 4]
+
+sputteringFilter <- piYrMon$each$PROPOSAL_PI_EMPLID %in% sputteringPI
+
+timeDots(piYrMon$each[sputteringFilter,])
+
+```
+
+```{r}
+
+# at Bat
+atBatPI <- piEmplid$emplid[piEmplid$rate_cluster == 1 & piEmplid$complex_cluster == 5]
+
+atBatFilter <- piYrMon$each$PROPOSAL_PI_EMPLID %in% atBatPI
+
+timeDots(piYrMon$each[atBatFilter,])
+
+# at bat might be better represented with tick marks
+
+```
+
+```{r}
+
+# Do it with one lapply
+
+par(mfrow = c(3,1), mar = c(0,10,0,1), bg = "ivory", fg = "gray10" )
+
+invisible(
+lapply(c(3:5), function(x){
+ 
+  # identify PI's
+  thePIs <- piEmplid$emplid[piEmplid$rate_cluster == 1 & piEmplid$complex_cluster == x]
+  
+  # define a filer
+  theFilter <- piYrMon$each$PROPOSAL_PI_EMPLID %in% thePIs
+
+  # draw the graph
+  timeDots(piYrMon$each[theFilter,])  
+  
+  
+})
+)
+
+```
+
+
+What about people with a low rate of wins, but have a high total sum?  At the bottom right of "Funds requested" graph?
+
+Maybe I have two criteria for low performers --
+(1)  Low win rate (what I have so far)
+(2)  Low total funds requested won (who would this be?  I guess I want a pareto already!)
+
+I need to see these by "total funds requested won" per PI
+
+
+```{r}
+
+# I need a detailMapping
+
+# Plot by win sum and rate clusters
+
+par(oma = c(0,3,4,0), mfrow =c(1,1))
+
+yBYx(data = piEmplid[piEmplid$emplid %in% c( sputteringPI, strikeOutPI,atBatPI),],  
+     x_axis =  "win.sum", 
+     y_axis = "sum.rate", 
+     detailMapping = clusterComplexMapping, 
+     log = c("x"), 
+     scatter_args = list(xlim = c(0,18.5)),
+     scatter_text_args = list(
+       labels = "",
+       cex = 1.618),
+     scatter_mtext_args = list(text = c("", "Sum of funds requested won (log)", "Fraction of funds requested won"), 
+                               cex = c(1.75,1.5,1.5),
+                               font = c(0,0,0)   ))
+
+mtext(text = "Sum rate by total funds won" , outer = TRUE, font = 2, cex = 2, line = 0.309) 
+
+# text(x = log(medianPIbyCluster$win.sum) |> (\(x){ x[is.infinite(x)] <- 0; return(x)})() ,
+#     y = combinedClusterWins$sum.rate,
+#     labels = 1:(length(complexHCPC[["desc.var"]][[2]])),
+#     cex = 2,
+#     font = 2,
+#     col = combinedClusterWins$color,
+#     xpd = TRUE
+# ) 
+
+```
+
+
+```{r fig.width=10}
+
+# Tiled sum scatter plots of complex clusters
+
+par(oma = c(5,7,4,1), mfrow = c(3,2))
+
+invisible(
+  lapply(3:5, function(x){ 
+    
+    yBYx(data = piEmplid[piEmplid$rate_cluster == 1 & piEmplid$complex_cluster == x,],  
+         x_axis = "win.sum", 
+         y_axis = "sum.rate", 
+         detailMapping = clusterComplexMapping, 
+         log = c("x"), 
+         scatter_params = list(mar = c(0,0,0,0)),
+         scatter_args = list(cex = 1.618, xlim = c(0,20), ylim = c(0,1)),
+         scatter_text_args = list(
+           labels = "",
+           cex = 1.618),
+         scatter_mtext_args = list(text = c("", "", "") )
+         #                              cex = c(1.75,1.5,1.5),
+         #                              font = c(0,0,0)   )
+    )
+    
+    # textFilter <- row.names(combinedClusterWins) == x
+    #text(x = totalsClusterWins$count.rate[textFilter],
+    #    y = totalsClusterWins$sum.rate[textFilter],
+    #    labels = row.names(totalsClusterWins)[textFilter],
+    #    cex = 2,
+    #    font = 2,
+    #    col = totalsClusterWins$color[textFilter]
+    #    )   
+    
+    text(x = 0.05,
+         y = 0.9,
+         labels = x,
+         cex = 3,
+         font = 2,
+         #col = combinedClusterWins$color[textFilter],
+         xpd = TRUE
+    )  
+    
+    
+  })    
+)    
+
+
+
+# mtext(text = "Clusters based on multiple dimensions" , outer = TRUE, font = 2, cex = 2, line = 0.309) 
+
+mtext(text = "Sum of funds requested won (log)" , side = 1, outer = TRUE, font = 1, cex = 1.5, line = 3) 
+
+mtext(text = "Fraction of funds requested won" , side = 2, outer = TRUE, font = 1, cex = 1.5, line = 3) 
+
+```
+
+
+I need to examine the values that have a very low win rate, but have still pulled in enough money
+to be a significant contributor to the U
+
+I can color the ones in the graph above according to 80th percentile ....?
+
+It would be really cool to replace my background gray grid with transparently changing viridis bands according to the percentiles, or the cumulative percentile or something like that.
+
+I need to include complex cluster 2, it's just incomplete otherwise.
+
+And maybe we don't call these "low performers" but we call them "wasted effort" or something like that?
+
+I mean, how can you call someone a low performer when they are in the 90th percentile for funds brought in?
+
+And how can you call someone a low performer when they nabbed 75% of their proposals, but are in the cumulative 10th percentile?
+
+"Low" would be a measure of performance against your own potential, or of your peers'.
+
+I guess I'd want to carefully designate the "low" performers that are above the 80th percentile.  That's a curious sub-set.
+
+
+```{r}
+
+# Percentile mapping
+
+par(oma = c(0,3,4,0), mfrow =c(1,1))
+
+yBYx(data = piEmplid[piEmplid$emplid %in% c( sputteringPI, strikeOutPI,atBatPI),],  
+     x_axis =  "win.sum", 
+     y_axis = "sum.rate", 
+     detailMapping = percentileMapping, 
+     log = c("x"), 
+    # scatter_args = list(xlim = c(0,18.5)),
+     scatter_text_args = list(
+       labels = "",
+       cex = 1.618),
+     scatter_mtext_args = list(text = c("", "Sum of funds requested won (log)", "Fraction of funds requested won"), 
+                               cex = c(1.75,1.5,1.5),
+                               font = c(0,0,0)   ))
+
+mtext(text = "Sum rate by total funds won" , outer = TRUE, font = 2, cex = 2, line = 0.309) 
+
+# text(x = log(medianPIbyCluster$win.sum) |> (\(x){ x[is.infinite(x)] <- 0; return(x)})() ,
+#     y = combinedClusterWins$sum.rate,
+#     labels = 1:(length(complexHCPC[["desc.var"]][[2]])),
+#     cex = 2,
+#     font = 2,
+#     col = combinedClusterWins$color,
+#     xpd = TRUE
+# ) 
+
+```
+
+
+```{r}
+
+# Percentile mapping
+
+par(oma = c(0,3,4,0), mfrow =c(1,1))
+
+yBYx(data = piEmplid[1:nrow(piEmplid),], # no idea why it needs the subset to work.  
+     x_axis =  "win.sum", 
+     y_axis = "sum.rate", 
+     detailMapping = percentileMapping, 
+     log = c("x"), 
+    # scatter_args = list(xlim = c(0,18.5)),
+     scatter_text_args = list(
+       labels = "",
+       cex = 1.618),
+     scatter_mtext_args = list(text = c("", "Sum of funds requested won (log)", "Fraction of funds requested won"), 
+                               cex = c(1.75,1.5,1.5),
+                               font = c(0,0,0)   ))
+
+mtext(text = "Sum rate by total funds won" , outer = TRUE, font = 2, cex = 2, line = 0.309) 
+
+# text(x = log(medianPIbyCluster$win.sum) |> (\(x){ x[is.infinite(x)] <- 0; return(x)})() ,
+#     y = combinedClusterWins$sum.rate,
+#     labels = 1:(length(complexHCPC[["desc.var"]][[2]])),
+#     cex = 2,
+#     font = 2,
+#     col = combinedClusterWins$color,
+#     xpd = TRUE
+# ) 
+
+```
+
+```{r}
+
+# >80th percentile
+
+par(oma = c(0,3,4,0), mfrow =c(1,1))
+
+yBYx(data = piEmplid[piEmplid$win.sum_percentile >= 0.8  ,], 
+     x_axis =  "win.sum", 
+     y_axis = "sum.rate", 
+     detailMapping = percentileMapping, 
+     log = c("x"), 
+    # scatter_args = list(xlim = c(0,18.5)),
+     scatter_text_args = list(
+       labels = "",
+       cex = 1.618),
+     scatter_mtext_args = list(text = c("", "Sum of funds requested won (log)", "Fraction of funds requested won"), 
+                               cex = c(1.75,1.5,1.5),
+                               font = c(0,0,0)   ))
+
+mtext(text = "Sum rate by total funds won" , outer = TRUE, font = 2, cex = 2, line = 0.309) 
+
+# text(x = log(medianPIbyCluster$win.sum) |> (\(x){ x[is.infinite(x)] <- 0; return(x)})() ,
+#     y = combinedClusterWins$sum.rate,
+#     labels = 1:(length(complexHCPC[["desc.var"]][[2]])),
+#     cex = 2,
+#     font = 2,
+#     col = combinedClusterWins$color,
+#     xpd = TRUE
+# ) 
+
+```
+
+
+```{r}
+
+# "Inefficient"
+
+par(oma = c(0,3,4,0), mfrow =c(1,1))
+
+yBYx(data = piEmplid[piEmplid$win.sum_percentile >= 0.8 & piEmplid$rate_cluster ==1,], 
+     x_axis =  "win.sum", 
+     y_axis = "sum.rate", 
+     detailMapping = percentileMapping, 
+     log = c("x"), 
+    # scatter_args = list(xlim = c(0,18.5)),
+     scatter_text_args = list(
+       labels = "",
+       cex = 1.618),
+     scatter_mtext_args = list(text = c("", "Sum of funds requested won (log)", "Fraction of funds requested won"), 
+                               cex = c(1.75,1.5,1.5),
+                               font = c(0,0,0)   ))
+
+mtext(text = "Sum rate by total funds won" , outer = TRUE, font = 2, cex = 2, line = 0.309) 
+
+# text(x = log(medianPIbyCluster$win.sum) |> (\(x){ x[is.infinite(x)] <- 0; return(x)})() ,
+#     y = combinedClusterWins$sum.rate,
+#     labels = 1:(length(complexHCPC[["desc.var"]][[2]])),
+#     cex = 2,
+#     font = 2,
+#     col = combinedClusterWins$color,
+#     xpd = TRUE
+# ) 
+
+```
+
+
+
+```{r}
+
+# inefficient
+
+inefficientPI <- piEmplid$emplid[piEmplid$rate_cluster == 1 & piEmplid$win.sum_percentile >= 0.8]
+
+inefficientFilter <- piYrMon$each$PROPOSAL_PI_EMPLID %in% inefficientPI
+
+timeDots(piYrMon$each[inefficientFilter,])
+
+timeline(piYr$each[inefficientFilter,])
+
+
+```
+
+
+
+```{r eval=FALSE}
+
+# experimenting with the background
+
+barplot(100:110)
+
+lapply(1:7, function(x) {rect(seq(par("usr")[1], par("usr")[2], length.out = 8 )[x], par("usr")[3], seq(par("usr")[1], par("usr")[2], length.out = 8 )[x+1], par("usr")[4], col = percentileColors[x]  ) 
+ })
+
+par(new = TRUE)
+
+barplot(100:110, col = viridis::viridis(11, direction = 1))
+
+# wow that's hard on the eyes
+
+# dynamic cut
+
+filter <- 1:nrow(piEmplid)
+plot(log(piEmplid[filter, "win.sum"]),
+     piEmplid[filter, "sum.rate"],
+     col = percentileMapping[,"color"]
+     )
+
+# plotBreaks <- seq(1000,70000000,length.out = 9 )
+
+plotBreaks <-
+  piEmplid$win.sum |>
+  (\(x){split(x,
+              cut(piEmplid$win.sum_percentile, breaks = seq(0.2,1,by=0.1))
+              )})() |>
+  (\(x){ 
+  sapply(x, max, na.rm=TRUE)
+  })() |>
+  log() |>
+  (\(x){
+    c(0,x)
+  })()
+  
+lapply(1:(length(plotBreaks) - 1), function(i) {
+  rect(plotBreaks[i], par("usr")[3], plotBreaks[i + 1], par("usr")[4], col = adjustcolor(percentileColors[i], alpha.f= 0.1 ) , border = NA)
+})
+
+par(new=TRUE)
+plot(log(piEmplid[filter, "win.sum"]),
+     piEmplid[filter, "sum.rate"],
+     col = percentileMapping[,"color"]
+     )
+
+  
+#  (cut(piEmplid$win.sum_percentile, breaks = seq(0.2,1,by=0.1)))
+
+
+#  percentileColors[as.numeric(cut(piEmplid$win.sum_percentile, breaks = seq(0.2,1,by=0.1)))]
+
+plotBreaks <- piEmplid$win.sum[cut(piEmplid$win.sum_percentile, breaks = seq(0.2,1,by=0.1))]
+  
+# this is pretty much what I'm looking for.
+
+# Next, do I need to modify yBYx to enable this?
+
+# I can figure that out later.  Let's use what I've got to finish up this report.
+
+
+filter <- piEmplid$rate_cluster == 1
+plot(log(piEmplid[filter, "win.sum"]),
+     piEmplid[filter, "sum.rate"],
+     col = percentileMapping[filter,"color"],
+     xlab = "",
+     ylab = "",
+     xaxt = "n",
+     yaxt = "n",
+     plot = FALSE
+     )
+
+
+plotBreaks <-
+  piEmplid$win.sum |>
+  (\(x){split(x,
+              cut(piEmplid$win.sum_percentile, breaks = c(0,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1), include.lowest=TRUE)
+
+              # cut(piEmplid$win.sum_percentile, breaks = seq(0.2,1,by=0.1))
+              )})() |>
+  (\(x){ 
+  sapply(x, max, na.rm=TRUE)
+  })() |>
+  log() |>
+  (\(x){
+    c(0,x)
+  })()
+
+lapply(1:(length(plotBreaks) - 1), function(i) {
+  rect(plotBreaks[i], par("usr")[3], plotBreaks[i + 1], par("usr")[4], col = adjustcolor(percentileColors[i], alpha.f= 0.1 ) , border = NA)
+})
+
+par(new=TRUE)
+plot(log(piEmplid[filter, "win.sum"]),
+     piEmplid[filter, "sum.rate"],
+     col = percentileMapping[filter,"color"],
+     xlab = "",
+     ylab = "",
+     las = 1,
+     )
+
+legend("topleft",
+       title = "Percentile ranges",
+       col = percentileColors,
+       #legend = names(plotBreaks[-1]),
+       legend = paste0("<=",seq(from =0.3, to = 1, by = 0.1)),
+       pch = 15,
+       pt.cex = 3
+       )
+
+mtext(text = c("Some PI's with a low win rate\nare in the top 20% of funds requested won",
+              "Win rate",
+              "Total funds requested won (log)"),
+      side = c(3,2,1) ,
+      font = c(2,1,1) ,
+      line = c(0,3,4),
+      cex = c(1.5,1,1)
+)
+
+
+```
+
+
+```{r}
+
+
+filter <- piEmplid$rate_cluster == 1 & piEmplid$complex_cluster == 5
+plot(log(piEmplid[filter, "win.sum"]),
+     piEmplid[filter, "sum.rate"],
+     col = percentileMapping[filter,"color"],
+     xlab = "",
+     ylab = "",
+     xaxt = "n",
+     yaxt = "n",
+     plot = FALSE
+     )
+
+
+plotBreaks <-
+  piEmplid$win.sum |>
+  (\(x){split(x,
+              cut(piEmplid$win.sum_percentile, breaks = c(0,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1), include.lowest=TRUE)
+
+              # cut(piEmplid$win.sum_percentile, breaks = seq(0.2,1,by=0.1))
+              )})() |>
+  (\(x){ 
+  sapply(x, max, na.rm=TRUE)
+  })() |>
+  log() |>
+  (\(x){
+    c(0,x)
+  })()
+
+lapply(1:(length(plotBreaks) - 1), function(i) {
+  rect(plotBreaks[i], par("usr")[3], plotBreaks[i + 1], par("usr")[4], col = adjustcolor(percentileColors[i], alpha.f= 0.1 ) , border = NA)
+})
+
+par(new=TRUE)
+plot(log(piEmplid[filter, "win.sum"]),
+     piEmplid[filter, "sum.rate"],
+     col = percentileMapping[filter,"color"],
+     xlab = "",
+     ylab = "",
+     las = 1,
+     )
+
+legend("topleft",
+       title = "Percentile ranges",
+       col = percentileColors,
+       #legend = names(plotBreaks[-1]),
+       legend = paste0("<=",seq(from =0.3, to = 1, by = 0.1)),
+       pch = 15,
+       pt.cex = 3
+       )
+
+mtext(text = c("Some PI's with a low win rate\nare in the top 20% of funds requested won",
+              "Win rate",
+              "Total funds requested won (log)"),
+      side = c(3,2,1) ,
+      font = c(2,1,1) ,
+      line = c(0,3,4),
+      cex = c(1.5,1,1)
+)
+
+
+```
+
+
+```{r}
+
+# Should I identify any "at bat" as low performers?
+
+hist(piEmplid$win.sum_percentile,
+     col = c(rep(percentileColors, each = 2)))
+     #col = c(percentileColors[1], rep(percentileColors[-1], each = 2) ) )
+# almost got the colors right.
+
+# I think I'm comfortable drawing a line at the 80th percentile
+abline(v = 0.8, col = "red", lwd = 3)
+
+# should I show this histogram?  Not sure what it's saying.
+
+# and how much of Complex 5 is in Rate 1 again?  Looks like 7%, so I can comfortably isolate these as a kind of "low performers"
+
+```
+
+
+
+```{r}
+
+# Calculate win rates
+
+combinedClusterWins <- calculateWinRates(prepData, categoryColumn = "combined_cluster", functionList = list(mean = mean, median = median)) |>
+  (\(x){
+    return(x$summary[match(levels(prepData$combined_cluster), row.names(x$summary)),])
+  })()
+
+combinedClusterWins$color <- combinedClusterColors
+
+combinedClusterWins$population <- aggregate(emplid ~ complex_cluster,  data = piEmplid, length )[,2]
+
+combinedClusterWins$pop_perc <- round(100*(combinedClusterWins$population / sum(combinedClusterWins$population)),1)
+
+
+combinedClusterWins$sum_perc <- round(100*(combinedClusterWins$win.sum/sum(combinedClusterWins$win.sum)),1)
+
+combinedClusterWins$count_total <- apply(combinedClusterWins[,c("win.count","loss.count")], 1, sum)
+
+combinedClusterWins$count_perc <- round(100*(apply(combinedClusterWins[,c("win.count","loss.count")], 1, sum)/sum(apply(combinedClusterWins[,c("win.count","loss.count")], 1, sum))),1)
+
+
+medianPIbyCluster <- aggregate(win.sum ~ complex_cluster, data = piEmplid, median) # for plot
+
+```
+
+
+```{r fig.height = 4.5, fig.width = 9}
+
+#########################################
+## THREE PROPORTION BARS AND A BOXPLOT ##
+#########################################
+
+filter <- row.names(combinedClusterWins) %in% c("3, 1", "4, 1", "5, 1")
+
+####################
+## POPULATION BAR ##
+####################
+
+par(bg = "ivory",
+    fg = "gray10",
+    oma = c(0,0,3,0),
+    mar = c(3,3,3,1),
+    mfrow= c(1,2))
+
+# dummy graph to create the background
+
+theBat <- barplot(
+  combinedClusterWins[filter,"population"],
+  xlab = "",
+  ylab = "",
+  yaxt = "n",
+  xaxt = "n"
+)
+
+# now define the proper par("usr") values
+    default_rect_args <- list(
+      xleft = par("usr")[1], 
+      ybottom = par("usr")[3], 
+      xright = par("usr")[2], 
+      ytop = par("usr")[4],
+      col = "gray90",
+      border = NA
+    )
+  
+    rect_args = list()
+      
+    # draw background color
+    rect_args <- modifyList(default_rect_args, rect_args)
+    do.call("rect", rect_args)
+
+grid(nx = NA, ny = NULL, col = "gray99", lwd = 2)
+
+par(new = TRUE)
+
+theBar <- barplot(
+  combinedClusterWins[filter,"population"],
+  col = combinedClusterWins[filter,"color"],
+  las = 2
+)
+
+mtext(text = row.names(combinedClusterWins)[filter],
+      line = 1,
+      at = theBar,
+      side = 1,
+      cex = 0.9,
+      font =2,
+      las = 2,
+      col = combinedClusterWins[filter,"color"])
+
+mtext(side = 3,
+      cex = 1.75,
+      line = 0.309,
+      text = "Population"
+      )
+
+text(x = theBar,
+     y = combinedClusterWins[filter,"population"],
+     pos = c(3,1,3),
+     font = 2,
+     col = c(rep("gray10",4),"gray90"),
+     labels = paste0(combinedClusterWins$pop_perc[filter],"%")
+     )
+
+
+###############
+## FUNDS BAR ##
+###############
+
+# adjust margins
+
+par(mar = c(3,5,3,1))
+
+# dummy graph to create the background
+
+theBat <- barplot(
+  combinedClusterWins[filter,"win.sum"],
+  xlab = "",
+  ylab = "",
+  yaxt = "n",
+  xaxt = "n"
+)
+
+# now define the proper par("usr") values
+    default_rect_args <- list(
+      xleft = par("usr")[1], 
+      ybottom = par("usr")[3], 
+      xright = par("usr")[2], 
+      ytop = par("usr")[4],
+      col = "gray90",
+      border = NA
+    )
+  
+    rect_args = list()
+      
+    # draw background color
+    rect_args <- modifyList(default_rect_args, rect_args)
+    do.call("rect", rect_args)
+
+grid(nx = NA, ny = NULL, col = "gray99", lwd = 2)
+
+par(new = TRUE)
+
+theBar <- barplot(
+  combinedClusterWins[filter,"win.sum"],
+  col = combinedClusterWins[filter,"color"],
+  las = 2
+)
+
+mtext(text = row.names(combinedClusterWins),
+      line = 1,
+      at = theBar,
+      side = 1,
+      cex = 1.5,
+      font = 2,
+      col = combinedClusterWins[filter,"color"]
+        )
+
+mtext(side = 3,
+      cex = 1.75,
+      line = 0.309,
+      text = "Funds requested won"
+      )
+
+text(x = theBar,
+     y = combinedClusterWins[filter,"win.sum"],
+     pos = c(3,1,3),  #,3,1),
+     cex = c(1,1,1,), #1,0.9),
+     font = 2,
+     col = c(rep("gray10",4),"gray90"),
+     labels = paste0(combinedClusterWins$sum_perc[filter],"%")
+     )
+
+# float the median over THAT !
+
+mtext(text = "Proportions and proposal amounts per cluster",
+      side = 3,
+      line = 0.309,
+      font = 2,
+      cex = 2,
+      outer = TRUE)
+
+###############
+## COUNT BAR ##
+###############
+
+# adjust margins
+
+par(mar = c(3,4,3,1),
+    oma = c(0,0,0,0))
+
+# par(bg = "ivory",
+#    fg = "gray10",
+#    oma = c(0,0,0,0),
+#    mar = c(3,3,3,1)
+#    )
+
+# dummy graph to create the background
+
+theBat <- barplot(
+  combinedClusterWins[filter,"count_total"],
+  xlab = "",
+  ylab = "",
+  yaxt = "n",
+  xaxt = "n"
+)
+
+# now define the proper par("usr") values
+    default_rect_args <- list(
+      xleft = par("usr")[1], 
+      ybottom = par("usr")[3], 
+      xright = par("usr")[2], 
+      ytop = par("usr")[4],
+      col = "gray90",
+      border = NA
+    )
+  
+    rect_args = list()
+      
+    # draw background color
+    rect_args <- modifyList(default_rect_args, rect_args)
+    do.call("rect", rect_args)
+
+grid(nx = NA, ny = NULL, col = "gray99", lwd = 2)
+
+par(new = TRUE)
+
+theBar <- barplot(
+  combinedClusterWins[filter,"count_total"],
+  col = combinedClusterWins[filter,"color"],
+  las = 2
+)
+
+mtext(text = row.names(combinedClusterWins)[filter],
+      line = 1,
+      at = theBar,
+      side = 1,
+      cex = 1.5,
+      font = 2,
+      col = combinedClusterWins[filter,"color"]
+        )
+
+mtext(side = 3,
+      cex = 1.75,
+      line = 0.309,
+      text = "Count of proposals"
+      )
+
+text(x = theBar,
+     y = combinedClusterWins[filter,"count_total"],
+     pos = c(3,3,3,3,1),
+     cex = c(1,1,1,1,0.9),
+     font = 2,
+     col = c(rep("gray10",4),"gray90"),
+     labels = paste0(combinedClusterWins$count_perc[filter],"%")
+     )
+
+
+#############
+## BOXPLOT ##
+#############
+
+par(mar = c(3,4,3,1))
+
+# par(bg = "ivory",
+#    fg = "gray10",
+#    oma = c(0,0,0,0),
+#    mar = c(3,4,4,1))
+    
+#    ,
+#    mfrow= c(1,1))
+
+boxplot(log(PROPOSAL_TOTAL_SPONSOR_BUDGET) ~ combined_cluster,
+        data = prepData, #[prepData$combined_cluster %in% c("3, 1","4, 1","5, 1"),],
+        names = rep("",25),
+        yaxt = "n",
+        ylab = ""
+        )
+
+# now define the proper par("usr") values
+    default_rect_args <- list(
+      xleft = par("usr")[1], 
+      ybottom = par("usr")[3], 
+      xright = par("usr")[2], 
+      ytop = par("usr")[4],
+      col = "gray90",
+      border = NA
+    )
+  
+    rect_args = list()
+      
+    # draw background color
+    rect_args <- modifyList(default_rect_args, rect_args)
+    do.call("rect", rect_args)
+
+grid(nx = NA, ny = NULL, col = "gray99", lwd = 2)
+
+par(new = TRUE)
+
+boxColors <- rep("lightgray", nrow(combinedClusterWins))
+colorFilter <- row.names(combinedClusterWins) %in% c("3, 1","4, 1","5, 1")
+boxColors[colorFilter] <- combinedClusterWins[colorFilter, "color"]
+
+theBox <- boxplot(log(PROPOSAL_TOTAL_SPONSOR_BUDGET) ~ combined_cluster,
+        data = prepData,
+        col = boxColors,
+        names = rep("",25),
+        ylab = "",
+        las = 1
+        )
+
+mtext(text = c("Proposal funds requested", "Funds requested (log)" ),
+      side = c(3,2),
+      font = c(1,1),
+      cex = c(1.75,1.5),
+      line = c(0.309, 2.427)
+      
+      )
+
+mtext(text = row.names(combinedClusterWins)[colorFilter],
+      line = 1,
+      at = (1:nrow(combinedClusterWins))[colorFilter],
+      side = 1,
+      cex = 0.9,
+      font = 2,
+      las = 2,
+      col = combinedClusterWins[colorFilter,"color"]
+        )
+
+```
+
+
+

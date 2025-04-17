@@ -1,0 +1,80 @@
+---
+title: "Clustering principal investigators without time variables"
+author: "Bill Prisbrey"
+date: "2025-03-05"
+output: html_document
+---
+
+
+# **OUTLINE**
+
+(written 3.17.2025)
+This is how I imagine this report:
+
+- A description of filtering
+- Several children describing different clustering attempts:
+  - The "count" one (or is that contained in the description of filtering?)
+  - The "complex" one
+  - Simple "rate" one
+  - Possibly the "ratio" one that I used in my presentation
+  - Another one from my sandbox or earlier efforts?
+  - A "pareto" one
+- Each of these children will create a "piEmplid" that I'll merge into one
+- Compare and contrast the different clusters
+- Draw a conclusion on "Hi" and "Low" performers
+  - Output a CSV file that could accompany this report
+
+- It could be cool to do these analyses:
+  - Can I predict which cluster a PI will be in? What are the important factors?
+  - What are the boundary cases between clusters?
+  - Can a person "move" from one cluster to another?  When will their cluster assignment be fixed?
+  - How quickly can it assign an accurate cluster prediction?
+    - Can I determine where a PI will be in after just one year?  After just two years?
+  - Can I compare "lifetime customer value" or "lifetime earnings" for a PI that won one out of the first two, or three out of the first five, and compare to two out of the first two, or four out of the first five?  How does lifetime value change with each subsequent bid?
+  - What is the largest number of consecutive losses before a win?  Can I use that to identify "lost causes" ?
+
+
+Next step:
+- These cluster assignments (and over-laps) can then be used to evaluate turn-over.
+- I think "turnover" will be a separate project
+
+An idea:
+- A child that defines the "count" and "sum rate".  Possibly import my ppt slides? ??
+
+Looks like I shouldn't run anything in the master document, but run everything as children.
+
+I'm really going to want to see where the pareto performers are.
+
+# **COMPARING CLUSTERS**
+
+```{r child=here::here("Reports and Analyses", "Identifying High and Low Performers", "Comparing clusters child.Rmd"), envir = new.env()}
+
+```
+
+
+# **HI PERFORMERS**
+
+# **LOW PERFORMERS**
+
+```{r child=here::here("Reports and Analyses", "Identifying High and Low Performers",  "Identifying Low Performers from Clusters Child.Rmd"), envir = new.env()}
+
+```
+
+
+# **APPENDIX**
+
+
+```{r child=here::here("Reports and Analyses", "Identifying High and Low Performers",  "Filter of PIs by count of proposal child.Rmd"), envir = new.env()}
+
+```
+
+
+```{r child=here::here("Reports and Analyses", "Identifying High and Low Performers", "Complex cluster of PIs child.Rmd"), envir = new.env() }
+
+```
+
+```{r child=here::here("Reports and Analyses", "Identifying High and Low Performers", "Rate cluster of PIs child.Rmd"), envir = new.env()}
+
+```
+
+

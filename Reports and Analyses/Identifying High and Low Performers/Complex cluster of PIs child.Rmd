@@ -1,0 +1,1258 @@
+---
+output:
+  html_document:
+    keep_md: true
+---
+
+```{r include = FALSE}
+
+# Notes
+
+# I could expand the summary, as it sure is concise the way it is.
+
+# I need to finish the names. DONE
+
+# Next to the first "population" bar chart I want a "percent of money won" bar chart that is identical. DONE
+
+# I need an incoming "filter" graphic to explain the filtering. DONE
+
+# The basic bar charts needs some help. DONE
+
+# Maybe I need a separate "filter" child that applies to all of the following appendices. DONE
+
+# What I need is a barchart of the population per cluster, # JUST THE TABLE
+# possibly with an embedded table that gives the counts.  # OK
+
+# possibly a table of the clusters (a simple aggregation) would be good, too. # DONE
+
+# I would need to use "flextable" as "kableextra" is for html # NEEDS WORK BUT O.K.
+
+
+```
+
+```{r include = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE, fig.height=7, fig.width=10)
+
+# adjust graphic parameters
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+```
+
+
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+
+source(here::here("Prep scripts", "Prep Script from Win Rates by College.R"))
+
+###############
+## LIBRARIES ##
+###############
+
+library(viridis)
+library(pheatmap)
+
+######################
+## CALCULATE PER PI ##
+######################
+
+piEmplid <- calculateWinRates(data = prepData, categoryColumn = "PROPOSAL_PI_EMPLID", functionList = list(mean = mean, median = median)) |> (\(x){ x[[1]] })()
+# really starting to hate the list nature and why do I want "call" ?
+
+piEmplid$count.total <- apply(piEmplid[,c("win.count","loss.count")], 1, sum, na.rm = TRUE )
+piEmplid$sum.total <- apply(piEmplid[,c("win.sum","loss.sum")], 1, sum, na.rm = TRUE )
+
+##########
+## PREP ##
+##########
+
+piEmplid$emplid <- row.names(piEmplid)
+filterThreeCount <- piEmplid$count.total > 3
+piMap <- data.frame(college = row.names(piEmplid), abbrv = row.names(piEmplid), color = NA, pch = 19, cex = 0.3 )
+
+#######################
+## TEST FOR NORMALCY ##
+#######################
+
+normalTest <- apply(piEmplid[filterThreeCount,!colnames(piEmplid) %in% c("emplid", "count_cut","rate_cluster","totals_cluster", "complex_cluster")], 2, function(x) shapiro.test(x)$p.value) |>
+  (\(x){any(x > 0.05) })() # FALSE
+
+# unsurprisingly --- let's log transform before z-transform
+
+
+#####################
+## CREATE CLUSTERS ##
+#####################
+
+complexPCA <- piEmplid[filterThreeCount,!colnames(piEmplid) %in% c("emplid", "count_cut","rate_cluster","totals_cluster", "complex_cluster")]|>
+  (\(x){data.frame(
+    log(x[,-which(colnames(x) %in% c("count.rate","sum.rate"))]), 
+    x[,c("count.rate","sum.rate")]
+    ) })() |> # log transformation of none-rate columns
+  (\(x){
+    x[x==-Inf] <- 0;
+    return(x)
+  })() |>
+  scale() |>
+  PCA(graph = FALSE)
+  
+complexHCPC <- complexPCA |>
+  HCPC(nb.clust = 5, graph = FALSE, metric = "euclidean", method = "ward") 
+
+```
+
+
+
+```{r}
+             
+# Manage colors
+
+if(length(complexHCPC[["desc.var"]][[2]]) <= 9) {
+  
+  complexClusterColors <- c("forestgreen", "deepskyblue", "goldenrod",  
+                            "firebrick", "darkslategray", "chartreuse",  
+                            "slateblue", "darkkhaki", "coral")[1:(length(complexHCPC[["desc.var"]][[2]]))]
+  
+} else {
+  complexClusterColors <- c("forestgreen", "deepskyblue", "goldenrod",  
+                            "firebrick", "darkslategray", "chartreuse",  
+                            "slateblue", "darkkhaki", "coral", 
+                            rep(c("darkorange","purple"), length.out = length(complexHCPC[["desc.var"]][[2]])-9 ))
+}
+
+clusterComplexMapping <- piMap
+clusterComplexMapping[,"pch"] <- rep(19, nrow(clusterComplexMapping))
+clusterComplexMapping[,"color"] <- complexClusterColors[complexHCPC$data.clust$clust[match(clusterComplexMapping[,"college"], row.names(complexHCPC$data.clust))] ]
+
+```
+
+
+```{r}
+
+# Merge clusters back into piEmplid
+piEmplid <- merge(piEmplid, complexHCPC$data.clust[,"clust", drop = FALSE], by.x = "emplid", by.y= "row.names")
+
+row.names(piEmplid) <- piEmplid$emplid
+names(piEmplid)[names(piEmplid) == "clust"] <- "complex_cluster" 
+
+
+# Merge into prepData
+prepData <- merge(prepData, piEmplid[,c("emplid","complex_cluster")], by.x = "PROPOSAL_PI_EMPLID", by.y = "emplid", all.x = TRUE)
+
+```
+
+
+```{r}
+
+# Calculate win rates
+
+complexClusterWins <- calculateWinRates(prepData, categoryColumn = "complex_cluster", functionList = list(mean = mean, median = median)) |>
+  (\(x){
+    return(x$summary[match(levels(prepData$complex_cluster), row.names(x$summary)),])
+  })()
+
+complexClusterWins$color <- complexClusterColors
+
+complexClusterWins$population <- aggregate(emplid ~ complex_cluster,  data = piEmplid, length )[,2]
+
+complexClusterWins$pop_perc <- round(100*(complexClusterWins$population / sum(complexClusterWins$population)),1)
+
+
+complexClusterWins$sum_perc <- round(100*(complexClusterWins$win.sum/sum(complexClusterWins$win.sum)),1)
+
+complexClusterWins$count_total <- apply(complexClusterWins[,c("win.count","loss.count")], 1, sum)
+
+complexClusterWins$count_perc <- round(100*(apply(complexClusterWins[,c("win.count","loss.count")], 1, sum)/sum(apply(complexClusterWins[,c("win.count","loss.count")], 1, sum))),1)
+
+
+medianPIbyCluster <- aggregate(win.sum ~ complex_cluster, data = piEmplid, median) # for plot
+
+```
+
+
+
+```{r}
+
+# Population heatmaps and table
+
+piNames <- row.names(piEmplid)[piEmplid$count.total > 3]
+piFilter <- prepData$PROPOSAL_PI_EMPLID %in% piNames
+
+collegePopulation <- unique(prepData[piFilter, c("PROPOSAL_PI_EMPLID", "college","complex_cluster" )])
+
+# > length(unique(collegePopulation[,1]))
+# [1] 1672
+# > length((collegePopulation[,1]))
+# [1] 1922
+
+# I think I'll just allow the duplication
+
+```
+
+```{r}
+
+# Comparing rates of submissions by 4 and 5
+
+longevity <- aggregate(interval.PI ~ complex_cluster, data = prepData, median)
+
+PI_yr_cluster <- aggregate(PROPOSAL_ID ~ PROPOSAL_PI_EMPLID + floor(interval.PI) + complex_cluster, data = prepData, length )
+
+pace <- aggregate(PROPOSAL_ID ~ complex_cluster, data = PI_yr_cluster, median) # median number of proposals submitted per year per cluster
+
+```
+
+# COMPLEX CLUSTERS BASED ON MULTIPLE DIMENSIONS
+
+### SECTIONS
+
+  (1) Summary   
+  (2) Method    
+  (3) Clusters verbally described 
+  (4) Clusters visually described
+  (5) Table of aggregated values by cluster   
+  (6) Hierachical clustering on principal components    
+  (7) Clusters displayed on scatter plots   
+  (8) Variable relevance per cluster   
+  (9) Clusters over time    
+  (10) Cluster populations by college and major institutions    
+
+### 1. SUMMARY
+
+This shows principal investigators sorted into five clusters using multiple criteria.
+
+### 2. METHOD
+
+First, principal investigators (PI's) with three or fewer proposals are filtered out.  `r format(table(filterThreeCount)[1], big.mark = ",")` principal investigators (`r  round(100*proportions(table(filterThreeCount))[1], 0) `%) are removed and `r format(table(filterThreeCount)[2], big.mark = ",")` principal investigators (`r  round(100*proportions(table(filterThreeCount))[2], 0) `%) are kept.    
+
+Second, several variables are calculated per principal investigator:    
+
+  * Sum of funds requested (won and lost)       
+  * Count of proposals (won and lost)   
+  * Mean and median of funds requested (won and lost)
+  * Rate of proposals won (count rate)        
+  * Rate of funds requested won (sum rate)    
+  * Total count and sum   
+
+Third, variables except rates are scaled with a natural log transformation first, then all variables are centered and scaled.
+
+Fourth, principle components are extracted.
+
+Fifth, hierarchical clustering using Euclidean distance and Ward's method is used to produce five clusters.
+
+The clusters are named, described verbally and visually, and the cluster populations by colleges and major institutions are shown.  
+
+### 3. CLUSTERS VERBALLY DESCRIBED
+
+**CLUSTER 1: PERFECT**    
+  Principal investigators in Cluster 1 are perfect in their attempts with 100% win rates of relatively smaller proposals.    
+  
+  A high proportion of PI's from the School of Business are found here.  
+  
+  It has a population of `r complexClusterWins[1,"population"]` PIs (`r complexClusterWins[1,"pop_perc"]`%) and accounts for only `r complexClusterWins$sum_perc[1] `% of total requested funds won.
+
+**CLUSTER 2:  PRECISE**   
+  Principal investigators in Cluster 2 don't have the perfect record of Cluster 1, but win a high proportion of their proposals on both a count and sum basis. They bring in as much as Cluster 4 in total funds requested won through racking up lots of relatively smaller wins.   
+  
+  It has a population of `r complexClusterWins[2,"population"]` PIs (`r complexClusterWins[2,"pop_perc"]`%) and accounts for `r complexClusterWins$sum_perc[2] `% of total requested funds won.     
+  
+**CLUSTER 3: PIPE DREAMS**    
+Cluster 3 contains principal investigators with zero and near-zero win rates.  They ambitiously attempt proposals as large as the principal investigators in Clusters 4 and 5 -- just without success.    
+
+  It has high proportions of PI's from the colleges of Law, Health, and Social and Behavioral Sciences.
+  
+  It has a population of `r complexClusterWins[3,"population"]` PIs (`r complexClusterWins[3,"pop_perc"]`%) and accounts for  `r complexClusterWins$sum_perc[3] `% of total requested funds won.
+  
+**CLUSTER 4:  PLUCKY**    
+Cluster 4 contains principal investigators who mainly differ from Cluster 5 in the count of proposals submitted.  They submit equivalently large proposals, just far fewer -- less than a third of the proposals submitted by Cluster 5.  Some of this is due to longevity (PI's in Cluster 4 have been submitting bids for a median of `r round( longevity[4,2],2)` years compared to `r round( longevity[5,2],2)` years in Cluster 5), but some is also due to the rate of submission:  PI's in Cluster 5 submit a median of 30% more bids per year.   
+
+Cluster 4 PI's also slightly lag Cluster 5 PI's in win rates (count and sum) as well.    
+
+  It has a population of `r complexClusterWins[4,"population"]` PIs (`r complexClusterWins[4,"pop_perc"]`%) and accounts for  `r complexClusterWins$sum_perc[4] `% of total requested funds won.
+  
+**CLUSTER 5:  PROLIFIC**    
+Cluster 5 contains principal investigators with a prolific record of submission.  They submit a large number of proposals -- triple Cluster 4, the next highest -- with impressive win rates on large proposals.  These are the workhorses of University of Utah research.    
+
+  Principal investigators from the institutions (EGI, CTSI, CVRTI, ICSE, and SCI) tend to show up here.
+
+It has a population of `r complexClusterWins[5,"population"]` PIs (`r complexClusterWins[5,"pop_perc"]`%) and accounts for a large majority (`r complexClusterWins$sum_perc[5] `%) of total requested funds won.    
+
+### 4. CLUSTERS VISUALLY DESCRIBED
+
+```{r fig.height = 4.5, fig.width = 9}
+
+#########################################
+## THREE PROPORTION BARS AND A BOXPLOT ##
+#########################################
+
+
+####################
+## POPULATION BAR ##
+####################
+
+par(bg = "ivory",
+    fg = "gray10",
+    oma = c(0,0,3,0),
+    mar = c(3,3,3,1),
+    mfrow= c(1,2))
+
+# dummy graph to create the background
+
+theBat <- barplot(
+  complexClusterWins[,"population"],
+  xlab = "",
+  ylab = "",
+  yaxt = "n",
+  xaxt = "n"
+)
+
+# now define the proper par("usr") values
+    default_rect_args <- list(
+      xleft = par("usr")[1], 
+      ybottom = par("usr")[3], 
+      xright = par("usr")[2], 
+      ytop = par("usr")[4],
+      col = "gray90",
+      border = NA
+    )
+  
+    rect_args = list()
+      
+    # draw background color
+    rect_args <- modifyList(default_rect_args, rect_args)
+    do.call("rect", rect_args)
+
+grid(nx = NA, ny = NULL, col = "gray99", lwd = 2)
+
+par(new = TRUE)
+
+theBar <- barplot(
+  complexClusterWins[,"population"],
+  col = complexClusterWins[,"color"],
+  las = 2
+)
+
+mtext(text = row.names(complexClusterWins),
+      line = 1,
+      at = theBar,
+      side = 1,
+      cex = 1.5,
+      font =2,
+      col = complexClusterWins[,"color"])
+
+mtext(side = 3,
+      cex = 1.75,
+      line = 0.309,
+      text = "Population"
+      )
+
+text(x = theBar,
+     y = complexClusterWins[,"population"],
+     pos = c(3,3,3,1,1),
+     font = 2,
+     col = c(rep("gray10",4),"gray90"),
+     labels = paste0(complexClusterWins$pop_perc,"%")
+     )
+
+
+###############
+## FUNDS BAR ##
+###############
+
+# adjust margins
+
+par(mar = c(3,5,3,1))
+
+# dummy graph to create the background
+
+theBat <- barplot(
+  complexClusterWins[,"win.sum"],
+  xlab = "",
+  ylab = "",
+  yaxt = "n",
+  xaxt = "n"
+)
+
+# now define the proper par("usr") values
+    default_rect_args <- list(
+      xleft = par("usr")[1], 
+      ybottom = par("usr")[3], 
+      xright = par("usr")[2], 
+      ytop = par("usr")[4],
+      col = "gray90",
+      border = NA
+    )
+  
+    rect_args = list()
+      
+    # draw background color
+    rect_args <- modifyList(default_rect_args, rect_args)
+    do.call("rect", rect_args)
+
+grid(nx = NA, ny = NULL, col = "gray99", lwd = 2)
+
+par(new = TRUE)
+
+theBar <- barplot(
+  complexClusterWins[,"win.sum"],
+  col = complexClusterWins[,"color"],
+  las = 2
+)
+
+mtext(text = row.names(complexClusterWins),
+      line = 1,
+      at = theBar,
+      side = 1,
+      cex = 1.5,
+      font = 2,
+      col = complexClusterWins[,"color"]
+        )
+
+mtext(side = 3,
+      cex = 1.75,
+      line = 0.309,
+      text = "Funds requested won"
+      )
+
+text(x = theBar,
+     y = complexClusterWins[,"win.sum"],
+     pos = c(3,3,3,3,1),
+     cex = c(1,1,1,1,0.9),
+     font = 2,
+     col = c(rep("gray10",4),"gray90"),
+     labels = paste0(complexClusterWins$sum_perc,"%")
+     )
+
+# float the median over THAT !
+
+mtext(text = "Proportions and proposal amounts per cluster",
+      side = 3,
+      line = 0.309,
+      font = 2,
+      cex = 2,
+      outer = TRUE)
+
+###############
+## COUNT BAR ##
+###############
+
+# adjust margins
+
+par(mar = c(3,4,3,1),
+    oma = c(0,0,0,0))
+
+# par(bg = "ivory",
+#    fg = "gray10",
+#    oma = c(0,0,0,0),
+#    mar = c(3,3,3,1)
+#    )
+
+# dummy graph to create the background
+
+theBat <- barplot(
+  complexClusterWins[,"count_total"],
+  xlab = "",
+  ylab = "",
+  yaxt = "n",
+  xaxt = "n"
+)
+
+# now define the proper par("usr") values
+    default_rect_args <- list(
+      xleft = par("usr")[1], 
+      ybottom = par("usr")[3], 
+      xright = par("usr")[2], 
+      ytop = par("usr")[4],
+      col = "gray90",
+      border = NA
+    )
+  
+    rect_args = list()
+      
+    # draw background color
+    rect_args <- modifyList(default_rect_args, rect_args)
+    do.call("rect", rect_args)
+
+grid(nx = NA, ny = NULL, col = "gray99", lwd = 2)
+
+par(new = TRUE)
+
+theBar <- barplot(
+  complexClusterWins[,"count_total"],
+  col = complexClusterWins[,"color"],
+  las = 2
+)
+
+mtext(text = row.names(complexClusterWins),
+      line = 1,
+      at = theBar,
+      side = 1,
+      cex = 1.5,
+      font = 2,
+      col = complexClusterWins[,"color"]
+        )
+
+mtext(side = 3,
+      cex = 1.75,
+      line = 0.309,
+      text = "Count of proposals"
+      )
+
+text(x = theBar,
+     y = complexClusterWins[,"count_total"],
+     pos = c(3,3,3,3,1),
+     cex = c(1,1,1,1,0.9),
+     font = 2,
+     col = c(rep("gray10",4),"gray90"),
+     labels = paste0(complexClusterWins$count_perc,"%")
+     )
+
+
+#############
+## BOXPLOT ##
+#############
+
+par(mar = c(3,4,3,1))
+
+# par(bg = "ivory",
+#    fg = "gray10",
+#    oma = c(0,0,0,0),
+#    mar = c(3,4,4,1))
+    
+#    ,
+#    mfrow= c(1,1))
+
+boxplot(log(PROPOSAL_TOTAL_SPONSOR_BUDGET) ~ complex_cluster,
+        data = prepData,
+        names = rep("",5),
+        yaxt = "n",
+        ylab = ""
+        )
+
+# now define the proper par("usr") values
+    default_rect_args <- list(
+      xleft = par("usr")[1], 
+      ybottom = par("usr")[3], 
+      xright = par("usr")[2], 
+      ytop = par("usr")[4],
+      col = "gray90",
+      border = NA
+    )
+  
+    rect_args = list()
+      
+    # draw background color
+    rect_args <- modifyList(default_rect_args, rect_args)
+    do.call("rect", rect_args)
+
+grid(nx = NA, ny = NULL, col = "gray99", lwd = 2)
+
+par(new = TRUE)
+
+theBox <- boxplot(log(PROPOSAL_TOTAL_SPONSOR_BUDGET) ~ complex_cluster,
+        data = prepData,
+        col = complexClusterWins$color,
+        names = rep("",5),
+        ylab = "",
+        las = 1
+        )
+
+mtext(text = c("Proposal funds requested", "Funds requested (log)" ),
+      side = c(3,2),
+      font = c(1,1),
+      cex = c(1.75,1.5),
+      line = c(0.309, 2.427)
+      
+      )
+
+mtext(text = row.names(complexClusterWins),
+      line = 1,
+      at = 1:5,
+      side = 1,
+      cex = 1.5,
+      font = 2,
+      col = complexClusterWins[,"color"]
+        )
+
+```
+
+```{r}
+
+# Simple bars describing the clusters
+
+par(oma = c(0,0,3,0), mfrow = c(2,1))
+
+plotWinRates(complexClusterWins,
+             agg = "count",
+             line = "count.rate",
+             bar_params = list(mar = c(2,7,4,5)),
+             bar_args = list(las = 1),
+             bar_mtext_args = list(
+               text = c("Proposals per cluster",
+                        "",
+                        "Count of proposals"
+                        ),
+               line = c(1.618,0,5),
+               col = c("gray10", "gray10", "gray10"),
+               font = c(1,3,1),
+               cex = c(1.75,1.25,1.15),
+               side = c(3,3,2)
+                        ),
+             bar_legend_args = list(x = "topleft")
+             )
+
+mtext(text = "Clusters described by count and sum",
+      side = 3,
+      line = 0.309,
+      font = 2,
+      cex = 2,
+      outer = TRUE)
+
+plotWinRates(complexClusterWins,
+             agg = "sum",
+             line = "sum.rate",
+             bar_params = list(mar = c(2,7,4,5)),
+             bar_args = list(las = 1),
+             bar_mtext_args = list(
+               text = c("Funds requested per cluster",
+                        "",
+                        "Sum of funds requested"
+                        ),
+               line = c(1.618,0,5),
+               col = c("gray10", "gray10", "gray10"),
+               font = c(1,3,1),
+               cex = c(1.75,1.25,1.15),
+               side = c(3,3,2)
+                        ),
+             bar_legend_args = list(x = "topleft")
+)
+
+```
+
+
+```{r eval=FALSE}
+
+# I did this using "college" column and "pheatmap" at the end of the report
+
+# I'd like to make  heatmap of clusters per college and 5 institutions
+
+table(prepData[,c("college16_bigInst", "complex_cluster")]) |>
+  log() |>
+  (\(x){ 
+   x[x==-Inf] <- 0;
+    return(x) 
+    })() |>
+  heatmap(
+  scale = "row"
+)
+
+
+
+# let's show the row-wise percentages
+
+table(prepData[,c("college16_bigInst", "complex_cluster")]) |>
+  as.data.frame.matrix() |>
+  apply(1, proportions) |>
+  t() |>
+  heatmap()
+
+
+
+table(prepData[,c("college16_bigInst", "complex_cluster")]) |>
+  as.data.frame.matrix() |>
+  apply(1, proportions) |>
+  t() |>
+  heatmap(
+    scale = "column"
+  )
+
+# it's all kind of interesting
+# But this is just the wrong basis.
+# I need to do this per PI, not per proposal
+
+# I'll have to think about that one a little bit
+
+```
+
+
+
+```{r, eval = FALSE}
+
+# If you look at clYr[[2]] and that last final aggregation,
+# you'll see that Cluster 5 produces at a much higher rate (double the proposals per year)
+
+# But I think I'll leave that for an investigation using time clusters
+
+
+curious <- aggregate(interval.PI ~ complex_cluster, data = prepData, median)
+
+# so cluster 5 has been at it longer
+# let's see the count per elapsed year
+# I need some work on the logic
+
+stillCurious <- aggregate(interval.PI ~ floor(interval.PI) + complex_cluster, data = prepData, length )
+
+# seems like I can do an aggregation that manages "elapsed"
+# should I attempt a new one for the 
+
+# or just see what my "elapsed" ones do?
+
+piYr <- elapsed(data = prepData)
+piYrMon <- elapsedCash(data = prepData)
+
+clYr <- elapsed(target = "complex_cluster", data = prepData )
+clYrMon <- elapsedCash(target = "complex_cluster", data = prepData )
+
+# or-r-r-r-r
+# before figuring that out (and implying I've analyzed it)
+# I just want to figure out the pace.
+
+catsCurious <- aggregate(PROPOSAL_ID ~ PROPOSAL_PI_EMPLID + floor(interval.PI) + complex_cluster, data = prepData, length )
+
+aggregate(PROPOSAL_ID ~ complex_cluster ,data = catsCurious, mean) # MUCH higher pace
+
+# timeDots(data = clYr[[2]][clYr[[2]][,"complex_cluster"] == 1, ] ) error
+
+filter <- clYrMon$each[,"complex_cluster"] == 1
+timeDots(data = clYrMon$each[filter,])
+# not happy
+
+filter <- piYrMon$each[,"PROPOSAL_PI_EMPLID"] %in% piEmplid$emplid[piEmplid$complex_cluster == 1]
+timeDots(data = piYrMon$each[filter,])
+# Happy !
+
+filter <- piYr$each[,"PROPOSAL_PI_EMPLID"] %in% piEmplid$emplid[piEmplid$complex_cluster == 1]
+timeline(data = piYr$each[filter,]) # happy (!)
+
+# Honestly not a bad graphical representation
+
+# Is it sorted somehow?  Seems like it
+
+
+
+
+```
+
+### 5. TABLE OF AGGREGATED VALUES BY CLUSTER
+
+```{r}
+
+displayColumns <- c(
+    "population",
+    "pop_perc",
+    "count_total", 
+    "count_perc",
+    "win.sum",
+    "sum_perc",
+    "win.count",   
+    "win.mean",    
+    "win.median", 
+  "loss.sum",    
+  "loss.count",  
+  "loss.mean",   
+  "loss.median",
+  "sum.rate",    
+  "count.rate",  
+  "color"
+)
+
+
+columnRounding <- c(
+    "population" = 0,
+    "pop_perc" =1,
+    "count_total" =-1, 
+    "count_perc" = 0,
+    "win.sum" = -6,
+    "sum_perc" = 0,
+    "win.count" = -1,   
+    "win.mean" = -3,    
+    "win.median" = -3, 
+  "loss.sum" = -6,    
+  "loss.count" = -1,  
+  "loss.mean" = -2,   
+  "loss.median" = -2,
+  "sum.rate" = 2,    
+  "count.rate" = 2  
+)
+
+# Convert result_df to a flextable
+ft <- data.frame(cluster = rownames(complexClusterWins), complexClusterWins[,displayColumns] ) |>
+  (\(x){ 
+      x[, names(columnRounding)] <- Map(round, x[, names(columnRounding)], columnRounding);
+    x  # Return the modified data frame
+    })() |>
+  flextable::flextable() |>
+  flextable::theme_vanilla() %>%  # Apply a clean theme
+  flextable::set_caption("Aggregated Metrics by Complex Cluster") %>%  # Add a title
+  flextable::colformat_num(j = 2:ncol(complexClusterWins), digits = 2) %>%  # Format numeric columns
+  flextable::autofit()  # Adjust column widths for better display
+
+# Print the table
+ft
+
+
+```
+
+
+
+```{r fig.width=7, eval=FALSE}
+
+# moved this below the dendrogram to appear next to the factor map
+
+fviz_pca_biplot(complexPCA,
+                geom = "none",
+                title = "Principal components of multiple variables")
+
+```
+
+
+### 6. HIERARCHICAL CLUSTERING ON PRINCIPAL COMPONENTS
+
+
+```{r fig.height = 4.5, fig.width = 9}
+
+library(gridExtra)
+
+p1 <- fviz_pca_biplot(complexPCA,
+                       geom = "none",
+                       title = "Principal components of multiple variables")
+
+p2 <- fviz_cluster(complexHCPC, 
+                   geom = "point",
+                   main = "PI clusters plotted on component dimensions",
+                   show.clust.cent = TRUE)
+
+# Arrange plots side by side
+grid.arrange(p1, p2, ncol = 2)  # Change `ncol = 1` for vertical arrangement
+
+```
+
+```{r fig.height = 4.5, fig.width=4.5}
+
+# Dendrogram
+
+if(length(complexHCPC[["desc.var"]][[2]]) <= 12) {
+  plot(complexHCPC, choice = "tree", cex = 0.05)
+}
+
+```
+
+
+### 7. CLUSTERS DISPLAYED ON SCATTER PLOTS
+
+```{r}
+
+# Plot by win sum and rate clusters
+
+par(oma = c(0,3,4,0), mfrow =c(1,1))
+
+yBYx(data = piEmplid,  
+     x_axis =  "win.sum", 
+     y_axis = "sum.rate", 
+     detailMapping = clusterComplexMapping, 
+     log = c("x"), 
+     scatter_args = list(xlim = c(0,18.5)),
+     scatter_text_args = list(
+       labels = "",
+       cex = 1.618),
+     scatter_mtext_args = list(text = c("", "Sum of funds requested won (log)", "Fraction of funds requested won"), 
+                               cex = c(1.75,1.5,1.5),
+                               font = c(0,0,0)   ))
+
+mtext(text = "Sum rate by total funds won" , outer = TRUE, font = 2, cex = 2, line = 0.309) 
+
+text(x = log(medianPIbyCluster$win.sum) |> (\(x){ x[is.infinite(x)] <- 0; return(x)})() ,
+     y = complexClusterWins$sum.rate,
+     labels = 1:(length(complexHCPC[["desc.var"]][[2]])),
+     cex = 2,
+     font = 2,
+     col = complexClusterWins$color,
+     xpd = TRUE
+) 
+
+```
+
+
+```{r fig.width=10}
+
+# Tiled sum scatter plots of complex clusters
+
+par(oma = c(5,7,4,1), mfrow = c(3,2))
+
+invisible(
+  lapply(levels(piEmplid$complex_cluster), function(x){ 
+    
+    yBYx(data = piEmplid[piEmplid$complex_cluster == x,],  
+         x_axis = "win.sum", 
+         y_axis = "sum.rate", 
+         detailMapping = clusterComplexMapping, 
+         log = c("x"), 
+         scatter_params = list(mar = c(0,0,0,0)),
+         scatter_args = list(cex = 1.618, xlim = c(0,20), ylim = c(0,1)),
+         scatter_text_args = list(
+           labels = "",
+           cex = 1.618),
+         scatter_mtext_args = list(text = c("", "", "") )
+         #                              cex = c(1.75,1.5,1.5),
+         #                              font = c(0,0,0)   )
+    )
+    
+    textFilter <- row.names(complexClusterWins) == x
+    #text(x = totalsClusterWins$count.rate[textFilter],
+    #    y = totalsClusterWins$sum.rate[textFilter],
+    #    labels = row.names(totalsClusterWins)[textFilter],
+    #    cex = 2,
+    #    font = 2,
+    #    col = totalsClusterWins$color[textFilter]
+    #    )   
+    
+    text(x = 0.05,
+         y = 0.9,
+         labels = row.names(complexClusterWins)[textFilter],
+         cex = 3,
+         font = 2,
+         col = complexClusterWins$color[textFilter],
+         xpd = TRUE
+    )  
+    
+    
+  })    
+)    
+
+
+
+# mtext(text = "Clusters based on multiple dimensions" , outer = TRUE, font = 2, cex = 2, line = 0.309) 
+
+mtext(text = "Sum of funds requested won (log)" , side = 1, outer = TRUE, font = 1, cex = 1.5, line = 3) 
+
+mtext(text = "Fraction of funds requested won" , side = 2, outer = TRUE, font = 1, cex = 1.5, line = 3) 
+
+```
+
+
+```{r}
+
+# Rate scatter plot
+
+par(oma = c(0,3,4,0), mfrow =c(1,1))
+
+yBYx(data = piEmplid,  
+     x_axis = "count.rate", 
+     y_axis = "sum.rate", 
+     detailMapping = clusterComplexMapping, 
+     log = NA, 
+     scatter_text_args = list(
+       labels = "",
+       cex = 1.618),
+     scatter_mtext_args = list(text = c("", "Fraction of proposals won", "Fraction of funds requested won"), 
+                               cex = c(1.75,1.5,1.5),
+                               font = c(0,0,0)   ))
+
+text(x = complexClusterWins$count.rate,
+     y = complexClusterWins$sum.rate,
+     labels = row.names(complexClusterWins),
+     cex = 2,
+     font = 2,
+     col = complexClusterWins$color
+) 
+
+mtext(text = "Sum rate and count rate" , outer = TRUE, font = 2, cex = 2, line = 0.309) 
+
+```
+
+```{r}
+
+# Tiled rate scatter plots of complex clusters
+
+par(oma = c(5,7,4,1), mfrow = c(3,2))
+
+invisible(
+  lapply(levels(piEmplid$complex_cluster), function(x){ 
+    
+    
+    
+    yBYx(data = piEmplid[piEmplid$complex_cluster == x,],  
+         x_axis = "count.rate", 
+         y_axis = "sum.rate", 
+         detailMapping = clusterComplexMapping, 
+         log = NA, 
+         scatter_params = list(mar = c(0,0,0,0)),
+         scatter_args = list(cex = 1.618, xlim = c(0,1), ylim = c(0,1)),
+         scatter_text_args = list(
+           labels = "",
+           cex = 1.618),
+         scatter_mtext_args = list(text = c("", "", "") )
+         #                              cex = c(1.75,1.5,1.5),
+         #                              font = c(0,0,0)   )
+    )
+    
+    textFilter <- row.names(complexClusterWins) == x
+    #text(x = totalsClusterWins$count.rate[textFilter],
+    #    y = totalsClusterWins$sum.rate[textFilter],
+    #    labels = row.names(totalsClusterWins)[textFilter],
+    #    cex = 2,
+    #    font = 2,
+    #    col = totalsClusterWins$color[textFilter]
+    #    )   
+    
+    text(x = 0.05,
+         y = 0.9,
+         labels = row.names(complexClusterWins)[textFilter],
+         cex = 3,
+         font = 2,
+         col = complexClusterWins$color[textFilter],
+         xpd = TRUE
+    )  
+    
+    
+  })    
+)    
+
+
+
+# mtext(text = "Clusters based on multiple dimensions" , outer = TRUE, font = 2, cex = 2, line = 0.309) 
+
+mtext(text = "Fraction of funds requested won" , side = 2, outer = TRUE, font = 1, cex = 1.5, line = 3) 
+
+mtext(text = "Fraction of proposals won" , side = 1, outer = TRUE, font = 1, cex = 1.5, line = 3) 
+
+```
+
+### 8. VARIABLE RELEVANCE PER CLUSTER
+
+```{r}
+
+# Variable relevance per cluster
+
+oldPar <- par(oma = c(0,0,4,1),
+              bg = "ivory",
+              fg = "gray10",
+              mfrow = c(3,2), 
+              mar = c(3,7,0,0))
+
+invisible(
+  lapply(levels(piEmplid$complex_cluster), function(x){ 
+ 
+    # Extract v.test values for the cluster
+    vtest_values <- complexHCPC$desc.var$quanti[[x]][, "v.test"]
+         
+    # Generate a color gradient using viridis, centered around 0
+    colors <- viridis(length(vtest_values), option = "G")  # "C" is a blue-to-yellow scale
+             
+    # Order values for proper coloring
+    ordered_idx <- order(vtest_values)  
+    sorted_values <- vtest_values[ordered_idx]  
+    sorted_colors <- colors[rank(sorted_values, ties.method = "first")]  # Match colors to sorted values
+    
+    complexHCPC$desc.var$quanti[[x]][,"v.test"] |> 
+      (\(x){ 
+      barplot(
+        rev(x),
+        las = 2,
+        horiz = TRUE,
+        col = sorted_colors)   
+      })()
+        
+    legend("topleft", legend = x, bty = "n", text.font = 2, cex = 2, text.col = complexClusterWins[as.numeric(x),"color"])    
+})
+)
+
+mtext(side = 3, 
+      font = 2, 
+      cex = 2, 
+      text = "Variable relevance per cluster",
+      col = "gray10",
+      line = 0.618,
+      outer = TRUE)
+```
+
+
+```{r, eval = FALSE}
+
+# rather than create an aggregate of piEmplid per cluster (which is the accurate way to represent how the cluster was calculated), I added a "population" column to complexClusterWins and I'll display that instead
+
+# simple metrics per cluster
+
+count.per <- aggregate(emplid ~ complex_cluster,  data = piEmplid, length )
+median.per <- aggregate(cbind(win.median, loss.median) ~ complex_cluster,  data = piEmplid, median )
+sum.per <- aggregate(cbind(win.sum, loss.sum) ~ complex_cluster,  data = piEmplid, sum )
+count.per <- aggregate(cbind(win.count, loss.count) ~ complex_cluster,  data = piEmplid, sum )
+  
+median.sum <- aggregate(cbind(win.sum, loss.sum) ~ complex_cluster,  data = piEmplid, median )
+median.rate <- aggregate(cbind(count.rate, sum.rate) ~ complex_cluster,  data = piEmplid, median )
+
+# chat gave me this
+
+cluster_summary <- by(piEmplid[, c("emplid", "win.median", "loss.median", 
+                           "win.sum", "loss.sum", "win.count", 
+                           "loss.count", "count.rate", "sum.rate")], 
+             piEmplid$complex_cluster, 
+             function(x) c(population = nrow(x), 
+                           pop_perc = round((nrow(x)/nrow(piEmplid))*100,0),
+                           median_win = round(median(x$win.median), -3) ,  
+                           median_loss = round(median(x$loss.median), -3), 
+                           sum_win = round(sum(x$win.sum),-6) , 
+                           sum_loss = round(sum(x$loss.sum), -6), 
+                           count_win = sum(x$win.count), 
+                           count_loss = sum(x$loss.count), 
+                           median_count_rate = round(median(x$count.rate),2), 
+                           median_sum_rate = round(median(x$sum.rate),2) ) ) |>
+  (\(x){do.call(rbind,x) })()
+  
+
+# Load required packages
+library(flextable)
+
+# Convert result_df to a flextable
+ft <- flextable::flextable(data.frame(complex_cluster = rownames(cluster_summary), cluster_summary)) %>%
+  flextable::theme_vanilla() %>%  # Apply a clean theme
+  flextable::set_caption("Aggregated Metrics by Complex Cluster") %>%  # Add a title
+  flextable::colformat_num(j = 2:ncol(cluster_summary), digits = 2) %>%  # Format numeric columns
+  flextable::autofit()  # Adjust column widths for better display
+
+# Print the table
+ft
+
+# I actually have all but the population in the "complexClusterWins". Well, except the calculation of the rates and medians have a different base -- per proposal instead of per emplid, so it's not exactly the same thing.
+
+# the cluster summary is a summary of what was actually clustered (piEmplid, per PI) while the complexClusterWins goes back to the original per-proposal data that piEmplid was aggregated from.
+
+# I should just merge the population to complexClusterWins and use that in my table, or figure out a function to do it when I calculcate complexClusterWins
+
+
+
+```
+
+
+### 9. CLUSTERS OVER TIME
+
+Although this clustering did not include any time variables, the submission patterns by cluster are shown.
+
+```{r fig.height = 4}
+
+# I need to fix the timeDots graphics before I can get this to tile.  I should  probably leave this out.
+
+piYr <- elapsed(data = prepData[!is.na(prepData$complex_cluster), ])
+
+
+# I haven't improved my timeline graphics yet
+
+par(mfrow = c(1,1), bg = "ivory", fg = "gray10",
+    mar = c(0,0,0,0))
+
+invisible(
+lapply(levels(prepData$complex_cluster), function(x){ 
+
+  filter <- piYr$each[,"PROPOSAL_PI_EMPLID"] %in% piEmplid$emplid[piEmplid$complex_cluster == x]
+  
+# par(new = TRUE)  
+timeline(data = piYr$each[filter,])
+mtext(x, side = 3, line = -2, cex = 2, font = 2, outer = FALSE, col = complexClusterWins$color[as.numeric(x)])
+  
+  })
+)
+
+
+
+```
+
+### 10. CLUSTER POPULATIONS BY COLLEGE AND MAJOR INSTITUTIONS
+
+ `r nrow(collegePopulation) - length(unique(collegePopulation[,1]))` (`r  ( (nrow(collegePopulation) - length(unique(collegePopulation[,1]))) /length(unique(collegePopulation[,1])) ) |> (\(x){round(x*100, 1)})()`)%  PI's appear in multiple colleges or institutions.
+
+
+```{r}
+
+table(collegePopulation[,c("college", "complex_cluster")]) |>
+  as.data.frame.matrix() |>
+  apply(1, proportions) |>
+  t() |>
+  pheatmap(
+    scale = "column",
+  #  Rowv = NA,
+  #  Colv = NA,
+    main = "Organization by cluster",
+  #  margins = c(3,3)
+  fontsize_col = 15,
+  angle_col = 0
+  )
+
+
+# that's pretty much what I want
+
+# let's publish the table now
+
+collegeTable <- table(collegePopulation[,c("college", "complex_cluster")]) |>
+  as.data.frame.matrix() |>
+  apply(1, proportions) |>
+  t() |>
+  as.data.frame() |>
+  (\(x){round(100*x,1) })() |>
+  (\(x){cbind(Org = rownames(x), x) })() |>  #
+  flextable::flextable() |>
+  flextable::theme_vanilla() |>  # Apply a clean theme
+  flextable::set_caption("Percent of organization population per cluster") |>  # Add a title
+  flextable::colformat_num(j = 2:6, digits = 2) |>  # Format numeric columns
+  flextable::autofit()  # Adjust column widths for better display
+
+# Print the table
+collegeTable
+
+# man that's beautiful
+
+
+# let's reverse the table -- 
+
+table(collegePopulation[,c("college", "complex_cluster")]) |>
+  as.data.frame.matrix() |>
+  apply(2, proportions) |>
+  t() |>
+  pheatmap(
+    scale = "column",
+  #  Rowv = NA,
+  #  Colv = NA,
+    main = "Cluster by organization",
+  #  margins = c(3,3)
+  las = 3
+  )
+
+
+collegeTable <- table(collegePopulation[,c("college", "complex_cluster")]) |>
+  as.data.frame.matrix() |>
+  apply(2, proportions) |>
+  t() |>
+  as.data.frame() |>
+  (\(x){round(100*x,1) })() |>
+  (\(x){cbind(Org = rownames(x), x) })() |>  #
+  flextable::flextable() |>
+  flextable::theme_vanilla() |>  # Apply a clean theme
+  flextable::set_caption("Percent of cluster population per organization") |>  # Add a title
+  flextable::colformat_num(j = 2:6, digits = 2) |>  # Format numeric columns
+  flextable::autofit()  # Adjust column widths for better display
+
+# Print the table
+collegeTable
+
+
+
+```
+
+
+
+```{r}
+
+# Save "piEmplid" object
+
+saveRDS(piEmplid, here::here("Robjects", "Clustering PIs", "Complex cluster from complex cluster child.rds"))
+
+```

@@ -1,0 +1,119 @@
+---
+output:
+  html_document:
+    keep_md: true
+---
+
+```{r include = FALSE}
+
+```
+
+
+
+```{r include = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE, fig.height=7, fig.width=10)
+
+# adjust graphic parameters
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+```
+
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+# PREP SCRIPT
+
+source(here::here("Prep scripts", "Prep Script from Win Rates by College.R"))
+
+# PER PI
+
+piClusters <- lapply(list.files(here::here("Robjects", "Clustering PIs"), full.names = TRUE), readRDS)
+
+
+#piEmplid <- do.call(merge, piClusters)
+
+piEmplid <- Reduce(function(x, y) {
+  merged <- merge(x, y, by = "emplid", all = FALSE)
+  merged <- merged[, !duplicated(sub("\\.x$|\\.y$", "", names(merged)))]  # Remove duplicate columns
+  
+  # Rename columns to remove ".x"
+  names(merged) <- sub("\\.x$", "", names(merged))
+  
+  merged
+}, piClusters)
+
+
+###############
+## LIBRARIES ##
+###############
+
+library(viridis)
+library(pheatmap)
+
+# I'll probably want my per-cluster wins as well
+
+# I am going to want to bring in the colors
+
+filterThreeCount <- piEmplid$count.total > 3
+
+piMap <- data.frame(college = row.names(piEmplid), abbrv = row.names(piEmplid), color = NA, pch = 19, cex = 0.3 )
+
+
+```
+
+
+```{r fig.height=4.5, fig.width=4.5}
+
+# heat map
+
+
+table((piEmplid[,c("rate_cluster", "complex_cluster")]))|> pheatmap(scale = "column")
+
+# table
+
+clusterTable <- table(piEmplid[,c("rate_cluster", "complex_cluster")]) |>
+  as.data.frame.matrix() |>
+  apply(1, proportions) |>
+  t() |>
+  as.data.frame() |>
+  (\(x){round(100*x,1) })() |>
+  (\(x){cbind(Rate_cluster = rownames(x), x) })() |>  #
+  flextable::flextable() |>
+  flextable::theme_vanilla() |>  # Apply a clean theme
+  flextable::set_caption("Percent of rate cluster per complex cluster") |>  # Add a title
+#  flextable::colformat_num(j = 2:6, digits = 2) |>  # Format numeric columns
+  flextable::autofit()  # Adjust column widths for better display
+
+# Print the table
+clusterTable
+
+clusterTable <- table(piEmplid[,c("rate_cluster", "complex_cluster")]) |>
+  as.data.frame.matrix() |>
+  apply(2, proportions) |>
+  t() |>
+  as.data.frame() |>
+  (\(x){round(100*x,1) })() |>
+  (\(x){cbind(Complex_cluster = rownames(x), x) })() |>  #
+  flextable::flextable() |>
+  flextable::theme_vanilla() |>  # Apply a clean theme
+  flextable::set_caption("Percent of complex cluster per rate cluster") |>  # Add a title
+#  flextable::colformat_num(j = 2:6, digits = 2) |>  # Format numeric columns
+  flextable::autofit()  # Adjust column widths for better display
+
+# Print the table
+clusterTable
+
+
+```
+

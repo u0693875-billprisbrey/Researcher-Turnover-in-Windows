@@ -1,0 +1,228 @@
+---
+output:
+  html_document:
+    keep_md: true
+---
+
+```{r include = FALSE}
+
+# Notes
+
+# This follows "Quick Pareto of winning funds requested.Rmd" and "Complex cluster of PIs child.Rmd"
+
+```
+
+
+
+```{r include = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE, fig.height=10, fig.width=9)
+
+# adjust graphic parameters
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+```
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+
+source(here::here("Prep scripts", "Prep Script from Win Rates by College.R"))
+
+###############
+## LIBRARIES ##
+###############
+
+library(viridis)
+library(pheatmap)
+
+######################
+## CALCULATE PER PI ##
+######################
+
+piEmplid <- calculateWinRates(data = prepData, categoryColumn = "PROPOSAL_PI_EMPLID", functionList = list(mean = mean, median = median)) |> (\(x){ x[[1]] })()
+# really starting to hate the list nature and why do I want "call" ?
+
+piEmplid$count.total <- apply(piEmplid[,c("win.count","loss.count")], 1, sum, na.rm = TRUE )
+piEmplid$sum.total <- apply(piEmplid[,c("win.sum","loss.sum")], 1, sum, na.rm = TRUE )
+
+##########
+## PREP ##
+##########
+
+piEmplid$emplid <- row.names(piEmplid)
+filterThreeCount <- piEmplid$count.total > 3
+piMap <- data.frame(college = row.names(piEmplid), abbrv = row.names(piEmplid), color = NA, pch = 19, cex = 0.3 )
+
+################
+## PERCENTILE ##
+################
+
+piEmplid$win.sum_prop <- proportions(piEmplid$win.sum)
+piEmplid$win.sum_rank <- rank(-piEmplid$win.sum,na.last = "keep", ties.method = "min")
+ecdf_fun <- ecdf(piEmplid$win.sum)
+piEmplid$win.sum_percentile <- ecdf_fun(piEmplid$win.sum)
+
+#####################
+## USEFUL FUNCTION ##
+#####################
+
+pickIndex <- function(percentageTarget = 0.8, propColumn) {
+  
+ index_value <-  which(cumsum(propColumn[order(propColumn, decreasing = TRUE)]) > percentageTarget-0.01 & cumsum(propColumn[order(propColumn, decreasing = TRUE)]) < percentageTarget + 0.01 ) |>
+    (\(x)({
+      x[x %in% floor(median(x))]
+    }))()
+  
+  return(index_value)
+  
+}
+
+```
+
+
+**EXECUTIVE SUMMARY:** 
+
+Over the last ten years, the U has requested some ~\$5.5 B that received some level of support or funding, and are called "won" for this report.
+
+Only `r pickIndex(propColumn = piEmplid[,"win.sum_prop"])` PI's, or `r round(100*pickIndex(propColumn = piEmplid[,"win.sum_prop"])/length(piEmplid[,"win.sum_prop"]),0)`% of all PI's, are responsible for 80% of these 'won' funds requested.
+
+This follows a standard 80/20 rule or Pareto principle, and suggests prioritizing principal investigators based on their productivity.
+
+
+```{r pareto.plot}
+
+
+#################
+## PARETO PLOT ##
+#################
+
+par(mar = c(6,6,7,1)) # c(5.1,4.1,4.1,2.1)
+
+plot(cumsum(piEmplid[,"win.sum_prop"][order(piEmplid[,"win.sum_prop"], decreasing = TRUE)]),
+     yaxt = "n",
+     ylab = "",
+     #ylab = "Fraction of total requested funds",
+     xaxt = "n",
+     xlab = "",
+     # xlab = "Count of PI's",
+     
+     panel.first = list(
+       rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "gray80", border = NA ),
+     grid(col="gray90", lwd = 5, lty="solid")
+     )
+     
+     
+     )
+
+# 80%
+points(x = pickIndex(propColumn = piEmplid[,"win.sum_prop"]),
+       y = cumsum(piEmplid[,"win.sum_prop"][order(piEmplid[,"win.sum_prop"], decreasing = TRUE)])[pickIndex(propColumn = piEmplid[,"win.sum_prop"])],
+       col = "red",
+       cex =1.5,
+       pch = 19)
+
+text(x = pickIndex(propColumn = piEmplid[,"win.sum_prop"]),
+       y = cumsum(piEmplid[,"win.sum_prop"][order(piEmplid[,"win.sum_prop"], decreasing = TRUE)])[pickIndex(propColumn = piEmplid[,"win.sum_prop"])],
+       col = "red",
+       cex =1.25,
+      #pos = 4,
+       adj = c(-0.01,1.5),
+       label = paste0(pickIndex(propColumn = piEmplid[,"win.sum_prop"]),
+                      " (",
+                      round(100*pickIndex(propColumn = piEmplid[,"win.sum_prop"])/length(piEmplid[,"win.sum_prop"]),0),
+                      "%)",
+                      " PI's are responsible for",
+                      "\n   80%",
+                      " of requested funds won"
+                      )
+ )
+
+# 40%
+points(x = pickIndex(percentageTarget = 0.4, propColumn = piEmplid[,"win.sum_prop"]),
+       y = cumsum(piEmplid[,"win.sum_prop"][order(piEmplid[,"win.sum_prop"], decreasing = TRUE)])[pickIndex(percentageTarget = 0.4, propColumn = piEmplid[,"win.sum_prop"])],
+       col = "red",
+       cex =1.5,
+       pch = 19)
+
+text(x = pickIndex(percentageTarget = 0.4, propColumn = piEmplid[,"win.sum_prop"]),
+       y = cumsum(piEmplid[,"win.sum_prop"][order(piEmplid[,"win.sum_prop"], decreasing = TRUE)])[pickIndex(percentageTarget = 0.4, propColumn = piEmplid[,"win.sum_prop"])],
+       col = "red",
+       cex =1.25,
+      #pos = 4,
+       adj = c(-0.01,1.5),
+       label = paste0(pickIndex(percentageTarget = 0.4, propColumn = piEmplid[,"win.sum_prop"]),
+                      " (",
+                      round(100*pickIndex(percentageTarget = 0.4, propColumn = piEmplid[,"win.sum_prop"])/length(piEmplid[,"win.sum_prop"]),0),
+                      "%)",
+                      " PI's are responsible for",
+                      "\n   40%",
+                      " of requested funds won"
+                      )
+ )
+
+
+# 10%
+points(x = pickIndex(percentageTarget = 0.1, propColumn = piEmplid[,"win.sum_prop"]),
+       y = cumsum(piEmplid[,"win.sum_prop"][order(piEmplid[,"win.sum_prop"], decreasing = TRUE)])[pickIndex(percentageTarget = 0.1, propColumn = piEmplid[,"win.sum_prop"])],
+       col = "red",
+       cex =1.5,
+       pch = 19)
+
+text(x = pickIndex(percentageTarget = 0.1, propColumn = piEmplid[,"win.sum_prop"]),
+       y = cumsum(piEmplid[,"win.sum_prop"][order(piEmplid[,"win.sum_prop"], decreasing = TRUE)])[pickIndex(percentageTarget = 0.1, propColumn = piEmplid[,"win.sum_prop"])],
+       col = "red",
+       cex =1.25,
+      #pos = 4,
+       adj = c(-0.01,1.5),
+       label = paste0(pickIndex(percentageTarget = 0.1, propColumn = piEmplid[,"win.sum_prop"]),
+                    #  " (",
+                    #  round(100*pickIndex(propColumn = piEmplid[,"win.sum_prop"])/length(piEmplid[,"win.sum_prop"]),0),
+                    #  "%)",
+                      " PI's are responsible for",
+                      "\n  10%",
+                      " of requested funds won"
+                      )
+ )
+
+
+
+axis(side =1, at = seq(from = 0, to = 3000, by = 500))
+axis(side =1, at = seq(from = 0, to = 3000, by = 500), labels = paste0(round(100*seq(from = 0, to = 3000, by = 500)/nrow(piEmplid),0),"%" ), line = 1, tick = FALSE, font = 3)
+
+axis(side =2, 
+     at = seq(from = 0, to = 1, by = 0.2),
+     labels = paste0(seq(from = 0, to = 100, by = 20),"%"),
+     las = 2
+     )
+
+
+mtext(side = c(1,2,3), 
+      text = c("Count of PI's",
+               "Percentage of total won funds requested (cumulative)",
+        "The U follows the Pareto principle (80/20 rule) \nin winning funds"),
+      font = c(1,1, 2),
+      cex = c(1.5,1.5,1.5),
+      line = c(4.5,4.25,2.618)
+)
+
+```
+
+
+
+```{r}
+
+# Save "piEmplid" object
+
+saveRDS(piEmplid, here::here("Robjects", "Clustering PIs", "Percentiles from Pareto cluster child.rds"))
+
+```
