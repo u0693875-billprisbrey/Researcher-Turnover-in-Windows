@@ -47,7 +47,7 @@ oldPar <- par(cex.main = 3,
 
 # PREP SCRIPT
 
-source(here::here("Prep scripts", "Prep Script from Win Rates by College.R"))
+source(here::here("Prep scripts", "Adjusting prepData and loading things.R"))
 
 # PER PI
 
@@ -913,7 +913,7 @@ mtext(side = 3,
 text(x = theBar,
      y = combinedClusterWins[filter,"win.sum"],
      pos = c(3,1,3),  #,3,1),
-     cex = c(1,1,1,), #1,0.9),
+     cex = c(1,1,1), #1,0.9),
      font = 2,
      col = c(rep("gray10",4),"gray90"),
      labels = paste0(combinedClusterWins$sum_perc[filter],"%")

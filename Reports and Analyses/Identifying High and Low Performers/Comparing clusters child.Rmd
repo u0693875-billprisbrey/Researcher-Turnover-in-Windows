@@ -34,7 +34,7 @@ oldPar <- par(cex.main = 3,
 
 # PREP SCRIPT
 
-source(here::here("Prep scripts", "Prep Script from Win Rates by College.R"))
+source(here::here("Prep scripts", "Adjusting prepData and loading things.R"))
 
 # PER PI
 
