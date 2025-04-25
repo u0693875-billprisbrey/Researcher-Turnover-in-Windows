@@ -24,7 +24,7 @@ output:
   &nbsp;&nbsp;Un-supervised learning techniques uncover latent structure in the data sets.  This could provide more information than  a simple Pareto analysis.   
         
   1.2.  ***Identify high potential researchers.***    
-  &nbsp;&nbsp;(a) Supervised learning (extreme gradient boosting.)    
+  &nbsp;&nbsp;(a) Supervised learning (particularly extreme gradient boosting.)    
   &nbsp;&nbsp;Identify membership in "high-performing" clusters or according to the Pareto definition as early in a PI's career as possible.     
         
   1.3.  ***Calculate turn-over.***    
@@ -44,18 +44,22 @@ output:
   
   2.2 ***Internal data that might be used:***   
   &nbsp;&nbsp;(a) HR data further describing the PI's.    
-  &nbsp;&nbsp;(b) Faculty activity and performance data per PI (such as class load, committee service, conference presentations, publications, and publication status)
+  &nbsp;&nbsp;(b) Faculty activity and performance data per PI in "Elements" database (such as class load, committee service, conference presentations, publications, and publication status)
   
-  2.3 ***Data that will not be used:***   
+  2.3 ***External data that might be used:***   
+  &nbsp;&nbsp;(a) "Dimensions" database describing researcher activity.
+  
+  
+  2.4 ***Data that will not be used:***   
   
   - No focus groups will be conducted.    
   - No surveys will be performed.
-  - No external data (such as scraping LinkedIn or identifying author affiliation in research literature) will be acquired.   
+  - No external data (such as scraping LinkedIn or identifying author affiliation in research literature) will be acquired by scraping websites.      
   - No text-based data or analysis of research themes   
 
 ### **3. Actions and actors:**
 
-To be determined.
+Dr. Rothwell could use this information to develop and recommend a strategy to senior leadership that improves retention of high-performing and high-potential principal investigators.    
 
 
 ## **DRIVERS AND RELATIONSHIPS:**    
@@ -107,7 +111,7 @@ Needs attention
 
 - Identification of high and low performers are validated by key stakeholders as reasonable, meaningful, and useful.
 - Significance level of .05 (p-value) for chi-squared, ANOVA, and Kruskal-Wallis tests
-- Identification of high potential PI's achieves a minimum Kappa score of 0.5 or a Concordance index of 0.7 as applicable.
+- Classification and survival models have a minimum Kappa score of 0.5 or a Concordance index of 0.7 as applicable.
 
 
 ### *Business:*   
