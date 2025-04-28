@@ -20,6 +20,9 @@ FROM VPR.D_PI_EMP_DT_VW EMP_DATES
 retData <- dbGetQuery(con.ds,
                       retentionQuery)
 
+
+DBI::dbDisconnect(con.ds)
+
 source(here::here("Prep scripts","Adjusting prepData and loading things.R"))
 
 ####################
@@ -29,12 +32,12 @@ source(here::here("Prep scripts","Adjusting prepData and loading things.R"))
 library(lubridate)
 
 # This is the time between "hire date" and "re-hire date"
-retData$initial <- time_length(interval(retData$HIRE_DT, retData$REHIRE_DT), unit = "year")
+retData$hire <- time_length(interval(retData$HIRE_DT, retData$REHIRE_DT), unit = "year")
 
-hist(retData$initial) # how do I includ NA values?
+hist(retData$hire) # how do I include NA values?
 
 # column for no rehire date
-rect(xleft = 50, ybottom = 0, xright= 52.5, ytop = sum(is.na(retData$initial)), col = "tomato")
+rect(xleft = 50, ybottom = 0, xright= 52.5, ytop = sum(is.na(retData$hire)), col = "tomato")
 # It needs a label because it shoots 
 # off the graph
 
@@ -44,19 +47,19 @@ retData$full <- time_length(interval(retData$HIRE_DT, retData$TERMINATION_DT), u
 
 hist(retData$full) 
 
-retData$secondary <- time_length(interval(retData$REHIRE_DT, retData$TERMINATION_DT), unit = "year")
+retData$rehire <- time_length(interval(retData$REHIRE_DT, retData$TERMINATION_DT), unit = "year")
 
-hist(retData$secondary)
+hist(retData$rehire)
 
-sum(is.na(retData$secondary)) # maybe put this in text in upper right?
+sum(is.na(retData$rehire)) # maybe put this in text in upper right?
 
 # observations
 
-# We have negative values for "secondary"
+# We have negative values for secondary "rehire" period
 # This should be investigated
 
 # I need to discover the active period when they are publishing
-# ...is it during the initial, or secondary?
+# ...is it during the initial hire, or secondary re-hire period?
 # ...and it's during "full" if REHIRE is NA
 # because sometimes the "initial" period looks like student work,
 # and other times the "secondary" work looks like coming out of retirement
@@ -92,19 +95,23 @@ table(paste(year(retData$TERMINATION_DT), week(retData$TERMINATION_DT), sep = "-
 # can I do that by month?
 # can I do that by quarter?
 
-activePI <- function(time.period=NA, 
-                     time.date=NA,
+activePI <- function(investigation.date,
+                     target = "HIRE_DT",
                      data){
   
-  if(!is.na(time.date))
-  activeCondition <- time.date >= data$HIRE_DT &
-    time.date <= data$TERMINATION_DT
+  intervalCondition <- investigation.date >= data[,target] & investigation.date <= data[,"TERMINATION_DT"]
+  naCondition <- investigation.date >= data[,target] & is.na(data[,"TERMINATION_DT"])   
+    
+    
+  activeCondition <- intervalCondition|naCondition
+    
+
   
   return(activeCondition)
   
 }
 
-activePI(time.date = as.POSIXct("2010-01-01"),
+activePI(investigation.date = as.POSIXct("2010-01-01"),
                 data = retData) |> table()
 
 # o.k., there's something.
@@ -124,21 +131,101 @@ turnover <- data.frame(termDT = seq(from = floor_date(min(retData$TERMINATION_DT
                                                      max(retData$TERMINATION_DT, na.rm=TRUE), "week", week_start = 1), 
                                  by = "1 week" ) )
 
-activePI(time.date = active[1,1], data = head(retData)
-         
-active$hire <- sapply(active[,1], function(x){activePI(time.date = x, data = retData) |> table() |> (\(x){x[2]})()  } )
+activePI(investigation.date = turnover[1,1], data = retData) |> table()
+activePI(investigation.date = turnover[500,1], data = retData) |> table()
+
+# check
+# View(retData[activePI(investigation.date = turnover[500,1], data = retData),])
+# View(retData[!activePI(investigation.date = turnover[500,1], data = retData),])
+#   In this second example, I should see people hired a long time ago and already terminated         
+#   turns out using turnover[1,1] is at the edge of the data, just outside it
+#    and using turnover[500,1] checks out.
+# The SQL view that I'm pulling from looks like it was limited to people who were terminated 
+#   after turnover[1,1]
+
+#investigation.date <- turnover[500,1]
+#checkCondition <- retData[,"HIRE_DT"] < investigation.date & investigation.date >= retData[,"TERMINATION_DT"] & !is.na(retData[,"TERMINATION_DT"])
+#View(retData[checkCondition,])
+
+turnover$hire <- sapply(turnover[,1], function(x){activePI(investigation.date = x, target = "HIRE_DT", data = retData) |> table() |> (\(x){x[2]})()  } )
+turnover$rehire <- sapply(turnover[,1], function(x){activePI(investigation.date = x, target = "REHIRE_DT", data = retData) |> table() |> (\(x){x[2]})()  } )
+
+plot(turnover$hire, ylim = c(0,1.05*max(turnover$hire)), cex=0.3)
+points(turnover$rehire, col = "red", pch = 4, cex = 0.3)
+# This is looking --- better.
+# I'm not sure it's right yet, though
 
 
-plot(active$hire)
-# I didn't expect it to look like that
+# Calculate and merge turn-over in
 
+turnover$ywk <- paste(year(turnover$termDT), week(turnover$termDT), sep = "-")
 
-
-active$ywk <- paste(year(active$termDT), week(active$termDT), sep = "-")
-
+terminated <- table(paste(year(retData$TERMINATION_DT), week(retData$TERMINATION_DT), sep = "-")) |>
+  (\(x){ 
+    x[names(x) != "NA-NA"]
+  })() |>
+  as.data.frame()
   
+turnover <- merge(turnover, terminated, by.x = "ywk", by.y = "Var1", all.x = TRUE)
+names(turnover)[names(turnover) == "Freq"] <- "exit"
+
+# Check
+
+investigation.date <- turnover[94,2]
+View(retData[activePI(investigation.date = investigation.date, data = retData),])
   
+# looks like the investigation.date is the START of the week
+# so the day of the termination could happen after that day in that week
+# I might want to adjust with this logic so it is week-ending, not week-starting.
+
+# Let's take a look
+
+plot(turnover$hire, ylim = c(0,1.05*max(turnover$hire)), cex=0.3)
+points(turnover$rehire, col = "red", pch = 4, cex = 0.3)
+points(turnover$exit, col ="blue", pch = 8, cex = 0.1)
   
+# this really needs a second axis to plot the exit count
+
+##########################
+## CALCULATING TURNOVER ##
+##########################
+
+# This is going to be an "aggregation"
+
+hire.mean <- aggregate(hire ~ paste(year(termDT), quarter(termDT), sep = "-"), data = turnover, mean)
+exit.sum <- aggregate(exit ~ paste(year(termDT), quarter(termDT), sep = "-"), data = turnover, sum)
+
+turnover_quarterly <- merge(hire.mean, exit.sum)
+colnames(turnover_quarterly) <- c("yr.q", "hire_mean","exit_sum")
+
+# I need to make this FISCAL YEAR
+
+turnover_quarterly$to <- turnover_quarterly$exit_sum/turnover_quarterly$hire_mean
+
+# let's get that into one
+# aggregate(hire + exit ~ paste(year(termDT), quarter(termDT)), data = turnover, function(x)({c(mean(x),sum(x))}))
+# too weird
+
+
+# let's plot it
+
+turnover_quarterly[,-1] |>
+  scale() |>
+  plot()
+
+# hardy har
+# I need to turn that into lines
+
+turnover_quarterly[,-1] |>
+  scale() |>
+  (\(x){
+    plot(1,
+      ylim = c(min(x),max(x)),
+    xlim = c(0,nrow(x)),
+    plot = FALSE
+    )
+  })()
+
 ##########################
 ## MERGE RETENTION DATA ##
 ##########################
