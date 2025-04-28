@@ -72,6 +72,21 @@ table(year(retData$TERMINATION_DT)) |>
 
 # I'd like a line plot
 
+table(month(retData$TERMINATION_DT)) |>
+  plot()
+
+table(week(retData$TERMINATION_DT)) |>
+  plot()
+
+# Looks like July is a tricky year for academics
+
+table(paste(year(retData$TERMINATION_DT), week(retData$TERMINATION_DT), sep = "-")) |>
+  (\(x){ 
+    x[names(x) != "NA-NA"]
+    })() |>
+  plot()
+
+
 # ok, now--- how do I determine active count?  
 
 # can I do that by month?
@@ -96,6 +111,34 @@ activePI(time.date = as.POSIXct("2010-01-01"),
 # it's definitely something
 
 
+# let's create a week-by-week data frame over the period,
+# then it has three columns-- "hire", "rehire", and "full"
+# and each column has the number of active investigators.
+
+# Except there's something about this I don't like.
+
+turnover <- data.frame(termDT = seq(from = floor_date(min(retData$TERMINATION_DT, na.rm=TRUE),
+                                                   "week",
+                                                   week_start = 1),
+                                  to = ceiling_date(
+                                                     max(retData$TERMINATION_DT, na.rm=TRUE), "week", week_start = 1), 
+                                 by = "1 week" ) )
+
+activePI(time.date = active[1,1], data = head(retData)
+         
+active$hire <- sapply(active[,1], function(x){activePI(time.date = x, data = retData) |> table() |> (\(x){x[2]})()  } )
+
+
+plot(active$hire)
+# I didn't expect it to look like that
+
+
+
+active$ywk <- paste(year(active$termDT), week(active$termDT), sep = "-")
+
+  
+  
+  
 ##########################
 ## MERGE RETENTION DATA ##
 ##########################
