@@ -1,0 +1,170 @@
+---
+title: "Retention Exploratory Data Analysis"
+author: "Bill Prisbrey"
+date: "2025-04-25"
+output: html_document
+---
+
+Thoughts:
+
+- Re-name this as "exploratory data analysis" and summarize the new data view.  "Skimr" and a couple of histograms.
+- I'll probably uncover some data inconsistencies.
+- Use my new "activePI" function to calculate the number of active PI's every week.
+- Create a dataframe that is week-by-week active PI's
+- Use prepData to align publishing periods with hire or re-hire period
+- Lack of an initial termination date could be problematic
+
+
+**PURPOSE:**  The purpose of this document is to breifly calculate and compare principal investigator turnover to determine if this project is worth pursuing. It could be re-named "back of the envelope" or "quick-and-dirty."
+
+**OBJECTIVES:**
+
+  1.  Calculate and compare turnover    
+      a.  By colleges     
+      b.  By departments    
+      c.  By PIs    
+      d.  By percentiles    
+  2.  Determine if there are differences and if they merit continuation of the project.         
+  
+  
+```{r include = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE, fig.height=7, fig.width=10)
+
+# adjust graphic parameters
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+```
+
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+# PREP SCRIPT
+
+source(here::here("Prep scripts", "Prep Script from Win Rates by College.R"))
+
+# PER PI
+
+piClusters <- lapply(list.files(here::here("Robjects", "Clustering PIs"), full.names = TRUE), readRDS)
+
+###########
+## MERGE ## 
+###########
+
+piEmplid <- Reduce(function(x, y) {
+  merged <- merge(x, y, by = "emplid", all = FALSE)
+  merged <- merged[, !duplicated(sub("\\.x$|\\.y$", "", names(merged)))]  # Remove duplicate columns
+  
+  # Rename columns to remove ".x"
+  names(merged) <- sub("\\.x$", "", names(merged))
+  
+  merged
+}, piClusters)
+# piEmplid <- Reduce(function(x, y) merge(x, y, by = "emplid", all = FALSE), piClusters)
+# piEmplid <- do.call(merge, piClusters)
+
+
+
+prepData <- merge(prepData, piEmplid[,c("emplid","complex_cluster","rate_cluster")], by.x =  "PROPOSAL_PI_EMPLID", by.y = "emplid", all.x = TRUE)
+
+##########
+## PREP ##
+##########
+
+piEmplid$combined_cluster <-  factor(paste(piEmplid$complex_cluster, piEmplid$rate_cluster, sep = ", "))
+
+prepData$combined_cluster <- factor(paste(prepData$complex_cluster, prepData$rate_cluster, sep = ", "))
+
+###############
+## LIBRARIES ##
+###############
+
+library(viridis)
+library(pheatmap)
+
+# I'll probably want my per-cluster wins as well
+
+# I am going to want to bring in the colors
+
+filterThreeCount <- piEmplid$count.total > 3
+
+piMap <- data.frame(college = row.names(piEmplid), abbrv = row.names(piEmplid), color = NA, pch = 19, cex = 0.7 )
+
+
+```
+
+
+
+```{r}
+             
+# Manage colors
+
+#############
+## COMPLEX ##
+#############
+
+complexClusterColors <- c("forestgreen", "deepskyblue", "goldenrod",  
+                            "firebrick", "darkslategray", "chartreuse",  
+                            "slateblue", "darkkhaki", "coral")
+
+clusterComplexMapping <- piMap
+clusterComplexMapping[,"pch"] <- rep(19, nrow(clusterComplexMapping))
+
+clusterComplexMapping[,"color"] <- complexClusterColors [piEmplid$complex_cluster]
+
+# clusterComplexMapping[,"color"] <- complexClusterColors[complexHCPC$data.clust$clust[match(clusterComplexMapping[,"college"], row.names(complexHCPC$data.clust))] ]
+
+##############
+## COMBINED ##
+##############
+
+combinedClusterColors <- c("forestgreen", "deepskyblue", "goldenrod",  
+  "firebrick", "darkslategray", "chartreuse",  
+  "slateblue", "darkkhaki", "coral",  
+  "mediumorchid", "dodgerblue", "tomato",  
+  "orchid", "darkseagreen", "sienna",  
+  "royalblue", "indianred", "seagreen",  
+  "peru", "cadetblue", "plum",  
+  "midnightblue", "lawngreen", "darkorange",  
+  "lightsteelblue")
+
+clusterCombinedMapping <- piMap
+clusterCombinedMapping[,"pch"] <- rep(19, nrow(clusterCombinedMapping))
+
+clusterCombinedMapping[,"color"] <- combinedClusterColors [piEmplid$combined_cluster]
+
+
+
+
+################
+## PERCENTILE ##
+################
+
+percentileColors <- viridis(10,direction = -1)[c(1:7,10)]
+percentileMapping <- piMap
+
+percentileMapping[,"pch"] <- rep(19, nrow(percentileMapping))
+
+percentileMapping[,"color"] <- percentileColors[as.numeric(cut(piEmplid$win.sum_percentile, breaks = seq(0.2,1,by=0.1)))]
+
+```
+
+
+```{r}
+
+# Calculate turnover
+
+
+```
+
+

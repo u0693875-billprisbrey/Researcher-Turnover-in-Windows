@@ -6,6 +6,25 @@ output:
 
 ```{r include = FALSE}
 
+#-- I'd like some visualizations that walk you through how I've identified my low -performers
+#-- I'd like some visualizations that clearly overlap the three methods -- pareto, rate, and complex --
+#   ...and clarify what some of these overlaps mean.
+#-- I'd like to change "many at bats, few hits" cluster name to start with the letter S.
+#   ...then, there's a subset of this one that I can call "inefficient (?)" and call out their high total despite their low win rates.  Curious in itself.  This would be >80% performers.
+
+#-- I'd like to call out that the strike-outs have a very high median submission.  Delusional?  Not serious?
+
+#-- the timelines.... not sure what they are adding to the conversation.  Lots of graphs are experimental here and not adding a lot.  
+
+#-- the Sum of funds requested break-out should be 1 column of three rows
+
+#-- my Pareto child should have 10 pareto clusters for ten percentiles, and show the same charts as I did the others.
+
+# And I would've could've should've adjusted for inflation since it's been ten years.
+# Not too late, I guess
+
+
+
 # Maybe my "At Bat" cluster is just called "Inefficient" -- becuase aren't I calling my "Cluster 5" my high performers?  I mean, at least some of Cluster 5 are high performers.  Where's the dividing line between "high" and "low" performers in cluster 5?  I think I want to look at that "At Bat" overlap a little closer.
 
 # How big of a gap is it between Complex 1 (no wins) and Complex 2 (low wins) ?  Is it mild changes by degree, or is there a clear gap?
@@ -690,9 +709,11 @@ plotBreaks <-
     c(0,x)
   })()
 
+invisible(
 lapply(1:(length(plotBreaks) - 1), function(i) {
   rect(plotBreaks[i], par("usr")[3], plotBreaks[i + 1], par("usr")[4], col = adjustcolor(percentileColors[i], alpha.f= 0.1 ) , border = NA)
 })
+)
 
 par(new=TRUE)
 plot(log(piEmplid[filter, "win.sum"]),

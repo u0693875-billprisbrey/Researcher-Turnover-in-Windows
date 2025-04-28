@@ -117,7 +117,7 @@ Needs attention
   - Turn-over among low-performing researchers
   - Award submissions and 'requested funds won' by high-potential and high-performing researchers    
 
-- Decreases: 
+- Decreases:    
 
   - Longevity of low-potential and low-performing researchers   
   - Tenure awarded to low-potential and low-performing researchers
