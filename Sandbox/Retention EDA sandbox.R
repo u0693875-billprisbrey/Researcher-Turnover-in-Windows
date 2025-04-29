@@ -280,6 +280,242 @@ axis(side = 1,
 # Looks like I need to calculate the turn-over using lapply
 # Then I can aggregate to different time intervals.
 
+
+
+calculateTurnover <- function(data){
+  
+  # start with the empty data frame by week
+  turnover <- data.frame(termDT = seq(from = floor_date(min(data[,"TERMINATION_DT"], na.rm=TRUE),
+                                                        "week",
+                                                        week_start = 1),
+                                      to = ceiling_date(
+                                        max(data[,"TERMINATION_DT"], na.rm=TRUE), "week", week_start = 1), 
+                                      by = "1 week" ) )
+  
+  # populate with hire and re-hire head counts
+  turnover$hire <- sapply(turnover[,1], function(x){activePI(investigation.date = x, target = "HIRE_DT", data = data) |> table() |> (\(x){x[2]})()  } )
+  turnover$rehire <- sapply(turnover[,1], function(x){activePI(investigation.date = x, target = "REHIRE_DT", data = data) |> table() |> (\(x){x[2]})()  } )
+  
+  # calculate exits
+  terminated <- table(paste(year(data[,"TERMINATION_DT"]), week(data[,"TERMINATION_DT"]), sep = "-")) |>
+    (\(x){ 
+      x[names(x) != "NA-NA"]
+    })() |>
+    as.data.frame()
+  
+  # merge exits into turnover
+  turnover$yr.wk <- paste(year(turnover$termDT), week(turnover$termDT), sep = "-") 
+  turnover <- merge(turnover, terminated, by.x = "yr.wk", by.y = "Var1", all.x = TRUE)
+  names(turnover)[names(turnover) == "Freq"] <- "exit"
+  
+  # return the frame
+  return(turnover)
+  
+}
+
+# chatGPT version
+calculateTurnover2 <- function(data) {
+  
+  # Ensure TERMINATION_DT is properly formatted
+  term_dates <- data[,"TERMINATION_DT"]
+  
+  # Create the sequence of Mondays
+  start_date <- floor_date(min(term_dates, na.rm = TRUE), "week", week_start = 1)
+  end_date   <- ceiling_date(max(term_dates, na.rm = TRUE), "week", week_start = 1)
+  
+  turnover <- data.frame(termDT = seq(from = start_date, to = end_date, by = "1 week"))
+  
+  # Helper to count hires or rehires
+  countActive <- function(date, target) {
+    activePI(investigation.date = date, target = target, data = data) |> 
+      table() |> 
+      (\(x) if ("TRUE" %in% names(x)) x["TRUE"] else 0)()
+  }
+  
+  # Populate hires and rehires
+  turnover$hire   <- sapply(turnover$termDT, countActive, target = "HIRE_DT")
+  turnover$rehire <- sapply(turnover$termDT, countActive, target = "REHIRE_DT")
+  
+  # Prepare exit counts
+  exit_table <- table(paste(year(term_dates), week(term_dates), sep = "-"))
+  exit_df <- as.data.frame(exit_table, stringsAsFactors = FALSE)
+  exit_df <- exit_df[exit_df$Var1 != "NA-NA", ]  # Drop NA cases
+  
+  # Merge exits into turnover
+  turnover$yr_wk <- paste(year(turnover$termDT), week(turnover$termDT), sep = "-")
+  turnover <- merge(turnover, exit_df, by.x = "yr_wk", by.y = "Var1", all.x = TRUE)
+  names(turnover)[names(turnover) == "Freq"] <- "exit"
+  
+  # Replace NA exits with 0
+  turnover$exit[is.na(turnover$exit)] <- 0
+  
+  return(turnover)
+}
+
+# modified Chat to accommodate different intervals
+
+calculateTurnover <- function(data, interval = "week") {
+  
+  # Ensure TERMINATION_DT is properly formatted
+  term_dates <- data[,"TERMINATION_DT"]
+  
+  # Choose the floor and ceiling functions based on interval
+  if (interval == "week") {
+    start_date <- floor_date(min(term_dates, na.rm = TRUE), "week", week_start = 1)
+    end_date   <- ceiling_date(max(term_dates, na.rm = TRUE), "week", week_start = 1)
+    by_seq     <- "1 week"
+  } else if (interval == "month") {
+    start_date <- floor_date(min(term_dates, na.rm = TRUE), "month")
+    end_date   <- ceiling_date(max(term_dates, na.rm = TRUE), "month")
+    by_seq     <- "1 month"
+  } else if (interval == "quarter") {
+    start_date <- floor_date(min(term_dates, na.rm = TRUE), "quarter")
+    end_date   <- ceiling_date(max(term_dates, na.rm = TRUE), "quarter")
+    by_seq     <- "3 months"
+  } else if (interval == "semester") {
+    start_date <- floor_date(min(term_dates, na.rm = TRUE), "6 months")
+    end_date   <- ceiling_date(max(term_dates, na.rm = TRUE), "6 months")
+    by_seq     <- "6 months"
+  } else if (interval == "year") {
+    start_date <- floor_date(min(term_dates, na.rm = TRUE), "year")
+    end_date   <- ceiling_date(max(term_dates, na.rm = TRUE), "year")
+    by_seq     <- "1 year"
+  } else {
+    stop("Unsupported interval. Choose from: 'week', 'month', 'quarter', 'semester', 'year'.")
+  }
+  
+  # Sequence of investigation dates
+  turnover <- data.frame(termDT = seq(from = start_date, to = end_date, by = by_seq))
+  
+  # Helper to count hires or rehires
+  countActive <- function(date, target) {
+    activePI(investigation.date = date, target = target, data = data) |> 
+      table() |> 
+      (\(x) if ("TRUE" %in% names(x)) x["TRUE"] else 0)()
+  }
+  
+  # Populate hires and rehires
+  turnover$hire   <- sapply(turnover$termDT, countActive, target = "HIRE_DT")
+  turnover$rehire <- sapply(turnover$termDT, countActive, target = "REHIRE_DT")
+  
+  # --- Exit calculation ---
+  # Create interval labels for each termination date
+  makeLabel <- function(dates) {
+    if (interval == "week") {
+      paste(year(dates), week(dates), sep = "-W")
+    } else if (interval == "month") {
+      paste(year(dates), month(dates), sep = "-M")
+    } else if (interval == "quarter") {
+      paste(year(dates), quarter(dates), sep = "-Q")
+    } else if (interval == "semester") {
+      sem <- ifelse(month(dates) <= 6, 1, 2)
+      paste(year(dates), sem, sep = "-S")
+    } else if (interval == "year") {
+      as.character(year(dates))
+    }
+  }
+  
+  exit_labels <- makeLabel(term_dates)
+  exit_table <- table(exit_labels)
+  exit_df <- as.data.frame(exit_table, stringsAsFactors = FALSE)
+  
+  # Build labels for turnover sequence
+  turnover$label <- makeLabel(turnover$termDT)
+  
+  # Merge exits into turnover
+  turnover <- merge(turnover, exit_df, by.x = "label", by.y = "exit_labels", all.x = TRUE)
+  names(turnover)[names(turnover) == "Freq"] <- "exit"
+  
+  # Replace NA exits with 0
+  turnover$exit[is.na(turnover$exit)] <- 0
+  
+  # Calculate turnover
+  turnover$to <- turnover[,"exit"]/turnover[,"hire"]
+  
+  return(turnover)
+}
+
+# dang that's impressive
+
+# double-check quarterly
+
+turnover_quarterly_check <- calculateTurnover(data = retData, interval = "quarter")
+
+# I should plot these column by column
+
+comparison_column <- c("hire_mean","hire")
+plot(1, type = "n", ylim = c(-4,4), xlim = c(1,73))
+lines(scale(turnover_quarterly[,comparison_column[1]]), col = "salmon3")
+lines(scale(turnover_quarterly_check[,comparison_column[2]]), col = "seagreen2")
+# essentially identical
+
+comparison_column <- c("exit_sum","exit")
+plot(1, type = "n", ylim = c(-4,4), xlim = c(1,73))
+lines(scale(turnover_quarterly[,comparison_column[1]]), col = "salmon3")
+lines(scale(turnover_quarterly_check[,comparison_column[2]]), col = "seagreen2")
+# some times shifted, some times identical
+
+comparison_column <- c("to","to")
+plot(1, type = "n", ylim = c(-4,4), xlim = c(1,73))
+lines(scale(turnover_quarterly[,comparison_column[1]]), col = "salmon3")
+lines(scale(turnover_quarterly_check[,comparison_column[2]]), col = "seagreen2")
+# some times shifted, some times identical
+
+# so I need to re-visit how these interval periods 
+# are being aggregated (start or finish of the period?)
+
+# but once I figure that out, the new function looks very...
+# functionable
+
+
+
+
+
+# plot yearly
+turnover_yearly <- calculateTurnover(data = retData, interval = "year")
+
+yr_sc <- turnover_yearly[,-(1:2)] |>
+  scale()
+
+plot(1,
+     ylim = c(min(yr_sc),max(yr_sc)),
+     xlim = c(0,nrow(yr_sc)),
+     type = "n",
+     xaxt = "n",
+     xlab = "",
+     ylab = ""
+)
+
+lines(yr_sc[,1], col = "gray10")
+lines(yr_sc[,3], col = "firebrick")
+
+legend("topleft",
+       legend = c("Active researchers","Turn-over"),
+       col = c("gray10","firebrick"),
+       lty = 1,
+       lwd = 2.3)
+
+mtext(side = 3,
+      "Yearly PI head-count and turnover\n(scaled)",
+      line = 1.33,
+      cex=1.3,
+      font = 2)
+
+ticks <- seq(from = 0, to = nrow(turnover_yearly), by = 2)
+axis(side = 1,
+     at = ticks+1,
+     las =2,
+     labels = turnover_yearly[ticks+1 ,"label"])
+
+# that's a rather alarming increase in turn-over
+# and interesting that we aren't replacing researchers, 
+# but money-per is going up
+
+# and how do I have a value for 2026 somehow?
+
+
+
+
 ##########################
 ## MERGE RETENTION DATA ##
 ##########################
