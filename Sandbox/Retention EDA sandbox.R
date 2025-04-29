@@ -222,9 +222,63 @@ turnover_quarterly[,-1] |>
     plot(1,
       ylim = c(min(x),max(x)),
     xlim = c(0,nrow(x)),
-    plot = FALSE
-    )
+    type = "n"
+    );
+    invisible(apply(x, 2, lines))
   })()
+
+
+# well there we go.
+# let's make that graphic a little bit nicer and see
+# if it passes the smell test.
+
+# Also compare with my proposal data.
+
+# And, then, y'know,
+# I guess I need to create a function that will calculate
+# this based on different categories?  Diff't colleges and clusters?
+
+
+qt_sc <- turnover_quarterly[,-1] |>
+  scale()
+
+plot(1,
+     ylim = c(min(qt_sc),max(qt_sc)),
+     xlim = c(0,nrow(qt_sc)),
+     type = "n",
+     xaxt = "n",
+     xlab = "",
+     ylab = ""
+)
+
+lines(qt_sc[,1], col = "gray10")
+lines(qt_sc[,3], col = "firebrick")
+
+legend("topleft",
+       legend = c("Active researchers","Turn-over"),
+       col = c("gray10","firebrick"),
+       lty = 1,
+       lwd = 1.619)
+
+mtext(side = 3,
+      "Quarterly PI head-count and turnover\n(scaled)",
+      line = 1.33,
+      cex=1.3,
+      font = 2)
+
+ticks <- seq(from = 0, to = nrow(turnover_quarterly), length.out = 9)
+axis(side = 1,
+     at = ticks,
+     las =2,
+     labels = turnover_quarterly[ ,"yr.q"])
+
+# Nice enought for Q&D and EDA.
+
+# Now let's break this up by college and cluster
+# And re-calculate by year
+
+# Looks like I need to calculate the turn-over using lapply
+# Then I can aggregate to different time intervals.
 
 ##########################
 ## MERGE RETENTION DATA ##
