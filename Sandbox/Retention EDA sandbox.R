@@ -513,7 +513,38 @@ axis(side = 1,
 
 # and how do I have a value for 2026 somehow?
 
+# calculate annual turnover for different colleges
 
+colleges <- unique(prepData$college)
+collegePIs <- lapply(colleges, function(x) unique(prepData$PROPOSAL_PI_EMPLID[prepData$college == x]))
+names(collegePIs) <- colleges
+
+collegeTurnover <- lapply(collegePIs, function(x){
+  
+  calculateTurnover(data=retData[retData$PI_EMPLID %in% x,] , interval = "year")
+  
+})
+names(collegeTurnover) <- names(collegePIs)
+
+plot(1, type = "n", ylim = c(-4,4), xlim = c(1,12))
+lapply(collegeTurnover, function(x){
+  lines(scale(x[,"to"]), col = "gray40")
+  
+})
+
+# that looks pretty centered around zero
+# where's my upwards trend?
+# why do the lines stop where they do?
+# plotly would be nice for this graphic
+
+sapply(collegeTurnover, function(x){max(x[,"to"]) })
+# well o.k. then
+
+sapply(collegeTurnover, function(x){mean(x[,"to"]) })
+# I need a statistical comparison
+
+# Next, I can do it by clusters.
+# That's one of the tests where the rubber will hit the road.
 
 
 ##########################
