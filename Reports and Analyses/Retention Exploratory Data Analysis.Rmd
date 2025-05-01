@@ -11,6 +11,8 @@ output: html_document
 
 # Notes for author
 
+# I am over-using the word "active."  I think I want "active" to mean the period they are "actively" proposing, and the word "current" to mean they are currently employed.  But what about then-current?  I guess I'll use the word "active" for proposing, and "employed" for then-employed.
+
 # More thoughts:  
 #  - Kruskal wallis is a nice general purpose first-look test, but I should probably find something more appropriate.
 #  - Digging into how the intervals were aggregated should be informative (am I sure I'm doing it right?)
@@ -22,7 +24,7 @@ output: html_document
 # - I'll probably uncover some data inconsistencies.
 # - Use my new "activePI" function to calculate the number of active PI's every week.
 # - Create a dataframe that is week-by-week active PI's
-# - Use prepData to align publishing periods with hire or re-hire period EVENTUALLY
+# - Use prepData to align proposing periods with hire or re-hire period EVENTUALLY
 # - Lack of an initial termination date could be problematic
 
 ```
@@ -186,13 +188,21 @@ prepData$combined_cluster <- factor(paste(prepData$complex_cluster, prepData$rat
 library(viridis)
 library(pheatmap)
 
-# I'll probably want my per-cluster wins as well
-
-# I am going to want to bring in the colors
-
-filterThreeCount <- piEmplid$count.total > 3
+#########
+## MAP ##
+#########
 
 piMap <- data.frame(college = row.names(piEmplid), abbrv = row.names(piEmplid), color = NA, pch = 19, cex = 0.7 )
+
+# I need the college map of colors
+
+fullEmplid <- calculateWinRates(data = cleanData, categoryColumn = "PROPOSAL_PI_EMPLID") |>
+  (\(x){x[[1]]})()
+
+fullEmplid$count.total <- apply(fullEmplid[,c("win.count","loss.count")],1,sum)
+
+filterTwoCount <- fullEmplid$count.total >= 2
+# filterThreeCount <- piEmplid$count.total > 3
 
 
 ```
@@ -253,41 +263,45 @@ percentileMapping[,"color"] <- percentileColors[as.numeric(cut(piEmplid$win.sum_
 
 ```{r}
 
-###############################
-## ACTIVE PUBLISHING PERIODS ##
-###############################
+##############################
+## ACTIVE PROPOSING PERIODS ##
+##############################
 
-# aggregate(PROPOSAL_UPLOAD_DATE ~ PROPOSAL_PI_EMPLID, data = prepData, FUN = function(x) {c(min = min(x), max= max(x))}) |> head()
+minDate <- aggregate(PROPOSAL_UPLOAD_DATE ~ PROPOSAL_PI_EMPLID, data = prepData, FUN =  function(x) {as.Date(min(x))})
 
-minDate <- aggregate(PROPOSAL_UPLOAD_DATE ~ PROPOSAL_PI_EMPLID, data = prepData, FUN =  function(x) {as.Date(min(x))}) # |> head() # yes
+maxDate <- aggregate(PROPOSAL_UPLOAD_DATE ~ PROPOSAL_PI_EMPLID, data = prepData, FUN = function(x) {as.Date(max(x))})
 
-maxDate <- aggregate(PROPOSAL_UPLOAD_DATE ~ PROPOSAL_PI_EMPLID, data = prepData, FUN = function(x) {as.Date(max(x))}) # |> head() # yes
+activeProposing <- merge(minDate, maxDate, by = "PROPOSAL_PI_EMPLID")
+names(activeProposing) <- c("PROPOSAL_PI_EMPLID", "PROPOSAL_UPLOAD_DATE.min", "PROPOSAL_UPLOAD_DATE.max")
 
-# aggregate(PROPOSAL_UPLOAD_DATE ~ PROPOSAL_PI_EMPLID, data = prepData, FUN = function(x) {c(min = as.Date(min(x)), max= as.Date(max(x))) }) |> head() # no
-
-activePublishing <- merge(minDate, maxDate, by = "PROPOSAL_PI_EMPLID")
-names(activePublishing) <- c("PROPOSAL_PI_EMPLID", "PROPOSAL_UPLOAD_DATE.min", "PROPOSAL_UPLOAD_DATE.max")
-
-activePublishing$active <- time_length(interval(activePublishing$PROPOSAL_UPLOAD_DATE.min, activePublishing$PROPOSAL_UPLOAD_DATE.max), unit = "year")
-
-activePublishing$inactive_to_date <- time_length(interval(activePublishing$PROPOSAL_UPLOAD_DATE.max, ymd("2025-05-01")), unit = "year")
-  
-# let's merge on the hire/rehire/term dates
-
-activePublishing <- merge(activePublishing, retData[,c("PI_EMPLID", "HIRE_DT", "REHIRE_DT", "TERMINATION_DT")],
+activeProposing <- merge(activeProposing, retData[,c("PI_EMPLID", "HIRE_DT", "REHIRE_DT", "TERMINATION_DT")],
                by.x = "PROPOSAL_PI_EMPLID",
                by.y = "PI_EMPLID",
                all.x = TRUE)
 
+```
+
+
+
+```{r eval = FALSE}
+
+
+# Not sure these need their own columns
+activeProposing$active <- time_length(interval(activeProposing$PROPOSAL_UPLOAD_DATE.min, activeProposing$PROPOSAL_UPLOAD_DATE.max), unit = "year")
+
+condition <- is.na(activeProposing$TERMINATION_DT)
+activeProposing$inactive_to_date[condition] <- time_length(interval(activeProposing$PROPOSAL_UPLOAD_DATE.max[condition], ymd("2025-05-01")), unit = "year")
+
+activeProposing$inactive_to_term <- time_length(interval(activeProposing$PROPOSAL_UPLOAD_DATE.max, activeProposing$TERMINATION_DT), unit = "year")
+
 # what intervals are interesting?
-# hire-to-publish
-# re-hire-to-publish
-# last publish to term
-# active-yet-inactive (yrs since last publish for current headcount)
+# hire-to-propose
+# re-hire-to-propose
+# last propose to term
+# active-yet-inactive (yrs since last propose for current headcount)
 # productive period (first to last publication)
 
-
-# I need to differentiate "active"-ly publishing and "current"-ly headcount
+# I need to differentiate "active"-ly proposing and "current"-ly headcount
 # maybe I use "productive"
 
 # I need to use the same logic and count the number of "productive PI's" per week
@@ -295,7 +309,7 @@ activePublishing <- merge(activePublishing, retData[,c("PI_EMPLID", "HIRE_DT", "
 
 # I'd like to see when the "active" period is during a prof's career.  Are they done at age 50?
 
-# And I can figure out the correct period to use by comparing the min publishing date and the max hire/rehire date that is less than that.
+# And I can figure out the correct period to use by comparing the min proposing date and the max hire/rehire date that is less than that.
 
 # Before I do that, though, I should compare the various intervals.
 
@@ -310,34 +324,16 @@ activePublishing <- merge(activePublishing, retData[,c("PI_EMPLID", "HIRE_DT", "
 ## PICK HIRE OR REHIRE DATE ##
 ##############################
 
-table(is.na(activePublishing$REHIRE_DT))
-
-# FALSE  TRUE 
-#   796  2141 
-
-# so I'm not dealing with too many re-hires
-
-condition <- activePublishing$REHIRE_DT >= activePublishing$PROPOSAL_UPLOAD_DATE.min
-  
-dim(activePublishing[condition,])
-
-# let's look at all the possible combinations
-
-condition1 <- activePublishing$REHIRE_DT >= activePublishing$PROPOSAL_UPLOAD_DATE.min # These are active publishers after their rehire date
-
-condition2 <- activePublishing$PROPOSAL_UPLOAD_DATE.max <= activePublishing$REHIRE_DT # These are active publishers before their rehire date
-  
-  
 # I want:
-#  Were they publishing between their hire and re-hire date?  Only before their re-hire date?
-#  Were they publishing only after their re-hire date?
-#  Were they publishing before AND after their re-hire date?
+#  Were they proposing between their hire and re-hire date?  Only before their re-hire date?
+#  Were they proposing only after their re-hire date?
+#  Were they proposing before AND after their re-hire date?
 
-before_rehire <- activePublishing$PROPOSAL_UPLOAD_DATE.max <= activePublishing$REHIRE_DT
+before_rehire <- activeProposing$PROPOSAL_UPLOAD_DATE.max <= activeProposing$REHIRE_DT
 
-after_rehire <- activePublishing$PROPOSAL_UPLOAD_DATE.min >= activePublishing$REHIRE_DT
+after_rehire <- activeProposing$PROPOSAL_UPLOAD_DATE.min >= activeProposing$REHIRE_DT
 
-before_and_after <- activePublishing$PROPOSAL_UPLOAD_DATE.min <= activePublishing$REHIRE_DT &  activePublishing$PROPOSAL_UPLOAD_DATE.max >= activePublishing$REHIRE_DT
+before_and_after <- activeProposing$PROPOSAL_UPLOAD_DATE.min <= activeProposing$REHIRE_DT &  activeProposing$PROPOSAL_UPLOAD_DATE.max >= activeProposing$REHIRE_DT
  
 # I kinda wanna see a "hire timeline"
 # similar to my timeline and timedots, but with hire/rehire/term marked
@@ -370,7 +366,12 @@ before_and_after <- activePublishing$PROPOSAL_UPLOAD_DATE.min <= activePublishin
 
 #FALSE 
 #  796 
- 
+
+activeProposing$effective_hire <- activeProposing$HIRE_DT
+
+rehire_condition <- after_rehire & !is.na(after_rehire)
+activeProposing$effective_hire[rehire_condition] <- activeProposing$REHIRE_DT[rehire_condition] 
+
   
 ```
 
@@ -387,6 +388,7 @@ before_and_after <- activePublishing$PROPOSAL_UPLOAD_DATE.min <= activePublishin
 
 ```
 
+# DURATIONS
 
 ```{r}
 
@@ -394,53 +396,60 @@ before_and_after <- activePublishing$PROPOSAL_UPLOAD_DATE.min <= activePublishin
 ## DURATIONS ##
 ###############
 
+
+histPar <- par(mfrow = c(3,1),
+               mar = c(2,3,3,0),
+               bg = "ivory",
+               fg = "gray10")
+
+minTwoCondition <- activeProposing$PROPOSAL_PI_EMPLID %in% row.names(fullEmplid)[filterTwoCount]
+time_length(interval(activeProposing$PROPOSAL_UPLOAD_DATE.min[minTwoCondition], activeProposing$PROPOSAL_UPLOAD_DATE.max[minTwoCondition]), unit = "year") |>
+  hist(main = "Active proposing duration\n(from first to last proposal date in years)\n(minimum of two proposals)",
+               col = "skyblue",
+       ylab = "count of PIs")
+
+time_length(interval(activeProposing$PROPOSAL_UPLOAD_DATE.max, activeProposing$TERMINATION_DT), unit = "year") |>
+  hist(main = "Inactive period from last proposal to termination (years)",
+               col = "deepskyblue",
+       ylab = "count of PIs")
+
+condition <- is.na(activeProposing$TERMINATION_DT)
+ time_length(interval(activeProposing$PROPOSAL_UPLOAD_DATE.max[condition], ymd("2025-05-01")), unit = "year") |>
+   hist(main = "Inactive period from last proposal to 30 April 2025 \n(employed as of data cut-off of 30 April 2025)",
+               col = "dodgerblue",
+       ylab = "count of PIs")
+
+# Maybe active needs to be filtered to PI's with at least two proposals? DONE
+ 
+ 
 # For people active in the hire date -- how long from hire until submission?
 # For people active in the rehire date -- how long from re-hire until submission?
 # For all of them -- how long from last submission until termination?
 
-# I'll commit to here, and then I'm going to go back and clean up some of my code and thinking.
+# Hire until first submission
 
-```
+# I can use filters here or I can create an "effective hire date" 
+ 
+time_length(interval(activeProposing$effective_hire, activeProposing$PROPOSAL_UPLOAD_DATE.min), unit = "year") |> # max() # 50 yrs!
+  hist(main = "Period from effective hire to first proposal")
 
+# something is still wrong
 
+time_length(interval(activeProposing$effective_hire, activeProposing$PROPOSAL_UPLOAD_DATE.min), unit = "year") |>
+  (\(x){which(x == max(x))})()
 
-```{r eval=FALSE}
+# the problem is that I don't have good proposal data until 2013.
+# so I should truncate this to people hired after 2013
 
+hire2013 <- year(activeProposing$effective_hire) >= 2013
+time_length(interval(activeProposing$effective_hire[hire2013], activeProposing$PROPOSAL_UPLOAD_DATE.min[hire2013]), unit = "year") |> # max() # 50 yrs!
+  hist(main = "Period from effective hire to first proposal\(for hires after 2013)")
 
-###############
-## ABANDONED ## 
-###############
-
-# Chat was trying to give me the duration of active publishing periods
-
-# thanks Chat!
-# or maybe not this is becoming unworkable to debug.
-# Gave up and worked it through on my own
-
-agg <- aggregate(PROPOSAL_UPLOAD_DATE ~ PROPOSAL_PI_EMPLID, data = prepData, 
-                 FUN = function(x) {
-                   min_date <- as.Date(min(x), origin = "1970-01-01")
-                   max_date <- as.Date(max(x), origin = "1970-01-01")
-                   duration <- as.integer(max_date - min_date)
-                   c(start = min_date, end = max_date, duration_days = duration)
-                 })
-
-# Convert to a clean data frame
-activePublishing <- do.call(data.frame, agg)
-
-# Set column names explicitly
-names(activePublishing)[2:4] <- c("start_date", "end_date", "duration_days")
-
-# View result
-head(activePublishing)
-
+# there we go, that's a much better graphic
 
 
 ```
 
-
-
-# DURATIONS
 
 ```{r}
 
@@ -448,7 +457,7 @@ head(activePublishing)
 ## CALCULATE INTERVALS ##
 #########################
 
-library(lubridate)
+# library(lubridate)
 
 # This is the initial time between "hire date" and "re-hire date"
 retData$initial <- time_length(interval(retData$HIRE_DT, retData$REHIRE_DT), unit = "year")
