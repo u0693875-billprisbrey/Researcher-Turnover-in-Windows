@@ -96,8 +96,11 @@ knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE, f
 oldPar <- par(cex.main = 3,
     cex.lab = 3,
     cex.axis = 2,
-    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    mar = c(5.1,4.1,4.1,2.1), # default is c(5.1,4.1,4.1,2.1)
+    mfrow = c(1,1)
     )
+
+library(lubridate)
 
 ```
 
@@ -196,130 +199,6 @@ piMap <- data.frame(college = row.names(piEmplid), abbrv = row.names(piEmplid), 
 
 
 ```{r}
-
-# This section over-writes the functions loaded from the document Turnover Functions.R upon sourcing the prep script, as these functions will be improved and changed.  
-
-# Rather, the functions that were used to support this document on original publication and update after review on 4.30.2025 are found below.
-
-activePI <- function(investigation.date,
-                     target = "HIRE_DT",
-                     data){
-  
-  # this uses "retData" which is the view of hire and termination dates.
-  # it returns a count of people who are "active" on a certain date
-  # where active is defined as a date between hire and termination dates,
-  # or after the hire date and the termination date is NA
-  
-  intervalCondition <- investigation.date >= data[,target] & investigation.date <= data[,"TERMINATION_DT"]
-  naCondition <- investigation.date >= data[,target] & is.na(data[,"TERMINATION_DT"])   
-  
-  
-  activeCondition <- intervalCondition|naCondition
-  
-  
-  
-  return(activeCondition)
-  
-}
-
-
-calculateTurnover <- function(data, interval = "week") {
-  
-  # This function returns a dataframe with the count of people 
-  # active, in the re-hire period, or exiting, and 
-  # calculates the turn-over as the count of people exiting divided
-  # by the count of active researchers in the "hire" period.
-  
-  # This was an original function that has been re-written by chatGPT.
-  # It needs some double-checking and comparison to confirm 
-  # how it's aggregating per period.
-  
-  
-  
-  # Ensure TERMINATION_DT is properly formatted
-  term_dates <- data[,"TERMINATION_DT"]
-  
-  # Choose the floor and ceiling functions based on interval
-  if (interval == "week") {
-    start_date <- floor_date(min(term_dates, na.rm = TRUE), "week", week_start = 1)
-    end_date   <- ceiling_date(max(term_dates, na.rm = TRUE), "week", week_start = 1)
-    by_seq     <- "1 week"
-  } else if (interval == "month") {
-    start_date <- floor_date(min(term_dates, na.rm = TRUE), "month")
-    end_date   <- ceiling_date(max(term_dates, na.rm = TRUE), "month")
-    by_seq     <- "1 month"
-  } else if (interval == "quarter") {
-    start_date <- floor_date(min(term_dates, na.rm = TRUE), "quarter")
-    end_date   <- ceiling_date(max(term_dates, na.rm = TRUE), "quarter")
-    by_seq     <- "3 months"
-  } else if (interval == "semester") {
-    start_date <- floor_date(min(term_dates, na.rm = TRUE), "6 months")
-    end_date   <- ceiling_date(max(term_dates, na.rm = TRUE), "6 months")
-    by_seq     <- "6 months"
-  } else if (interval == "year") {
-    start_date <- floor_date(min(term_dates, na.rm = TRUE), "year")
-    end_date   <- ceiling_date(max(term_dates, na.rm = TRUE), "year")
-    by_seq     <- "1 year"
-  } else {
-    stop("Unsupported interval. Choose from: 'week', 'month', 'quarter', 'semester', 'year'.")
-  }
-  
-  # Sequence of investigation dates
-  turnover <- data.frame(termDT = seq(from = start_date, to = end_date, by = by_seq))
-  
-  # Helper to count hires or rehires
-  countActive <- function(date, target) {
-    activePI(investigation.date = date, target = target, data = data) |> 
-      table() |> 
-      (\(x) if ("TRUE" %in% names(x)) x["TRUE"] else 0)()
-  }
-  
-  # Populate hires and rehires
-  turnover$hire   <- sapply(turnover$termDT, countActive, target = "HIRE_DT")
-  turnover$rehire <- sapply(turnover$termDT, countActive, target = "REHIRE_DT")
-  
-  # --- Exit calculation ---
-  # Create interval labels for each termination date
-  makeLabel <- function(dates) {
-    if (interval == "week") {
-      paste(year(dates), week(dates), sep = "-W")
-    } else if (interval == "month") {
-      paste(year(dates), month(dates), sep = "-M")
-    } else if (interval == "quarter") {
-      paste(year(dates), quarter(dates), sep = "-Q")
-    } else if (interval == "semester") {
-      sem <- ifelse(month(dates) <= 6, 1, 2)
-      paste(year(dates), sem, sep = "-S")
-    } else if (interval == "year") {
-      as.character(year(dates))
-    }
-  }
-  
-  exit_labels <- makeLabel(term_dates)
-  exit_table <- table(exit_labels)
-  exit_df <- as.data.frame(exit_table, stringsAsFactors = FALSE)
-  
-  # Build labels for turnover sequence
-  turnover$label <- makeLabel(turnover$termDT)
-  
-  # Merge exits into turnover
-  turnover <- merge(turnover, exit_df, by.x = "label", by.y = "exit_labels", all.x = TRUE)
-  names(turnover)[names(turnover) == "Freq"] <- "exit"
-  
-  # Replace NA exits with 0
-  turnover$exit[is.na(turnover$exit)] <- 0
-  
-  # Calculate turnover
-  turnover$to <- turnover[,"exit"]/turnover[,"hire"]
-  
-  return(turnover)
-}
-
-
-```
-
-
-```{r}
              
 # Manage colors
 
@@ -371,6 +250,195 @@ percentileMapping[,"pch"] <- rep(19, nrow(percentileMapping))
 percentileMapping[,"color"] <- percentileColors[as.numeric(cut(piEmplid$win.sum_percentile, breaks = seq(0.2,1,by=0.1)))]
 
 ```
+
+```{r}
+
+###############################
+## ACTIVE PUBLISHING PERIODS ##
+###############################
+
+# aggregate(PROPOSAL_UPLOAD_DATE ~ PROPOSAL_PI_EMPLID, data = prepData, FUN = function(x) {c(min = min(x), max= max(x))}) |> head()
+
+minDate <- aggregate(PROPOSAL_UPLOAD_DATE ~ PROPOSAL_PI_EMPLID, data = prepData, FUN =  function(x) {as.Date(min(x))}) # |> head() # yes
+
+maxDate <- aggregate(PROPOSAL_UPLOAD_DATE ~ PROPOSAL_PI_EMPLID, data = prepData, FUN = function(x) {as.Date(max(x))}) # |> head() # yes
+
+# aggregate(PROPOSAL_UPLOAD_DATE ~ PROPOSAL_PI_EMPLID, data = prepData, FUN = function(x) {c(min = as.Date(min(x)), max= as.Date(max(x))) }) |> head() # no
+
+activePublishing <- merge(minDate, maxDate, by = "PROPOSAL_PI_EMPLID")
+names(activePublishing) <- c("PROPOSAL_PI_EMPLID", "PROPOSAL_UPLOAD_DATE.min", "PROPOSAL_UPLOAD_DATE.max")
+
+activePublishing$active <- time_length(interval(activePublishing$PROPOSAL_UPLOAD_DATE.min, activePublishing$PROPOSAL_UPLOAD_DATE.max), unit = "year")
+
+activePublishing$inactive_to_date <- time_length(interval(activePublishing$PROPOSAL_UPLOAD_DATE.max, ymd("2025-05-01")), unit = "year")
+  
+# let's merge on the hire/rehire/term dates
+
+activePublishing <- merge(activePublishing, retData[,c("PI_EMPLID", "HIRE_DT", "REHIRE_DT", "TERMINATION_DT")],
+               by.x = "PROPOSAL_PI_EMPLID",
+               by.y = "PI_EMPLID",
+               all.x = TRUE)
+
+# what intervals are interesting?
+# hire-to-publish
+# re-hire-to-publish
+# last publish to term
+# active-yet-inactive (yrs since last publish for current headcount)
+# productive period (first to last publication)
+
+
+# I need to differentiate "active"-ly publishing and "current"-ly headcount
+# maybe I use "productive"
+
+# I need to use the same logic and count the number of "productive PI's" per week
+# And then maybe adjust for those who are current and will probably put out a new proposal
+
+# I'd like to see when the "active" period is during a prof's career.  Are they done at age 50?
+
+# And I can figure out the correct period to use by comparing the min publishing date and the max hire/rehire date that is less than that.
+
+# Before I do that, though, I should compare the various intervals.
+
+
+
+```
+
+
+```{r}
+
+##############################
+## PICK HIRE OR REHIRE DATE ##
+##############################
+
+table(is.na(activePublishing$REHIRE_DT))
+
+# FALSE  TRUE 
+#   796  2141 
+
+# so I'm not dealing with too many re-hires
+
+condition <- activePublishing$REHIRE_DT >= activePublishing$PROPOSAL_UPLOAD_DATE.min
+  
+dim(activePublishing[condition,])
+
+# let's look at all the possible combinations
+
+condition1 <- activePublishing$REHIRE_DT >= activePublishing$PROPOSAL_UPLOAD_DATE.min # These are active publishers after their rehire date
+
+condition2 <- activePublishing$PROPOSAL_UPLOAD_DATE.max <= activePublishing$REHIRE_DT # These are active publishers before their rehire date
+  
+  
+# I want:
+#  Were they publishing between their hire and re-hire date?  Only before their re-hire date?
+#  Were they publishing only after their re-hire date?
+#  Were they publishing before AND after their re-hire date?
+
+before_rehire <- activePublishing$PROPOSAL_UPLOAD_DATE.max <= activePublishing$REHIRE_DT
+
+after_rehire <- activePublishing$PROPOSAL_UPLOAD_DATE.min >= activePublishing$REHIRE_DT
+
+before_and_after <- activePublishing$PROPOSAL_UPLOAD_DATE.min <= activePublishing$REHIRE_DT &  activePublishing$PROPOSAL_UPLOAD_DATE.max >= activePublishing$REHIRE_DT
+ 
+# I kinda wanna see a "hire timeline"
+# similar to my timeline and timedots, but with hire/rehire/term marked
+# and scale it to actual years
+
+
+#> table(before_rehire)
+#before_rehire
+#FALSE  TRUE 
+#  634   162 
+#> table(after_rehire)
+#after_rehire
+#FALSE  TRUE 
+#  191   605 
+#> table(before_and_after)
+#before_and_after
+#FALSE  TRUE 
+#  767    29 
+
+# Check
+#> table(before_rehire & after_rehire)
+#
+#FALSE 
+#  796 
+#> table(before_rehire & before_and_after)
+ 
+#FALSE 
+#  796 
+#> table(after_rehire & before_and_after)
+
+#FALSE 
+#  796 
+ 
+  
+```
+
+
+```{r}
+
+# modified timeline
+# I want to modify the timeline to plot against the years
+# and include the hire/rehire/termination dates
+
+# a good picture is worth a thousand words.
+
+
+
+```
+
+
+```{r}
+
+###############
+## DURATIONS ##
+###############
+
+# For people active in the hire date -- how long from hire until submission?
+# For people active in the rehire date -- how long from re-hire until submission?
+# For all of them -- how long from last submission until termination?
+
+# I'll commit to here, and then I'm going to go back and clean up some of my code and thinking.
+
+```
+
+
+
+```{r eval=FALSE}
+
+
+###############
+## ABANDONED ## 
+###############
+
+# Chat was trying to give me the duration of active publishing periods
+
+# thanks Chat!
+# or maybe not this is becoming unworkable to debug.
+# Gave up and worked it through on my own
+
+agg <- aggregate(PROPOSAL_UPLOAD_DATE ~ PROPOSAL_PI_EMPLID, data = prepData, 
+                 FUN = function(x) {
+                   min_date <- as.Date(min(x), origin = "1970-01-01")
+                   max_date <- as.Date(max(x), origin = "1970-01-01")
+                   duration <- as.integer(max_date - min_date)
+                   c(start = min_date, end = max_date, duration_days = duration)
+                 })
+
+# Convert to a clean data frame
+activePublishing <- do.call(data.frame, agg)
+
+# Set column names explicitly
+names(activePublishing)[2:4] <- c("start_date", "end_date", "duration_days")
+
+# View result
+head(activePublishing)
+
+
+
+```
+
+
 
 # DURATIONS
 
@@ -436,9 +504,9 @@ Duration thoughts:
   - These durations need to be aligned with proposal submission dates.    
   - This shows that we currently have 2,994 active principal investigators.   
 
-# TERMINATION DATES
+# DATES
 
-```{r}
+```{r eval=FALSE}
 
 plotPar <- par(bg = "ivory", fg = "gray20")
 table(week(retData$TERMINATION_DT)) |>
@@ -446,13 +514,36 @@ table(week(retData$TERMINATION_DT)) |>
        ylab = "Count of terminations per week",
        main = "PIs are mostly terminated around June 30th")
 
+par(plotPar)
 
 ```
 
-```{r}
+```{r eval=FALSE}
+
+# Raw numbers, quarterly, individual graphics
+
+plotPar <- par(mfrow = c(3,1), bg = "ivory", fg = "gray20")
+
+table(paste(year(retData$HIRE_DT), quarter(retData$HIRE_DT), sep = "-")) |>
+  (\(x){ 
+    x[names(x) != "NA-NA"]
+    })() |>
+  plot(ylab = "Count of hires",
+       main = "Hires over time",
+       col = "chocolate4")
 
 
-table(paste(year(retData$TERMINATION_DT), week(retData$TERMINATION_DT), sep = "-")) |>
+table(paste(year(retData$REHIRE_DT), quarter(retData$REHIRE_DT), sep = "-")) |>
+  (\(x){ 
+    x[names(x) != "NA-NA"]
+    })() |>
+  plot(ylab = "Count of re-hires",
+       main = "Re-hires over time",
+       col = "chocolate4")
+
+
+
+table(paste(year(retData$TERMINATION_DT), quarter(retData$TERMINATION_DT), sep = "-")) |>
   (\(x){ 
     x[names(x) != "NA-NA"]
     })() |>
@@ -460,9 +551,70 @@ table(paste(year(retData$TERMINATION_DT), week(retData$TERMINATION_DT), sep = "-
        main = "Terminations over time",
        col = "chocolate4")
 
-# par(plotPar)
+
+
+par(plotPar)
+
+# maybe a cumulative graphic?
+# maybe scaled lines on the same graphic? (Gotta do this one!)
 
 ```
+
+
+
+```{r}
+
+# Raw numbers, yearly, individual graphics
+
+plotPar <- par(mfrow = c(3,1), 
+               bg = "ivory", 
+               fg = "gray20",
+               mar = c(2, 4.1, 2, 0.3)
+               )
+
+#mar = c(2, 4.1, 1.1, 0.1)) # c(5.1,4.1,4.1,2.1)
+
+table(year(retData$HIRE_DT)) |>
+  (\(x){ 
+    x[names(x) != "NA-NA"]
+    })() |>
+  plot(ylab = "Count of hires",
+       main = "Hires over time",
+       type = "l",
+       col = "chocolate4")
+
+
+table(year(retData$REHIRE_DT)) |>
+  (\(x){ 
+    x[names(x) != "NA-NA"]
+    })() |>
+  plot(ylab = "Count of re-hires",
+       main = "Re-hires over time",
+       type = "b",
+       col = "chocolate4")
+
+
+
+table(year(retData$TERMINATION_DT)) |>
+  (\(x){ 
+    x[names(x) != "NA-NA"]
+    })() |>
+  plot(ylab = "Count of terminations",
+       main = "Terminations over time",
+       type = "b",
+       col = "chocolate4")
+
+
+
+par(plotPar)
+
+# maybe a cumulative graphic?
+# maybe scaled lines on the same graphic? (Gotta do this one!)
+
+```
+
+
+
 
 # ACTIVE PRINCIPAL INVESTIGATORS
 
@@ -511,7 +663,7 @@ Discussion points:
   - The general pattern of an increasing count of PI's that peaked around the year 2020 and declined since needs to be confirmed    
   - Because the total money requested won has increased, this would mean the average per PI has increased.  This could be one double-check. 
   
-# TURNOVER
+# DATES
 
 ```{r}
 
@@ -532,6 +684,8 @@ axis(side = 1,
      at = ticks,
      labels = turnover_wk$label[ticks+1],
      las = 2)
+
+
 
 
 ```
@@ -785,3 +939,27 @@ Discussion points:
 skim(retData)
 
 ```
+
+# QUERY
+
+VPR.D_PI_EMP_DT_VW as
+  SELECT pi."PI_DIM_KEY",    
+         pi."PI_EMPLID",    
+         pi."PI_FIRST_NAME",    
+         pi."PI_MIDDLE_NAME",    
+         pi."PI_LAST_NAME",    
+         pi."PI_NAME",    
+         pi."PI_EMAIL_ADDRESS",    
+         pi."PI_PHONE",    
+         pi."PI_INDICATOR",    
+         pi."IS_PI",    
+         pi."PI_LOAD_DATE_TIME",    
+         pi."PI_UPDATE_DATE_TIME",    
+         emp.hire_dt,    
+         emp.rehire_dt,    
+         emp.termination_dt
+         FROM osp.d_pi_vw pi
+         LEFT JOIN uuetl_hr.PS_UU_EMPLOYMENT_VW emp ON pi.pi_emplid = emp.emplid
+         
+         
+         
