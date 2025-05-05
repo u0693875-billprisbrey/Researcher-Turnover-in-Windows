@@ -9,6 +9,12 @@ output: html_document
 
 ```{r include=FALSE}
 
+# I like my new direction  -- it's like two chapters.
+# Chapter 1 is the retention data by itself -- basically cleaning up the "quick'n'dirty" version.
+# Chapter 2 is the combination, which will require adapting the functions and will probably tell a pretty different story.
+
+# This will be quicker to produce than a blend, but it also won't be the best story-telling or have the best narrative flow.
+
 # Notes for author
 
 # I am over-using the word "active."  I think I want "active" to mean the period they are "actively" proposing, and the word "current" to mean they are currently employed.  But what about then-current?  I guess I'll use the word "active" for proposing, and "employed" for then-employed.
@@ -30,7 +36,7 @@ output: html_document
 ```
 
 
-**PURPOSE:**  The purpose of this document is a "quick-and-dirty" or "back-of-the-envelope" exploration.  It briefly describes the retention data and superficially calculate and compare principal investigator turnover.  It will be used to determine if this project is worth pursuing and guide further data collection and transformation steps.   
+**PURPOSE:**  The purpose of this document is to describe the retention data and its combination with the proposal data.    
 
 **OBJECTIVES:**   
 
@@ -40,8 +46,13 @@ output: html_document
       b.  By departments **NOT DONE**   
       c.  By PI clusters **DONE**    
       d.  By percentiles **TO BE DONE**    
-  2.  Determine if there are differences and if they merit continuation of the project.         
-  
+  4.  Describe the combination of the retention data and the proposal data.   
+  5.  Re-calculate and compare turnover   
+      a.  By colleges      
+      b.  By departments    
+      c.  By PI clusters     
+      d.  By percentiles 
+  3.  Describe differences and identify avenues for further exploration and next steps.           
 
 **NOTES FROM REVIEW MEETING:**
 
@@ -259,6 +270,11 @@ percentileMapping[,"pch"] <- rep(19, nrow(percentileMapping))
 
 percentileMapping[,"color"] <- percentileColors[as.numeric(cut(piEmplid$win.sum_percentile, breaks = seq(0.2,1,by=0.1)))]
 
+
+# I need the college map
+
+
+
 ```
 
 ```{r}
@@ -389,67 +405,6 @@ activeProposing$effective_hire[rehire_condition] <- activeProposing$REHIRE_DT[re
 ```
 
 # DURATIONS
-
-```{r}
-
-###############
-## DURATIONS ##
-###############
-
-
-histPar <- par(mfrow = c(3,1),
-               mar = c(2,3,3,0),
-               bg = "ivory",
-               fg = "gray10")
-
-minTwoCondition <- activeProposing$PROPOSAL_PI_EMPLID %in% row.names(fullEmplid)[filterTwoCount]
-time_length(interval(activeProposing$PROPOSAL_UPLOAD_DATE.min[minTwoCondition], activeProposing$PROPOSAL_UPLOAD_DATE.max[minTwoCondition]), unit = "year") |>
-  hist(main = "Active proposing duration\n(from first to last proposal date in years)\n(minimum of two proposals)",
-               col = "skyblue",
-       ylab = "count of PIs")
-
-time_length(interval(activeProposing$PROPOSAL_UPLOAD_DATE.max, activeProposing$TERMINATION_DT), unit = "year") |>
-  hist(main = "Inactive period from last proposal to termination (years)",
-               col = "deepskyblue",
-       ylab = "count of PIs")
-
-condition <- is.na(activeProposing$TERMINATION_DT)
- time_length(interval(activeProposing$PROPOSAL_UPLOAD_DATE.max[condition], ymd("2025-05-01")), unit = "year") |>
-   hist(main = "Inactive period from last proposal to 30 April 2025 \n(employed as of data cut-off of 30 April 2025)",
-               col = "dodgerblue",
-       ylab = "count of PIs")
-
-# Maybe active needs to be filtered to PI's with at least two proposals? DONE
- 
- 
-# For people active in the hire date -- how long from hire until submission?
-# For people active in the rehire date -- how long from re-hire until submission?
-# For all of them -- how long from last submission until termination?
-
-# Hire until first submission
-
-# I can use filters here or I can create an "effective hire date" 
- 
-time_length(interval(activeProposing$effective_hire, activeProposing$PROPOSAL_UPLOAD_DATE.min), unit = "year") |> # max() # 50 yrs!
-  hist(main = "Period from effective hire to first proposal")
-
-# something is still wrong
-
-time_length(interval(activeProposing$effective_hire, activeProposing$PROPOSAL_UPLOAD_DATE.min), unit = "year") |>
-  (\(x){which(x == max(x))})()
-
-# the problem is that I don't have good proposal data until 2013.
-# so I should truncate this to people hired after 2013
-
-hire2013 <- year(activeProposing$effective_hire) >= 2013
-time_length(interval(activeProposing$effective_hire[hire2013], activeProposing$PROPOSAL_UPLOAD_DATE.min[hire2013]), unit = "year") |> # max() # 50 yrs!
-  hist(main = "Period from effective hire to first proposal\(for hires after 2013)")
-
-# there we go, that's a much better graphic
-
-
-```
-
 
 ```{r}
 
@@ -645,7 +600,11 @@ turnover_yr <- calculateTurnover(data = retData, interval = "year")
 
 ```{r}
 
-plotPar <- par(bg = "ivory", fg = "gray20")
+plotPar <- par(mfrow = c(3,1), 
+               bg = "ivory", 
+               fg = "gray20",
+               mar = c(4, 4.1, 2, 0.3)
+               )
 
 plot(turnover_wk$hire,
      cex = 0.3,
@@ -661,6 +620,36 @@ axis(side = 1,
      labels = turnover_wk$label[ticks+1],
      las = 2)
 
+plot(turnover_qt$hire,
+     cex = 0.3,
+     main = "Count of PI's between hire and termination date",
+     col="sienna",
+     ylab = "Count of active PIs",
+     xlab = "",
+     xaxt = "n")
+
+ticks = seq(from = 0, to = nrow(turnover_qt), length.out = 12)
+axis(side = 1,
+     at = ticks,
+     labels = turnover_qt$label[ticks+1],
+     las = 2)
+
+plot(turnover_yr$hire,
+     cex = 0.3,
+     main = "Count of PI's between hire and termination date",
+     col="sienna",
+     ylab = "Count of active PIs",
+     xlab = "",
+     xaxt = "n")
+
+ticks = seq(from = 0, to = nrow(turnover_yr), length.out = 12)
+axis(side = 1,
+     at = ticks,
+     labels = turnover_yr$label[ticks+1],
+     las = 2)
+
+
+
 ```
 
 Discussion points:    
@@ -671,6 +660,71 @@ Discussion points:
     - This needs to be investigated   
   - The general pattern of an increasing count of PI's that peaked around the year 2020 and declined since needs to be confirmed    
   - Because the total money requested won has increased, this would mean the average per PI has increased.  This could be one double-check. 
+
+
+```{r eval=FALSE}
+
+# investigating the "tendrils"
+
+plotPar <- par(mfrow = c(1,1), 
+               bg = "ivory", 
+               fg = "gray20",
+               mar = c(4, 4.1, 4, 0.3)
+               )
+
+dateFilter <- turnover_wk$termDT > as.Date("2018-12-01") & turnover_wk$termDT <= as.Date("2020-06-01")
+
+range(scale(turnover_wk$exit[dateFilter]))
+
+plot(scale(turnover_wk$hire[dateFilter]),
+     cex = 0.3,
+     main = "Count of PI's between hire and termination date \ndoesn't align with exits",
+     #main = "Count of PI's between hire and termination date",
+     col="sienna",
+     ylab = "Count of active PIs",
+     xlab = "",
+     xaxt = "n",
+     type = "l",
+     ylim = c(-2,9)
+     )
+
+# that's a little clearer what's going on.
+# looks like these tendrils simply align with terminations and hires
+
+# So now I'm trying to align them graphically
+
+points(scale(turnover_wk$exit[dateFilter]),
+     cex = 0.3,
+     # main = "Count of PI's terminated",
+     type = "l",
+     col="red",
+     ylab = "Count of terminated PIs",
+     xlab = "",
+     xaxt = "n")
+
+legend("topright",
+       legend = c("head count", "exit count"),
+       lty = 1,
+       lwd = 2,
+       col = c("sienna","red"),
+       cex = 1.3)
+
+#ticks = seq(from = 0, to = nrow(turnover_wk), length.out = 12)
+#axis(side = 1,
+#     at = ticks,
+#     labels = turnover_wk$label[ticks+1],
+#     las = 2)
+
+mtext(side = 1, line = 1.33, "This graph shows weekly calculations between 2018-12-01 and 2020-06-01")
+
+mtext(side = 1, line = 2.33, "The misalignment suggests an error in the aggregating formula.")
+
+par(plotPar)
+
+
+
+```
+
   
 # DATES
 
@@ -969,6 +1023,70 @@ VPR.D_PI_EMP_DT_VW as
          emp.termination_dt
          FROM osp.d_pi_vw pi
          LEFT JOIN uuetl_hr.PS_UU_EMPLOYMENT_VW emp ON pi.pi_emplid = emp.emplid
-         
+ 
+ 
+# COMBINING RETENTION DATA AND ACTIVE PROPOSAL DATA         
+
+```{r}
+
+###############
+## DURATIONS ##
+###############
+
+
+histPar <- par(mfrow = c(3,1),
+               mar = c(2,3,3,0),
+               bg = "ivory",
+               fg = "gray10")
+
+minTwoCondition <- activeProposing$PROPOSAL_PI_EMPLID %in% row.names(fullEmplid)[filterTwoCount]
+time_length(interval(activeProposing$PROPOSAL_UPLOAD_DATE.min[minTwoCondition], activeProposing$PROPOSAL_UPLOAD_DATE.max[minTwoCondition]), unit = "year") |>
+  hist(main = "Active proposing duration\n(from first to last proposal date in years)\n(minimum of two proposals)",
+               col = "skyblue",
+       ylab = "count of PIs")
+
+time_length(interval(activeProposing$PROPOSAL_UPLOAD_DATE.max, activeProposing$TERMINATION_DT), unit = "year") |>
+  hist(main = "Inactive period from last proposal to termination (years)",
+               col = "deepskyblue",
+       ylab = "count of PIs")
+
+condition <- is.na(activeProposing$TERMINATION_DT)
+ time_length(interval(activeProposing$PROPOSAL_UPLOAD_DATE.max[condition], ymd("2025-05-01")), unit = "year") |>
+   hist(main = "Inactive period from last proposal to 30 April 2025 \n(employed as of data cut-off of 30 April 2025)",
+               col = "dodgerblue",
+       ylab = "count of PIs")
+
+# Maybe active needs to be filtered to PI's with at least two proposals? DONE
+ 
+ 
+# For people active in the hire date -- how long from hire until submission?
+# For people active in the rehire date -- how long from re-hire until submission?
+# For all of them -- how long from last submission until termination?
+
+# Hire until first submission
+
+# I can use filters here or I can create an "effective hire date" 
+ 
+time_length(interval(activeProposing$effective_hire, activeProposing$PROPOSAL_UPLOAD_DATE.min), unit = "year") |> # max() # 50 yrs!
+  hist(main = "Period from effective hire to first proposal")
+
+# something is still wrong
+
+time_length(interval(activeProposing$effective_hire, activeProposing$PROPOSAL_UPLOAD_DATE.min), unit = "year") |>
+  (\(x){which(x == max(x))})()
+
+# the problem is that I don't have good proposal data until 2013.
+# so I should truncate this to people hired after 2013
+
+# make this a precise date, the minimum in the prepData
+hire2013 <- year(activeProposing$effective_hire) >= 2013
+time_length(interval(activeProposing$effective_hire[hire2013], activeProposing$PROPOSAL_UPLOAD_DATE.min[hire2013]), unit = "year") |> # max() # 50 yrs!
+  hist(main = "Period from effective hire to first proposal\n(for hires after 2013)")
+
+# there we go, that's a much better graphic
+
+
+```
+
          
          
