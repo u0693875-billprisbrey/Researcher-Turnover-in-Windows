@@ -178,6 +178,266 @@ plot(turnover$headcount_combined, type = "l")
 # I should be able to tally the hires and terms per day, and the delta "headcount" should be
 # that combined amount.
 
+# Working on the tallying the hires and the terms per day
+
+# Man it's so hard to get back into this on a Monday morning.  Where was I, and what the freak was I doing?
+
+
+####################
+####################
+## BRAIN RE-START ##
+####################
+####################
+
+
+theDates <- data.frame(actionDate = seq(from = minDate, to = maxDate, by = by_seq))
+
+hireActions <- table(retData$HIRE_DT[hireFilter])
+
+plot(hireActions, type = "l")
+
+hireActions <- data.frame(hireDate = names(hireActions), hireCount = as.numeric(hireActions))
+
+
+# and clearly this will never work, because I am missing the term date aligned with the re-hire date
+# I am double-counting the re-hires, because I have no record of them leaving.
+# This whole effort is kinda doomed, then, isn't it?
+# the only option is to ignore the re-hires
+# ...or make an extreme assumption that they were terminated the day before they were re-hired.
+#    It would work, but it's just ... weird.
 
 
 
+termActions <- table(retData$TERMINATION_DT[termFilter])
+
+plot(termActions, type = "l", col = "red")
+
+termActions <- data.frame(termDate = names(termActions), termCount = as.numeric(termActions))
+
+hrDates <- merge(theDates, hireActions, by.x = "actionDate", by.y = "hireDate", all.x = TRUE)
+hrDates <- merge(hrDates, termActions, by.x = "actionDate", by.y = "termDate", all.x = TRUE)
+
+plot(hrDates$hireCount, col = "darkblue")
+points(hrDates$termCount, col = "firebrick")
+
+# that's clear as mud
+
+hrDates[is.na(hrDates)] <- 0 
+
+# now I need a cumulative sum
+# I guess I can do a net per week
+
+hrDates$delta <- hrDates$hireCount - hrDates$termCount
+
+plot(hrDates$delta, col = "darkblue", type = "l")
+
+# looks like a net gain during this period
+
+# hrDates$delta.cum <- cumsum(ifelse(is.na(hrDates$delta),0,hrDates$delta))
+hrDates$delta.cum <- cumsum(hrDates$delta)
+  
+plot(hrDates$delta.cum, ylim = c(min(hrDates$delta), max(hrDates$delta.cum)))  
+
+# o.k., this seems like a very realistic thing to have
+
+points(hrDates$delta, col = ifelse(hrDates$delta >= 0, "darkgreen","firebrick" ))
+#plot(hrDates$delta, col = "red")  
+
+plot(hrDates$hireCount, col = "green")
+plot(hrDates$termCount, col = "red")
+
+
+# Let's compare
+
+plot(hrDates$delta.cum, x = hrDates$actionDate,  ylim = c(min(hrDates$delta), max(hrDates$delta.cum)))  
+points(y=hrDates$delta[hrDates$delta !=0], 
+       x=hrDates$actionDate[hrDates$delta !=0],
+       col = ifelse(hrDates$delta[hrDates$delta !=0] > 0, "darkgreen","firebrick" )
+       )
+#plot(hrDates$delta, col = "red")  
+
+# plot(turnover$headcount_combined, type = "l") # wildly different
+# plot(turnover$hire_filter, type = "l")        # wildly different
+# plot(turnover$headcount, type = "l")          # wildly different
+
+# I don't know what I was thinking.  I'm lost.
+
+# and what should I do?  
+# Move forward with the new logic, or carefully compare with the old?
+
+# good thing I compared with the old.  I caught a big error.
+
+#############
+## COMPARE ##
+#############
+
+plot(hrDates$delta.cum, x = hrDates$actionDate,  ylim = c(min(hrDates$delta), max(hrDates$delta.cum)), type = "l")  
+points(y=hrDates$delta[hrDates$delta !=0], 
+       x=hrDates$actionDate[hrDates$delta !=0],
+       col = ifelse(hrDates$delta[hrDates$delta !=0] > 0, "darkgreen","firebrick" )
+)
+
+plot(turnover$headcount_combined, type = "l")
+
+
+# ok, this is great, and a relief--
+# The two lines match!  Perfectly!
+
+# the "delta" starts at zero,
+# and the headcount_combined starts at !120
+
+# So here's some ideas--
+#    - Figure out how to confirm the !120 headcount starting point
+#    - Always calculate the delta alongside (why? - because a check is nice, and the explicit "delta" is nice)
+#    - Accept that my turnover is correct and move on
+#    - Check another time span
+#    - Use this same time frame, and aggregate to wewks/months/quarters/years
+
+#####################
+## HEADCOUNT DELTA ##
+#####################
+
+headCountDelta <- function(minDate, 
+                           maxDate,
+                           calendar = "day",
+                           data) {
+  
+  # Add a dummy column for aggregation
+  data[,"one"] <- 1 # because there is one PI per row
+  
+  # where data is retData, all of it
+  # Do I want a "calendar" argument?
+  
+  if(calendar == "day") {
+  hrDates <- data.frame(actionDate = seq(from = minDate, to = maxDate, by = calendar)) # create data frame with one row per calendar period
+  }
+  
+  if(calendar == "week") {
+    
+    # discover the first date of the isoweek
+    
+    #targetWeek <- isoweek(minDate)
+    #targetYear <- isoyear(minDate)
+    
+    weekMin <- minDate
+    while(isoweek(weekMin) == isoweek(minDate) ) {weekMin <- weekMin - 1 }
+    weekMin <- weekMin+1
+    
+    weekMax <- maxDate
+    while(isoweek(weekMax) == isoweek(maxDate) ) {weekMax <- weekMax + 1 }
+    weekMax <- weekMax-1
+    
+    # create data frame with one row per calendar period
+    hrDates <- data.frame(actionDate = seq(from = weekMin, to = weekMax, by = calendar)) 
+    
+    # convert to ISO standard format
+    hrDates$isoDate <- paste(isoyear(hrDates$actionDate), isoweek(hrDates$actionDate), sep = "-W")
+    
+    
+  }
+  # Aggregate hire and termination actions
+  
+  if(calendar == "day") {
+  hireActions <- aggregate(one ~ HIRE_DT, data = data, sum)
+  termActions <- aggregate(one ~ TERMINATION_DT, data = data, sum)
+  }
+  
+  if(calendar == "week") {
+    hireActions <- aggregate(one ~ paste(isoyear(HIRE_DT), isoweek(HIRE_DT), sep = "-W"), data = data, sum)
+    names(hireActions) <- c("isoDate","one")
+    termActions <- aggregate(one ~ paste(isoyear(TERMINATION_DT), isoweek(TERMINATION_DT), sep = "-W"), data = data, sum)
+    names(termActions) <- c("isoDate","one")
+  }
+  
+  if(calendar == "month") {
+    hireActions <- aggregate(one ~ month(HIRE_DT), data = data, sum)
+    termActions <- aggregate(one ~ month(TERMINATION_DT), data = data, sum)
+  }
+  
+  if(calendar == "quarter") {
+    hireActions <- aggregate(one ~ quarter(HIRE_DT), data = data, sum)
+    termActions <- aggregate(one ~ quarter(TERMINATION_DT), data = data, sum)
+  }
+  
+  if(calendar == "year") {
+    hireActions <- aggregate(one ~ isoyear(HIRE_DT), data = data, sum)
+    termActions <- aggregate(one ~ isoyear(TERMINATION_DT), data = data, sum)
+  }
+  
+  # merge
+  
+  if(calendar == "day") {
+  # prepare for merge
+  hireActions$HIRE_DT <- as.Date(hireActions$HIRE_DT)
+  termActions$TERMINATION_DT <- as.Date(termActions$TERMINATION_DT)
+  
+  # merge
+  hrDates <- merge(hrDates, hireActions, by.x = "actionDate", by.y = "HIRE_DT", all.x = TRUE)
+  hrDates <- merge(hrDates, termActions, by.x = "actionDate", by.y = "TERMINATION_DT", all.x = TRUE)
+  
+  # post-merge clean-up
+  names(hrDates) <- c("actionDate", "hireCount", "termCount")
+  }
+  
+  if(calendar == "week"){
+  
+    # merge
+    hrDates <- merge(hrDates, hireActions, by = "isoDate", all.x = TRUE)
+    names(hrDates)[names(hrDates) == "one"] <- "hireCount"
+    hrDates <- merge(hrDates, termActions, by = "isoDate", all.x = TRUE)
+    names(hrDates)[names(hrDates) == "one"] <- "termCount"
+  }
+  
+  
+  # convert NA to zero
+  hrDates[is.na(hrDates)] <- 0
+  
+  # calculate delta
+  hrDates$delta <- hrDates$hireCount - hrDates$termCount
+  
+  # calculate delta cumulative
+  hrDates$delta.cum <- cumsum(hrDates$delta)
+  
+  return(hrDates)
+  
+}
+
+
+# find the beginning of the time period
+checkDate <- minDate
+while(isoweek(checkDate) == targetWeek ) {checkDate <- checkDate - 1 }
+checkDate <- checkDate+1 # because it decrements once too many
+
+
+plotHeadCount <- function(data){ 
+  
+plot(data$delta.cum, x = data$actionDate,  ylim = c(min(data$delta), max(data$delta.cum)), type = "l")  
+points(y=data$delta[data$delta !=0], 
+       x=data$actionDate[data$delta !=0],
+       col = ifelse(data$delta[data$delta !=0] > 0, "darkgreen","firebrick" )
+) 
+} 
+
+span_day <- headCountDelta(minDate = minDate,
+                           maxDate = maxDate,
+                           data = retData)
+
+span_week <- headCountDelta(minDate = minDate,
+                           maxDate = maxDate,
+                           calendar = "week",
+                           data = retData)
+
+span_month <- headCountDelta(minDate = minDate,
+                            maxDate = maxDate,
+                            calendar = "month",
+                            data = retData)
+
+span_quarter <- headCountDelta(minDate = minDate,
+                            maxDate = maxDate,
+                            calendar = "quarter",
+                            data = retData)
+
+span_year <- headCountDelta(minDate = minDate,
+                            maxDate = maxDate,
+                            calendar = "year",
+                            data = retData)
