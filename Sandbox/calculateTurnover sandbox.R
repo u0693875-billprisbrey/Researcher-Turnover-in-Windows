@@ -303,6 +303,7 @@ headCountDelta <- function(minDate,
                            data) {
   
   # Add a dummy column for aggregation
+  
   data[,"one"] <- 1 # because there is one PI per row
   
   # where data is retData, all of it
@@ -335,6 +336,7 @@ headCountDelta <- function(minDate,
     
     
   }
+  
   # Aggregate hire and termination actions
   
   if(calendar == "day") {
@@ -403,6 +405,179 @@ headCountDelta <- function(minDate,
 }
 
 
+# re-doing the flow
+
+headCountDelta <- function(minDate, 
+                           maxDate,
+                           calendar = "day",
+                           data) {
+  
+  # where data is retData
+  
+  # Add a dummy column for aggregation
+  
+  data[,"one"] <- 1 # because there is one PI per row
+  
+  if(calendar == "day") {
+    
+    # create data frame with one row per calendar period
+    hrDates <- data.frame(actionDate = seq(from = minDate, to = maxDate, by = calendar)) 
+    
+    # duplicate column name to parallel other calendar periods
+    hrDates$isoDate <- hrDates$actionDate
+    
+    # Aggregate hire and termination actions
+    hireActions <- aggregate(one ~ HIRE_DT, data = data, sum)
+    names(hireActions) <- c("isoDate","one")
+    termActions <- aggregate(one ~ TERMINATION_DT, data = data, sum)
+    names(termActions) <- c("isoDate","one")
+    
+    # prepare for merge
+    hireActions$isoDate <- as.Date(hireActions$isoDate)
+    termActions$isoDate <- as.Date(termActions$isoDate)
+    
+    
+#    # merge
+#    hrDates <- merge(hrDates, hireActions, by.x = "actionDate", by.y = "HIRE_DT", all.x = TRUE)
+#    names(hrDates)[names(hrDates) == "one"] <- "hireCount"
+#    hrDates <- merge(hrDates, termActions, by.x = "actionDate", by.y = "TERMINATION_DT", all.x = TRUE)
+#    names(hrDates)[names(hrDates) == "one"] <- "termCount"
+    
+  }
+  
+  if(calendar == "week") {
+    
+    # discover the extreme dates of the isoweek
+    weekMin <- minDate
+    while(isoweek(weekMin) == isoweek(minDate) ) {weekMin <- weekMin - 1 }
+    weekMin <- weekMin+1
+    
+    weekMax <- maxDate
+    while(isoweek(weekMax) == isoweek(maxDate) ) {weekMax <- weekMax + 1 }
+    weekMax <- weekMax-1
+    
+    # create data frame with one row per calendar period
+    hrDates <- data.frame(actionDate = seq(from = weekMin, to = weekMax, by = calendar)) 
+    
+    # convert to ISO standard format
+    hrDates$isoDate <- paste(isoyear(hrDates$actionDate), isoweek(hrDates$actionDate), sep = "-W")
+    
+    # aggregate
+    hireActions <- aggregate(one ~ paste(isoyear(HIRE_DT), isoweek(HIRE_DT), sep = "-W"), data = data, sum)
+    names(hireActions) <- c("isoDate","one")
+    termActions <- aggregate(one ~ paste(isoyear(TERMINATION_DT), isoweek(TERMINATION_DT), sep = "-W"), data = data, sum)
+    names(termActions) <- c("isoDate","one")
+    
+#    # merge
+#    hrDates <- merge(hrDates, hireActions, by = "isoDate", all.x = TRUE)
+#    names(hrDates)[names(hrDates) == "one"] <- "hireCount"
+#    hrDates <- merge(hrDates, termActions, by = "isoDate", all.x = TRUE)
+#    names(hrDates)[names(hrDates) == "one"] <- "termCount"
+    
+  }
+  
+  if(calendar == "month") {
+    
+    monthMin <- ymd(paste(isoyear(minDate), month(minDate),"01", sep = "-") )
+    monthMax <- ymd(paste(isoyear(maxDate), month(maxDate),"01", sep = "-") )
+    
+    # this converts to a character string
+    #monthMin <- format(minDate, "%Y-%m")
+    #monthMax <- format(maxDate, "%Y-%m")
+    
+    # create data frame with one row per calendar period
+    hrDates <- data.frame(actionDate = seq(from = monthMin, to = monthMax, by = calendar)) 
+    
+    # convert to ISO standard format
+    hrDates$isoDate <- format(hrDates$actionDate, "%Y-%m") 
+    
+    # aggregate
+    hireActions <- aggregate(one ~ format(HIRE_DT, "%Y-%m"), data = data, sum)
+    names(hireActions) <- c("isoDate","one")
+    termActions <- aggregate(one ~ format(TERMINATION_DT, "%Y-%m"), data = data, sum)
+    names(termActions) <- c("isoDate","one")
+    
+#    # merge
+#    hrDates <- merge(hrDates, hireActions, by = "isoDate", all.x = TRUE)
+#    names(hrDates)[names(hrDates) == "one"] <- "hireCount"
+#    hrDates <- merge(hrDates, termActions, by = "isoDate", all.x = TRUE)
+#    names(hrDates)[names(hrDates) == "one"] <- "termCount"
+    
+  }
+  
+  if(calendar == "quarter"){
+    
+    # discover the extreme dates of the quarter
+    quarterMin <- minDate
+    while(quarter(quarterMin) == quarter(minDate) ) {quarterMin <- quarterMin - 1 }
+    quarterMin <- quarterMin+1
+    
+    quarterMax <- maxDate
+    while(quarter(quarterMax) == quarter(maxDate) ) {quarterMax <- quarterMax + 1 }
+    quarterMax <- quarterMax-1    
+    
+    # create data frame with one row per calendar period
+    hrDates <- data.frame(actionDate = seq(from = quarterMin, to = quarterMax, by = calendar)) 
+    
+    # convert to ISO standard format
+    hrDates$isoDate <- paste(isoyear(hrDates$actionDate), quarter(hrDates$actionDate), sep = "-Q")
+    
+    # aggregate
+    hireActions <- aggregate(one ~ paste(isoyear(HIRE_DT), quarter(HIRE_DT), sep = "-Q"), data = data, sum)
+    names(hireActions) <- c("isoDate","one")
+    termActions <- aggregate(one ~ paste(isoyear(TERMINATION_DT), quarter(TERMINATION_DT), sep = "-Q"), data = data, sum)
+    names(termActions) <- c("isoDate","one")
+    
+#    # merge
+#    hrDates <- merge(hrDates, hireActions, by = "isoDate", all.x = TRUE)
+#    names(hrDates)[names(hrDates) == "one"] <- "hireCount"
+#    hrDates <- merge(hrDates, termActions, by = "isoDate", all.x = TRUE)
+#    names(hrDates)[names(hrDates) == "one"] <- "termCount"
+    
+    
+  }
+  
+  if(calendar == "year") {
+    
+    yearMin <- ymd(paste(isoyear(minDate), "01","01", sep = "-") )
+    yearMax <- ymd(paste(isoyear(maxDate), "12","31", sep = "-") )
+
+    # create data frame with one row per calendar period
+    hrDates <- data.frame(actionDate = seq(from = yearMin, to = yearMax, by = calendar)) 
+    
+    # convert to ISO standard format
+    hrDates$isoDate <- isoyear(hrDates$actionDate) 
+        
+    # aggregate
+    hireActions <- aggregate(one ~ isoyear(HIRE_DT), data = data, sum)
+    names(hireActions) <- c("isoDate","one")
+    termActions <- aggregate(one ~ isoyear(TERMINATION_DT), data = data, sum)
+    names(termActions) <- c("isoDate","one")
+    
+  }
+  
+  # merge
+  hrDates <- merge(hrDates, hireActions, by = "isoDate", all.x = TRUE)
+  names(hrDates)[names(hrDates) == "one"] <- "hireCount"
+  hrDates <- merge(hrDates, termActions, by = "isoDate", all.x = TRUE)
+  names(hrDates)[names(hrDates) == "one"] <- "termCount"
+  
+  # Calculate delta
+  
+  # convert NA to zero
+  hrDates[is.na(hrDates)] <- 0
+  
+  # calculate delta
+  hrDates$delta <- hrDates$hireCount - hrDates$termCount
+  
+  # calculate delta cumulative
+  hrDates$delta.cum <- cumsum(hrDates$delta)
+  
+  return(hrDates)
+  
+}
+
+
 # find the beginning of the time period
 checkDate <- minDate
 while(isoweek(checkDate) == targetWeek ) {checkDate <- checkDate - 1 }
@@ -441,3 +616,19 @@ span_year <- headCountDelta(minDate = minDate,
                             maxDate = maxDate,
                             calendar = "year",
                             data = retData)
+
+par(mfrow = c(5,1),
+    mar = c(3,4,1,0),
+    fg = "blue",
+    bg = "ivory")
+
+lapply(list(span_day, 
+            span_week, 
+            span_month, 
+            span_quarter, 
+            span_year
+            ),
+       plotHeadCount)
+
+# something goofy when plotting span_week, 
+# but there's nothing strange in the underlying data
