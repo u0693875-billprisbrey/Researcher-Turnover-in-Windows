@@ -133,9 +133,14 @@ deltaPlot <- function(data,
                       cumulative_plot_params = list(),
                       cumulative_points_params = list(),
                       cumulative_mtext_params = list(),
+                      cumulative_rect_args = list(),
+                      cumulative_grid_args = list(),
                       delta_plot_params = list(),
                       delta_points_params = list(),
                       delta_mtext_params = list(),
+                      delta_upper_rect_args = list(),
+                      delta_lower_rect_args = list(),
+                      delta_grid_args = list(),
                       title_mtext_params = list()
                       ){
   
@@ -178,6 +183,29 @@ deltaPlot <- function(data,
        ylab = ""# "headcount\ncumulative"
        )
   
+  # Rectangle (plot color) (Establish after plot is drawn)
+  
+  default_cumulative_rect_args <- list(
+    xleft = par("usr")[1], 
+    ybottom = par("usr")[3], 
+    xright = par("usr")[2], 
+    ytop = par("usr")[4],
+    col = "gray95", 
+    border = NA
+  )
+  
+  cumulative_rect_args <- modifyList(default_cumulative_rect_args, cumulative_rect_args)
+  
+  # Grid (Establish after the plot is drawn)
+  
+  default_cumulative_grid_args <- list(col = "gray100", lwd = 2, lty = "dotted")
+  cumulative_grid_args <- modifyList(default_cumulative_grid_args, cumulative_grid_args)
+  
+  # Draw rectangle and grid
+  do.call("rect", cumulative_rect_args)
+  do.call("grid", cumulative_grid_args)
+  
+  # Cumulative line
   default_cumulative_points_params <- list(
                                 y = data[,"delta.cum"],
                                 x = data[,"actionDate"],
@@ -218,7 +246,44 @@ deltaPlot <- function(data,
        las = 2,
        ylab = "" # "delta"
        )
+
+  # Rectangle (plot color) (Establish after plot is drawn)
   
+  default_delta_upper_rect_args <- list(
+    xleft = par("usr")[1], 
+    ybottom = 0, #par("usr")[3], 
+    xright = par("usr")[2], 
+    ytop = par("usr")[4],
+    col = adjustcolor("palegreen3", alpha.f = 0.1), 
+    border = NA
+  )
+  
+  delta_upper_rect_args <- modifyList(default_delta_upper_rect_args, delta_upper_rect_args)
+  
+  default_delta_lower_rect_args <- list(
+    xleft = par("usr")[1], 
+    ybottom = par("usr")[3], 
+    xright = par("usr")[2], 
+    ytop = 0, #par("usr")[4],
+    col = adjustcolor("pink", alpha.f = 0.5), 
+    border = NA
+  )
+  
+  delta_lower_rect_args <- modifyList(default_delta_lower_rect_args, delta_lower_rect_args)
+  
+  
+  # Grid (Establish after the plot is drawn)
+  
+  default_delta_grid_args <- list(col = "gray100", lwd = 2, lty = "dotted")
+  cumulative_delta_args <- modifyList(default_delta_grid_args, delta_grid_args)
+  
+  # Draw rectangle and grid
+  do.call("rect", delta_upper_rect_args)
+  do.call("rect", delta_lower_rect_args)
+  do.call("grid", delta_grid_args)
+  
+  
+  # Draw the points  
   default_delta_points_params <- list(y= data[,"delta"],
                                       x= data[,"actionDate"],
                                       type = "l",
@@ -254,6 +319,11 @@ deltaPlot <- function(data,
   do.call(mtext, title_mtext_params)
   
 }
+
+
+
+
+
 
 
 deltaHeadCount(
