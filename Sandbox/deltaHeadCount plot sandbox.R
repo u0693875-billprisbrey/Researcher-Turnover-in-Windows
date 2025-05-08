@@ -274,8 +274,8 @@ deltaPlot <- function(data,
   
   # Grid (Establish after the plot is drawn)
   
-  default_delta_grid_args <- list(col = "gray100", lwd = 2, lty = "dotted")
-  cumulative_delta_args <- modifyList(default_delta_grid_args, delta_grid_args)
+  default_delta_grid_args <- list(col = "lightgray", lwd = 1, lty = "dotted")
+  delta_grid_args <- modifyList(default_delta_grid_args, delta_grid_args)
   
   # Draw rectangle and grid
   do.call("rect", delta_upper_rect_args)
