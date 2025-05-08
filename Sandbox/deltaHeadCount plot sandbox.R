@@ -130,7 +130,13 @@ names(briefSpan) <- calendarPeriods
 
 
 deltaPlot <- function(data,
-                      
+                      cumulative_plot_params = list(),
+                      cumulative_points_params = list(),
+                      cumulative_mtext_params = list(),
+                      delta_plot_params = list(),
+                      delta_points_params = list(),
+                      delta_mtext_params = list(),
+                      title_mtext_params = list()
                       ){
   
   # so far this is really pleasing.
@@ -148,7 +154,9 @@ deltaPlot <- function(data,
   layout(matrix(1:2, nrow = 2), heights = c(0.618, 0.382))
   
   default_cumulative_plot_params <- list(oma = c(0,0,2,0),
-                                         mar = c(0,4,0,1))
+                                         mar = c(0,4,0,1),
+                                         bg="ivory",
+                                         fg = "grey10")
   
   cumulative_plot_params <- modifyList(default_cumulative_plot_params,
                                        cumulative_plot_params)
@@ -170,18 +178,21 @@ deltaPlot <- function(data,
        ylab = ""# "headcount\ncumulative"
        )
   
-  default_cumulative_points_params <- list(y = y = data[,"delta.cum"],
+  default_cumulative_points_params <- list(
+                                y = data[,"delta.cum"],
                                 x = data[,"actionDate"],
                                 type = "l",
-                                col = "sienna",
+                                col = "sienna"
                                 )
   
-  points_params <- modifyList(default_cumulative_points_params, cumulative_points_params)
+  cumulative_points_params <- modifyList(default_cumulative_points_params, cumulative_points_params)
   
   do.call(points, cumulative_points_params)
   
-  default_cumulative_mtext_params <- list(side = 2,
-                                  text = "headcount\ncumulative")
+  default_cumulative_mtext_params <- list(
+                                  side = 2,
+                                  line = 3,
+                                  text = "cumulative")
   cumulative_mtext_params <- modifyList(default_cumulative_mtext_params, 
                                        cumulative_mtext_params)
   
@@ -191,8 +202,7 @@ deltaPlot <- function(data,
   ## DELTA PLOT ##
   ################
 
-  default_delta_plot_params <- list(oma = c(0,0,0,0),
-                                         mar = c(6,4,0,1))
+  default_delta_plot_params <- list(mar = c(4,4,0,1))
   
   delta_plot_params <- modifyList(default_delta_plot_params,
                                        delta_plot_params)
@@ -211,7 +221,7 @@ deltaPlot <- function(data,
   
   default_delta_points_params <- list(y= data[,"delta"],
                                       x= data[,"actionDate"],
-                                      type = "n",
+                                      type = "l",
                                       col = "seagreen"
                                       )
   
@@ -220,7 +230,9 @@ deltaPlot <- function(data,
   do.call(points, delta_points_params)
   
   default_delta_mtext_params <- list(side = 2,
-                                          text = "delta")
+                                     line = 3,
+                                     text = "delta"
+                                     )
   delta_mtext_params <- modifyList(default_delta_mtext_params, 
                                         delta_mtext_params)
   
@@ -230,27 +242,18 @@ deltaPlot <- function(data,
   ## OUTER TEXT ##
   ################
   
-  default_title_params <- list(side = 3, font =2, cex = 1.3, outer = TRUE)
+  default_title_mtext_params <- list(text = "Delta Headcount", 
+                                     side = 3,
+                                     line = 0.3,
+                                     font =2, 
+                                     cex = 1.3, 
+                                     outer = TRUE)
   
-  title_params <- modifyList(default_title_params, title_params)
+  title_mtext_params <- modifyList(default_title_mtext_params, title_mtext_params)
   
-  do.call(mtext, title_params)
+  do.call(mtext, title_mtext_params)
   
 }
-
-
-plot(y=fullSpan[["day"]][,"delta.cum"],
-     x = fullSpan[["day"]][,"actionDate"],
-     type = "l",
-     col = "sienna"
-     )
-
-plot(y=briefSpan[["day"]][,"delta"],
-     x = briefSpan[["day"]][,"actionDate"],
-     type = "l",
-     col = "sienna"
-)
-
 
 
 deltaHeadCount(
