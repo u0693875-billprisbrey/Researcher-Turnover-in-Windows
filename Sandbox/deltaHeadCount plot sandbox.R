@@ -144,14 +144,17 @@ deltaPlot <- function(data,
                       title_mtext_params = list()
                       ){
   
-  # so far this is really pleasing.
-  # Nice to have:
-  #  shade the "delta" for above-and-below zero
-  #  add advanced details, like plot shading and the "list" flexibility
-  #  the bottom margin is too big if the time frame is large and it shows years;
-  #  it's just right if it's showing weeks
-  #  explicitly call out the starting date (and ending date and delta cum?)
+  # This accepts the output of "deltaHeadCount" and creates a nice little graphic
   
+  # POSSIBLE ADJUSTMENTS:
+  #  explicitly call out the starting date (and ending date and delta cum?)
+
+  # ADJUSTMENTS DONE:
+  #  shade the "delta" for above-and-below zero # DONE, looks great.
+  #  add advanced details, like plot shading and the "list" flexibility # DONE
+  #  the bottom margin is too big if the time frame is large and it shows years;
+  #  it's just right if it's showing weeks # NOW MANUALLY ADJUSTABLE
+    
   ############
   ## LAYOUT ##
   ############
@@ -203,7 +206,14 @@ deltaPlot <- function(data,
   
   # Draw rectangle and grid
   do.call("rect", cumulative_rect_args)
-  do.call("grid", cumulative_grid_args)
+#  do.call("grid", cumulative_grid_args)
+  
+  # experimenting with the grid
+  grid_y <- axTicks(2)
+  grid_x <- pretty(data[,"actionDate"], n = 5)
+  
+  do.call(abline, c(list(h=grid_y), cumulative_grid_args))
+  do.call(abline, c(list(v=grid_x), cumulative_grid_args))
   
   # Cumulative line
   default_cumulative_points_params <- list(
@@ -280,8 +290,14 @@ deltaPlot <- function(data,
   # Draw rectangle and grid
   do.call("rect", delta_upper_rect_args)
   do.call("rect", delta_lower_rect_args)
-  do.call("grid", delta_grid_args)
+  # do.call("grid", delta_grid_args)
   
+  # experimenting with the grid
+  grid_y <- axTicks(2)
+  grid_x <- pretty(data[,"actionDate"], n = 5)
+  
+  do.call(abline, c(list(h=grid_y), delta_grid_args))
+  do.call(abline, c(list(v=grid_x), delta_grid_args))
   
   # Draw the points  
   default_delta_points_params <- list(y= data[,"delta"],
