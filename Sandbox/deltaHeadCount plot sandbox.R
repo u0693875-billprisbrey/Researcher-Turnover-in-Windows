@@ -129,7 +129,9 @@ names(briefSpan) <- calendarPeriods
 ################
 
 
-deltaPlot <- function(data){
+deltaPlot <- function(data,
+                      
+                      ){
   
   # so far this is really pleasing.
   # Nice to have:
@@ -139,28 +141,103 @@ deltaPlot <- function(data){
   #  it's just right if it's showing weeks
   #  explicitly call out the starting date (and ending date and delta cum?)
   
+  ############
+  ## LAYOUT ##
+  ############
+  
   layout(matrix(1:2, nrow = 2), heights = c(0.618, 0.382))
   
-  par(mar=c(0,4,3,1))
+  default_cumulative_plot_params <- list(oma = c(0,0,2,0),
+                                         mar = c(0,4,0,1))
+  
+  cumulative_plot_params <- modifyList(default_cumulative_plot_params,
+                                       cumulative_plot_params)
+  
+  incoming.par <- do.call(par, cumulative_plot_params)
+  on.exit(par(incoming.par))
+
+  #####################
+  ## CUMULATIVE PLOT ##
+  #####################
+  
   plot(y = data[,"delta.cum"],
        x = data[,"actionDate"],
-       type = "l",
+       type = "n",
        xlab = "",
        xaxt = "n",
-       col = "sienna",
+      # col = "sienna",
        las = 1,
-       ylab = "headcount\ncumulative")
+       ylab = ""# "headcount\ncumulative"
+       )
   
-  par(mar=c(6,4,0,1))
+  default_cumulative_points_params <- list(y = y = data[,"delta.cum"],
+                                x = data[,"actionDate"],
+                                type = "l",
+                                col = "sienna",
+                                )
+  
+  points_params <- modifyList(default_cumulative_points_params, cumulative_points_params)
+  
+  do.call(points, cumulative_points_params)
+  
+  default_cumulative_mtext_params <- list(side = 2,
+                                  text = "headcount\ncumulative")
+  cumulative_mtext_params <- modifyList(default_cumulative_mtext_params, 
+                                       cumulative_mtext_params)
+  
+  do.call(mtext, cumulative_mtext_params)
+  
+  ################
+  ## DELTA PLOT ##
+  ################
+
+  default_delta_plot_params <- list(oma = c(0,0,0,0),
+                                         mar = c(6,4,0,1))
+  
+  delta_plot_params <- modifyList(default_delta_plot_params,
+                                       delta_plot_params)
+  
+  do.call(par, delta_plot_params)
+  
+  
   plot(y= data[,"delta"],
        x= data[,"actionDate"],
-       type = "l",
+       type = "n",
        xlab = "",
-       col = "seagreen3",
+      # col = "seagreen3",
        las = 2,
-       ylab = "delta")
+       ylab = "" # "delta"
+       )
+  
+  default_delta_points_params <- list(y= data[,"delta"],
+                                      x= data[,"actionDate"],
+                                      type = "n",
+                                      col = "seagreen"
+                                      )
+  
+  delta_points_params <- modifyList(default_delta_points_params, delta_points_params)
+  
+  do.call(points, delta_points_params)
+  
+  default_delta_mtext_params <- list(side = 2,
+                                          text = "delta")
+  delta_mtext_params <- modifyList(default_delta_mtext_params, 
+                                        delta_mtext_params)
+  
+  do.call(mtext, delta_mtext_params)
+  
+  ################
+  ## OUTER TEXT ##
+  ################
+  
+  default_title_params <- list(side = 3, font =2, cex = 1.3, outer = TRUE)
+  
+  title_params <- modifyList(default_title_params, title_params)
+  
+  do.call(mtext, title_params)
   
 }
+
 
 plot(y=fullSpan[["day"]][,"delta.cum"],
      x = fullSpan[["day"]][,"actionDate"],
