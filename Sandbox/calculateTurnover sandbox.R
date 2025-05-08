@@ -400,6 +400,9 @@ headCountDelta <- function(minDate,
   # calculate delta cumulative
   hrDates$delta.cum <- cumsum(hrDates$delta)
   
+  # put in chronological order
+  hrDates <- hrDates[order(hrDates[,"actionDate"]),]
+  
   return(hrDates)
   
 }
@@ -407,7 +410,7 @@ headCountDelta <- function(minDate,
 
 # re-doing the flow
 
-headCountDelta <- function(minDate, 
+deltaHeadCount <- function(minDate, 
                            maxDate,
                            calendar = "day",
                            data) {
@@ -539,9 +542,28 @@ headCountDelta <- function(minDate,
   
   if(calendar == "year") {
     
-    yearMin <- ymd(paste(isoyear(minDate), "01","01", sep = "-") )
-    yearMax <- ymd(paste(isoyear(maxDate), "12","31", sep = "-") )
+    # force rounding in case minDate or maxDate is in Jan or Dec
+    # This should avoid isoyear confusion of a minDate of, say, 2019-12-31 is chosen
+    
+    #if(month(minDate)| month(maxDate) %in% c(1,12)){ 
+      
+    #    minDate <- ymd(paste(year(minDate), month(minDate),"15", sep = "-"))
 
+    #  }
+    
+    
+    yearMin <- ymd(paste(year(minDate), "01","15", sep = "-") )
+    yearMax <- ymd(paste(year(maxDate), "12","15", sep = "-") )
+    
+  #  # discover the extreme dates of the isoyear, as Jan 1st floats between years
+  #  # weekMin <- minDate
+  #  while(isoyear(yearMin) == year(minDate) ) {yearMin <- yearMin - 1 }
+  #  yearMin <- yearMin+1
+    
+  #  # weekMax <- maxDate
+  #  while(isoyear(yearMax) == year(maxDate) ) {yearMax <- yearMax + 1 }
+  #  yearMax <- yearMax-1
+    
     # create data frame with one row per calendar period
     hrDates <- data.frame(actionDate = seq(from = yearMin, to = yearMax, by = calendar)) 
     
@@ -557,10 +579,14 @@ headCountDelta <- function(minDate,
   }
   
   # merge
-  hrDates <- merge(hrDates, hireActions, by = "isoDate", all.x = TRUE)
+  hrDates <- merge(hrDates, hireActions, by = "isoDate", all.x = TRUE, sort=FALSE)
   names(hrDates)[names(hrDates) == "one"] <- "hireCount"
-  hrDates <- merge(hrDates, termActions, by = "isoDate", all.x = TRUE)
+  hrDates <- merge(hrDates, termActions, by = "isoDate", all.x = TRUE, sort= FALSE)
   names(hrDates)[names(hrDates) == "one"] <- "termCount"
+  
+  # restore chronological order 
+  # (although I've fixed it be setting sort=FALSE in merge, I'll double-correct)
+  hrDates <- hrDates[order(hrDates$actionDate),]
   
   # Calculate delta
   
@@ -586,7 +612,12 @@ checkDate <- checkDate+1 # because it decrements once too many
 
 plotHeadCount <- function(data){ 
   
-plot(data$delta.cum, x = data$actionDate,  ylim = c(min(data$delta), max(data$delta.cum)), type = "l")  
+plot(data$delta.cum, 
+     x = data$actionDate,  
+     ylim = c(10*min(data$delta), 10*max(data$delta.cum)), 
+     type = "l",
+     lwd = 3,
+     col = "darkorange2")  
 points(y=data$delta[data$delta !=0], 
        x=data$actionDate[data$delta !=0],
        col = ifelse(data$delta[data$delta !=0] > 0, "darkgreen","firebrick" )
@@ -623,12 +654,134 @@ par(mfrow = c(5,1),
     bg = "ivory")
 
 lapply(list(span_day, 
-            span_week, 
+            span_week[order(span_week$actionDate),], 
             span_month, 
             span_quarter, 
             span_year
             ),
        plotHeadCount)
 
-# something goofy when plotting span_week, 
-# but there's nothing strange in the underlying data
+# something goofy when plotting span_week
+
+# possibly a merge error? # FIXED (it sorted by isoDate when merging, throwing 
+# the subsequent "cumsum" off)
+
+# I still have the "period starting" instead of "period ending" thing happening
+
+# let's pick different periods
+
+bottomDate <- ymd("2020-08-01") # "2007-08-01"
+topDate <- today() #ymd("2025-12-31")
+
+par(mfrow = c(5,1),
+    mar = c(3,4,1,0),
+    fg = "sienna",
+    bg = "ivory")
+
+invisible(
+lapply(list("day","week","month","quarter","year"), function(x){
+  plotHeadCount(headCountDelta(minDate = bottomDate,
+                               maxDate = topDate,
+                               calendar = x,
+                               data = retData))
+  
+  
+})
+)
+
+# I like this graphic.
+# When I am running from 2020 to today, and it shows a decline,
+# the plot line bottoms out along the bottom axis.  
+# how can I toggle the limits so the line doesn't overlap the bottom axis?
+# I'm messing with my simple graphic, and it's leaving quite a bit to be desired.
+# Should I resist the urge to fix it?  Or dive in and make it a nice graphic?
+
+# Can I show that the decliners/leavers are the longest-serving?
+
+# rather than create and immediately consume, I'm going to run two lapply's
+
+bottomDate <- ymd("2019-12-31") # "2007-08-01" # "2020-08-01"
+topDate <- today() #ymd("2025-12-31")
+
+snippet <-  lapply(list("day","week","month","quarter","year"), function(x){
+    headCountDelta(minDate = bottomDate,
+                                 maxDate = topDate,
+                                 calendar = x,
+                                 data = retData)
+    
+    
+  })
+names(snippet) <- paste("snippet", c("day","week","month","quarter","year"), sep = "_" )
+
+invisible(
+  lapply(snippet, plotHeadCount)
+  
+)
+
+# so when I use a bottomDate of "2020-08-01" and a topDate of today,
+# I get different values for delta.cum
+# I think it's because it expands to the start of the year/quarter.
+# let's see if  I get the same values when I start on Jan 1st
+
+# ok, if I can figure out why these are slightly different, I think I'm there
+
+# snippet_year isoDates are wrong
+
+headCountDelta(minDate = bottomDate,
+               maxDate = topDate,
+               calendar = "year",
+               data = retData)
+
+# It turns out that Jan 1, 2021 is in isoyear 2020 (as is Jan 1, 2020) 
+# Now that's wild
+# I'll need to use the same day-by-day iteration as I use elsewhere
+# Nope, I'm just going to force it to Jan 15th or Dec 15th
+
+lapply(snippet, function(x){x[c(1,nrow(x)),]})
+
+# the "year" is still way, way off the others.
+
+filter2019 <- snippet[["snippet_day"]][["actionDate"]] == ymd("2019-12-31")
+snippet[["snippet_day"]][filter2019,] # 0
+
+filter2020 <- snippet[["snippet_day"]][["actionDate"]] == ymd("2020-12-31")
+snippet[["snippet_day"]][filter2020,] # 1
+
+filterJan <- month(snippet[["snippet_day"]][["actionDate"]]) == 1 
+filterOne <- day(snippet[["snippet_day"]][["actionDate"]]) == 1              
+
+snippet[["snippet_day"]][filterJan & filterOne,]
+
+# let's do this year by year
+
+#> snippet[["snippet_year"]]
+#isoDate actionDate hireCount termCount delta delta.cum
+#1    2019 2019-01-15       170        99    71        71
+#2    2020 2020-01-15       119       119     0        71
+#3    2021 2021-01-15       101       137   -36        35
+#4    2022 2022-01-15       117       132   -15        20
+#5    2023 2023-01-15       110       133   -23        -3
+#6    2024 2024-01-15        68       174  -106      -109
+#7    2025 2025-01-15         6        35   -29      -138
+
+yearByYear <- lapply(c(2019:2026), function(x){
+  
+  headCountDelta(minDate = ymd(paste(x,"01-01", sep = "-")),
+                 maxDate = ymd(paste(x,"12-31", sep = "-")),
+                 calendar = "day",
+                 data = retData
+                 )
+  
+})
+
+lapply(yearByYear, tail)
+
+# some years match and some don't
+# I'm gonna need to look at this closer.
+
+# And I should do the same logic for weeks, months, and quarters.
+# And I think I'm just going to strip this of "isoyears".
+
+
+
+
