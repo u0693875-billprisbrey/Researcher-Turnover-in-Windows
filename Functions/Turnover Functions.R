@@ -10,7 +10,7 @@ activePI <- function(investigation.date,
   # where active is defined as a date between hire and termination dates,
   # or after the hire date and the termination date is NA
   
-  intervalCondition <- investigation.date >= data[,target] & investigation.date <= data[,"TERMINATION_DT"]
+  intervalCondition <- investigation.date >= data[,target] & investigation.date < data[,"TERMINATION_DT"]
   naCondition <- investigation.date >= data[,target] & is.na(data[,"TERMINATION_DT"])   
   
   
@@ -114,3 +114,170 @@ calculateTurnover <- function(data, interval = "week") {
   
   return(turnover)
 }
+
+
+deltaHeadCount <- function(minDate, 
+                           maxDate,
+                           calendar = "day",
+                           data) {
+  
+  # where data is retData
+  
+  # Working with dates has some curious behavior.
+  # For one, when I have a period other than "day" then I expand
+  # the aggregation period to "contain" the date range.
+  # For example, if one of my dates is June 7th and the period is "month",
+  # then I expand to use all of June.  The adjusted date becomes June 1st if
+  # it's the minDate, and June 30th if it's the maxDate.
+  
+  # For two, I use "isoweek".  If I specify the calendar as "week", then I 
+  # bound the minDate-maxDate range with the isoweek that contains the minDate 
+  # and the maxDate.
+  
+  # This has the strange behavior that the isoweek doesn't align with months,
+  # or quarters, or years.  This makes direct comparison between weeks and 
+  # everything else impossible, as the adjusted start dates and end dates
+  # will be different.
+  
+  # I initially tried using "isoyear", but it got really tricky if my minDate was 2019-12-31, as the isoyear for this
+  # was actually 2020.  I tried dealing with this in several ways that were
+  # various levels of silly and undesirable.  So I abandoned using isoyears.
+  
+  
+  # Add a dummy column for aggregation
+  
+  data[,"one"] <- 1 # because there is one PI per row
+  
+  if(calendar == "day") {
+    
+    # create data frame with one row per calendar period
+    hrDates <- data.frame(actionDate = seq(from = minDate, to = maxDate, by = calendar)) 
+    
+    # duplicate column name to parallel other calendar periods
+    hrDates$adjDate <- hrDates$actionDate
+    
+    # Aggregate hire and termination actions
+    hireActions <- aggregate(one ~ HIRE_DT, data = data, sum)
+    names(hireActions) <- c("adjDate","one")
+    termActions <- aggregate(one ~ TERMINATION_DT, data = data, sum)
+    names(termActions) <- c("adjDate","one")
+    
+    # prepare for merge
+    hireActions$adjDate <- as.Date(hireActions$adjDate)
+    termActions$adjDate <- as.Date(termActions$adjDate)
+  }
+  
+  if(calendar == "week") {
+    
+    # discover the extreme dates of the isoweek
+    weekMin <- minDate
+    while(isoweek(weekMin) == isoweek(minDate) ) {weekMin <- weekMin - 1 }
+    weekMin <- weekMin+1
+    
+    weekMax <- maxDate
+    while(isoweek(weekMax) == isoweek(maxDate) ) {weekMax <- weekMax + 1 }
+    weekMax <- weekMax-1
+    
+    # create data frame with one row per calendar period
+    hrDates <- data.frame(actionDate = seq(from = weekMin, to = weekMax, by = calendar)) 
+    
+    # convert to ISO standard format
+    hrDates$adjDate <- paste(year(hrDates$actionDate), isoweek(hrDates$actionDate), sep = "-W")
+    
+    # aggregate
+    hireActions <- aggregate(one ~ paste(year(HIRE_DT), isoweek(HIRE_DT), sep = "-W"), data = data, sum)
+    names(hireActions) <- c("adjDate","one")
+    termActions <- aggregate(one ~ paste(year(TERMINATION_DT), isoweek(TERMINATION_DT), sep = "-W"), data = data, sum)
+    names(termActions) <- c("adjDate","one")
+    
+  }
+  
+  if(calendar == "month") {
+    
+    monthMin <- ymd(paste(year(minDate), month(minDate),"01", sep = "-") )
+    monthMax <- ymd(paste(year(maxDate), month(maxDate),"01", sep = "-") )
+    
+    # create data frame with one row per calendar period
+    hrDates <- data.frame(actionDate = seq(from = monthMin, to = monthMax, by = calendar)) 
+    
+    # convert to ISO standard format
+    hrDates$adjDate <- format(hrDates$actionDate, "%Y-%m") 
+    
+    # aggregate
+    hireActions <- aggregate(one ~ format(HIRE_DT, "%Y-%m"), data = data, sum)
+    names(hireActions) <- c("adjDate","one")
+    termActions <- aggregate(one ~ format(TERMINATION_DT, "%Y-%m"), data = data, sum)
+    names(termActions) <- c("adjDate","one")
+    
+  }
+  
+  if(calendar == "quarter"){
+    
+    # discover the extreme dates of the quarter
+    quarterMin <- minDate
+    while(quarter(quarterMin) == quarter(minDate) ) {quarterMin <- quarterMin - 1 }
+    quarterMin <- quarterMin+1
+    
+    quarterMax <- maxDate
+    while(quarter(quarterMax) == quarter(maxDate) ) {quarterMax <- quarterMax + 1 }
+    quarterMax <- quarterMax-1    
+    
+    # create data frame with one row per calendar period
+    hrDates <- data.frame(actionDate = seq(from = quarterMin, to = quarterMax, by = calendar)) 
+    
+    # convert to ISO standard format
+    hrDates$adjDate <- paste(year(hrDates$actionDate), quarter(hrDates$actionDate), sep = "-Q")
+    
+    # aggregate
+    hireActions <- aggregate(one ~ paste(year(HIRE_DT), quarter(HIRE_DT), sep = "-Q"), data = data, sum)
+    names(hireActions) <- c("adjDate","one")
+    termActions <- aggregate(one ~ paste(year(TERMINATION_DT), quarter(TERMINATION_DT), sep = "-Q"), data = data, sum)
+    names(termActions) <- c("adjDate","one")
+    
+  }
+  
+  if(calendar == "year") {
+    
+    yearMin <- ymd(paste(year(minDate), "01","01", sep = "-") )
+    yearMax <- ymd(paste(year(maxDate), "12","31", sep = "-") )
+    
+    # create data frame with one row per calendar period
+    hrDates <- data.frame(actionDate = seq(from = yearMin, to = yearMax, by = calendar)) 
+    
+    # convert to ISO standard format
+    hrDates$adjDate <- year(hrDates$actionDate) 
+    
+    # aggregate
+    hireActions <- aggregate(one ~ year(HIRE_DT), data = data, sum)
+    names(hireActions) <- c("adjDate","one")
+    termActions <- aggregate(one ~ year(TERMINATION_DT), data = data, sum)
+    names(termActions) <- c("adjDate","one")
+    
+  }
+  
+  # merge
+  hrDates <- merge(hrDates, hireActions, by = "adjDate", all.x = TRUE, sort=FALSE)
+  names(hrDates)[names(hrDates) == "one"] <- "hireCount"
+  hrDates <- merge(hrDates, termActions, by = "adjDate", all.x = TRUE, sort= FALSE)
+  names(hrDates)[names(hrDates) == "one"] <- "termCount"
+  
+  # restore chronological order 
+  # (although I've fixed it be setting sort=FALSE in merge, I'll double-correct)
+  hrDates <- hrDates[order(hrDates$actionDate),]
+  
+  # Calculate delta
+  
+  # convert NA to zero
+  hrDates[is.na(hrDates)] <- 0
+  
+  # calculate delta
+  hrDates$delta <- hrDates$hireCount - hrDates$termCount
+  
+  # calculate delta cumulative
+  hrDates$delta.cum <- cumsum(hrDates$delta)
+  
+  return(hrDates)
+  
+}
+
+

@@ -427,17 +427,17 @@ deltaHeadCount <- function(minDate,
     hrDates <- data.frame(actionDate = seq(from = minDate, to = maxDate, by = calendar)) 
     
     # duplicate column name to parallel other calendar periods
-    hrDates$isoDate <- hrDates$actionDate
+    hrDates$adjDate <- hrDates$actionDate
     
     # Aggregate hire and termination actions
     hireActions <- aggregate(one ~ HIRE_DT, data = data, sum)
-    names(hireActions) <- c("isoDate","one")
+    names(hireActions) <- c("adjDate","one")
     termActions <- aggregate(one ~ TERMINATION_DT, data = data, sum)
-    names(termActions) <- c("isoDate","one")
+    names(termActions) <- c("adjDate","one")
     
     # prepare for merge
-    hireActions$isoDate <- as.Date(hireActions$isoDate)
-    termActions$isoDate <- as.Date(termActions$isoDate)
+    hireActions$adjDate <- as.Date(hireActions$adjDate)
+    termActions$adjDate <- as.Date(termActions$adjDate)
     
     
 #    # merge
@@ -463,26 +463,26 @@ deltaHeadCount <- function(minDate,
     hrDates <- data.frame(actionDate = seq(from = weekMin, to = weekMax, by = calendar)) 
     
     # convert to ISO standard format
-    hrDates$isoDate <- paste(isoyear(hrDates$actionDate), isoweek(hrDates$actionDate), sep = "-W")
+    hrDates$adjDate <- paste(year(hrDates$actionDate), isoweek(hrDates$actionDate), sep = "-W")
     
     # aggregate
-    hireActions <- aggregate(one ~ paste(isoyear(HIRE_DT), isoweek(HIRE_DT), sep = "-W"), data = data, sum)
-    names(hireActions) <- c("isoDate","one")
-    termActions <- aggregate(one ~ paste(isoyear(TERMINATION_DT), isoweek(TERMINATION_DT), sep = "-W"), data = data, sum)
-    names(termActions) <- c("isoDate","one")
+    hireActions <- aggregate(one ~ paste(year(HIRE_DT), isoweek(HIRE_DT), sep = "-W"), data = data, sum)
+    names(hireActions) <- c("adjDate","one")
+    termActions <- aggregate(one ~ paste(year(TERMINATION_DT), isoweek(TERMINATION_DT), sep = "-W"), data = data, sum)
+    names(termActions) <- c("adjDate","one")
     
 #    # merge
-#    hrDates <- merge(hrDates, hireActions, by = "isoDate", all.x = TRUE)
+#    hrDates <- merge(hrDates, hireActions, by = "adjDate", all.x = TRUE)
 #    names(hrDates)[names(hrDates) == "one"] <- "hireCount"
-#    hrDates <- merge(hrDates, termActions, by = "isoDate", all.x = TRUE)
+#    hrDates <- merge(hrDates, termActions, by = "adjDate", all.x = TRUE)
 #    names(hrDates)[names(hrDates) == "one"] <- "termCount"
     
   }
   
   if(calendar == "month") {
     
-    monthMin <- ymd(paste(isoyear(minDate), month(minDate),"01", sep = "-") )
-    monthMax <- ymd(paste(isoyear(maxDate), month(maxDate),"01", sep = "-") )
+    monthMin <- ymd(paste(year(minDate), month(minDate),"01", sep = "-") )
+    monthMax <- ymd(paste(year(maxDate), month(maxDate),"01", sep = "-") )
     
     # this converts to a character string
     #monthMin <- format(minDate, "%Y-%m")
@@ -492,18 +492,18 @@ deltaHeadCount <- function(minDate,
     hrDates <- data.frame(actionDate = seq(from = monthMin, to = monthMax, by = calendar)) 
     
     # convert to ISO standard format
-    hrDates$isoDate <- format(hrDates$actionDate, "%Y-%m") 
+    hrDates$adjDate <- format(hrDates$actionDate, "%Y-%m") 
     
     # aggregate
     hireActions <- aggregate(one ~ format(HIRE_DT, "%Y-%m"), data = data, sum)
-    names(hireActions) <- c("isoDate","one")
+    names(hireActions) <- c("adjDate","one")
     termActions <- aggregate(one ~ format(TERMINATION_DT, "%Y-%m"), data = data, sum)
-    names(termActions) <- c("isoDate","one")
+    names(termActions) <- c("adjDate","one")
     
 #    # merge
-#    hrDates <- merge(hrDates, hireActions, by = "isoDate", all.x = TRUE)
+#    hrDates <- merge(hrDates, hireActions, by = "adjDate", all.x = TRUE)
 #    names(hrDates)[names(hrDates) == "one"] <- "hireCount"
-#    hrDates <- merge(hrDates, termActions, by = "isoDate", all.x = TRUE)
+#    hrDates <- merge(hrDates, termActions, by = "adjDate", all.x = TRUE)
 #    names(hrDates)[names(hrDates) == "one"] <- "termCount"
     
   }
@@ -523,18 +523,18 @@ deltaHeadCount <- function(minDate,
     hrDates <- data.frame(actionDate = seq(from = quarterMin, to = quarterMax, by = calendar)) 
     
     # convert to ISO standard format
-    hrDates$isoDate <- paste(isoyear(hrDates$actionDate), quarter(hrDates$actionDate), sep = "-Q")
+    hrDates$adjDate <- paste(year(hrDates$actionDate), quarter(hrDates$actionDate), sep = "-Q")
     
     # aggregate
-    hireActions <- aggregate(one ~ paste(isoyear(HIRE_DT), quarter(HIRE_DT), sep = "-Q"), data = data, sum)
-    names(hireActions) <- c("isoDate","one")
-    termActions <- aggregate(one ~ paste(isoyear(TERMINATION_DT), quarter(TERMINATION_DT), sep = "-Q"), data = data, sum)
-    names(termActions) <- c("isoDate","one")
+    hireActions <- aggregate(one ~ paste(year(HIRE_DT), quarter(HIRE_DT), sep = "-Q"), data = data, sum)
+    names(hireActions) <- c("adjDate","one")
+    termActions <- aggregate(one ~ paste(year(TERMINATION_DT), quarter(TERMINATION_DT), sep = "-Q"), data = data, sum)
+    names(termActions) <- c("adjDate","one")
     
 #    # merge
-#    hrDates <- merge(hrDates, hireActions, by = "isoDate", all.x = TRUE)
+#    hrDates <- merge(hrDates, hireActions, by = "adjDate", all.x = TRUE)
 #    names(hrDates)[names(hrDates) == "one"] <- "hireCount"
-#    hrDates <- merge(hrDates, termActions, by = "isoDate", all.x = TRUE)
+#    hrDates <- merge(hrDates, termActions, by = "adjDate", all.x = TRUE)
 #    names(hrDates)[names(hrDates) == "one"] <- "termCount"
     
     
@@ -552,8 +552,8 @@ deltaHeadCount <- function(minDate,
     #  }
     
     
-    yearMin <- ymd(paste(year(minDate), "01","15", sep = "-") )
-    yearMax <- ymd(paste(year(maxDate), "12","15", sep = "-") )
+    yearMin <- ymd(paste(year(minDate), "01","01", sep = "-") )
+    yearMax <- ymd(paste(year(maxDate), "12","31", sep = "-") )
     
   #  # discover the extreme dates of the isoyear, as Jan 1st floats between years
   #  # weekMin <- minDate
@@ -568,20 +568,20 @@ deltaHeadCount <- function(minDate,
     hrDates <- data.frame(actionDate = seq(from = yearMin, to = yearMax, by = calendar)) 
     
     # convert to ISO standard format
-    hrDates$isoDate <- isoyear(hrDates$actionDate) 
+    hrDates$adjDate <- year(hrDates$actionDate) 
         
     # aggregate
-    hireActions <- aggregate(one ~ isoyear(HIRE_DT), data = data, sum)
-    names(hireActions) <- c("isoDate","one")
-    termActions <- aggregate(one ~ isoyear(TERMINATION_DT), data = data, sum)
-    names(termActions) <- c("isoDate","one")
+    hireActions <- aggregate(one ~ year(HIRE_DT), data = data, sum)
+    names(hireActions) <- c("adjDate","one")
+    termActions <- aggregate(one ~ year(TERMINATION_DT), data = data, sum)
+    names(termActions) <- c("adjDate","one")
     
   }
   
   # merge
-  hrDates <- merge(hrDates, hireActions, by = "isoDate", all.x = TRUE, sort=FALSE)
+  hrDates <- merge(hrDates, hireActions, by = "adjDate", all.x = TRUE, sort=FALSE)
   names(hrDates)[names(hrDates) == "one"] <- "hireCount"
-  hrDates <- merge(hrDates, termActions, by = "isoDate", all.x = TRUE, sort= FALSE)
+  hrDates <- merge(hrDates, termActions, by = "adjDate", all.x = TRUE, sort= FALSE)
   names(hrDates)[names(hrDates) == "one"] <- "termCount"
   
   # restore chronological order 
@@ -704,7 +704,7 @@ bottomDate <- ymd("2019-12-31") # "2007-08-01" # "2020-08-01"
 topDate <- today() #ymd("2025-12-31")
 
 snippet <-  lapply(list("day","week","month","quarter","year"), function(x){
-    headCountDelta(minDate = bottomDate,
+    deltaHeadCount(minDate = bottomDate,
                                  maxDate = topDate,
                                  calendar = x,
                                  data = retData)
@@ -764,9 +764,19 @@ snippet[["snippet_day"]][filterJan & filterOne,]
 #6    2024 2024-01-15        68       174  -106      -109
 #7    2025 2025-01-15         6        35   -29      -138
 
+# > snippet[["snippet_year"]]
+# adjDate actionDate hireCount termCount delta delta.cum
+# 1    2019 2019-01-01       170        99    71        71
+# 2    2020 2020-01-01       110       109     1        72
+# 3    2021 2021-01-01       106       134   -28        44
+# 4    2022 2022-01-01       115       135   -20        24
+# 5    2023 2023-01-01       116       143   -27        -3
+# 6    2024 2024-01-01        68       174  -106      -109
+# 7    2025 2025-01-01         6        35   -29      -138
+
 yearByYear <- lapply(c(2019:2026), function(x){
   
-  headCountDelta(minDate = ymd(paste(x,"01-01", sep = "-")),
+  deltaHeadCount(minDate = ymd(paste(x,"01-01", sep = "-")),
                  maxDate = ymd(paste(x,"12-31", sep = "-")),
                  calendar = "day",
                  data = retData
@@ -782,6 +792,116 @@ lapply(yearByYear, tail)
 # And I should do the same logic for weeks, months, and quarters.
 # And I think I'm just going to strip this of "isoyears".
 
+c(71,1,-28, -20, -27, -106,-29,0)
+
+# ok, it matches!  
+
+# let's look at weeks, months, and quarters now
+
+yearByYear <- lapply(c(2019:2026), function(x){
+  
+  deltaHeadCount(minDate = ymd(paste(x,"01-01", sep = "-")),
+                 maxDate = ymd(paste(x,"12-31", sep = "-")),
+                 calendar = "day",
+                 data = retData
+  )
+  
+})
+
+lapply(yearByYear, tail)
 
 
+intervalCheck <- lapply(c("day","week","month","quarter","year"), function(y){
+  
+  lapply(c(2019:2026), function(x){
+    
+    deltaHeadCount(minDate = ymd(paste(x,"01-01", sep = "-")),
+                   maxDate = ymd(paste(x,"12-31", sep = "-")),
+                   calendar = y,
+                   data = retData
+    )
+    
+  })
+  
+})
 
+names(intervalCheck) <- c("day","week","month","quarter","year")
+
+# that's not quite what I want
+
+# let's think this through and come back to it.
+
+# I"m honestly really burned out on it.  It's hard to get into it.
+
+# let's check days vs weeks
+
+weekByWeek <- lapply(c(2019:2026), function(x){
+  
+  deltaHeadCount(minDate = ymd(paste(x,"01-01", sep = "-")),
+                 maxDate = ymd(paste(x,"12-31", sep = "-")),
+                 calendar = "day",
+                 data = retData
+  )
+  
+})
+
+# let's check my original minDate to maxDate
+# call this one "section
+
+# bottomDate <- ymd("2019-12-31") # "2007-08-01" # "2020-08-01"
+# topDate <- today() #ymd("2025-12-31")
+
+minDate <- as.Date("2018-12-01")
+maxDate <- as.Date("2020-06-01")
+
+section <-  lapply(list("day","week","month","quarter","year"), function(x){
+  deltaHeadCount(minDate = minDate,
+                 maxDate = maxDate,
+                 calendar = x,
+                 data = retData)
+  
+  
+})
+names(section) <- paste("section", c("day","week","month","quarter","year"), sep = "_" )
+
+lapply(section, tail)
+
+# man I am so burned up on this.
+
+# let's just do day vs week for two months
+# 
+
+
+  deltaHeadCount(minDate = ymd("2019-12-01"),
+                 maxDate = ymd("2020-01-31"),
+                 calendar = "day",
+                 data = retData
+  )
+  
+  deltaHeadCount(minDate = ymd("2019-12-01"),
+                 maxDate = ymd("2020-01-31"),
+                 calendar = "week",
+                 data = retData
+  ) # this uses isoweeks, so it's not the same as the days and months
+    # it expands to the start of the week and the end of the week to 
+    # contain or "bound" the dates
+
+  deltaHeadCount(minDate = ymd("2019-12-01"),
+                 maxDate = ymd("2020-01-31"),
+                 calendar = "month",
+                 data = retData
+  ) # this checks with the days
+  
+  deltaHeadCount(minDate = ymd("2019-12-01"),
+                 maxDate = ymd("2020-01-31"),
+                 calendar = "quarter",
+                 data = retData
+  )
+  
+  
+# ok, I think I"m happy
+  
+  
+# but I should compare to the activePI
+  
+  
