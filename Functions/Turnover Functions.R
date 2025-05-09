@@ -119,9 +119,18 @@ calculateTurnover <- function(data, interval = "week") {
 deltaHeadCount <- function(minDate, 
                            maxDate,
                            calendar = "day",
+                           initial_count = 0,
                            data) {
   
   # where data is retData
+  # where minDate and maxDate are self-explanatory and work best as class "Date", or 
+  # as ymd("2021-5-31")
+  # where calendar is one of "day", "week", "month", "quarter", and "year".
+  # where initial_count is mostly for use with calculateTurnover,
+  # and represents the headcount on minDate.
+  # if initial_count is zero, then the delta function will always start at zero
+  
+  # This is not adapted to work in fiscal years.
   
   # Working with dates has some curious behavior.
   # For one, when I have a period other than "day" then I expand
@@ -274,7 +283,7 @@ deltaHeadCount <- function(minDate,
   hrDates$delta <- hrDates$hireCount - hrDates$termCount
   
   # calculate delta cumulative
-  hrDates$delta.cum <- cumsum(hrDates$delta)
+  hrDates$delta.cum <- cumsum(hrDates$delta) + initial_count
   
   return(hrDates)
   
