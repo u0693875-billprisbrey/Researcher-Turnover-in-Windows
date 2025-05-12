@@ -192,4 +192,41 @@ points(turn_year$delta.cum, x = turn_year$actionDate+365, col ="orange4",pch=16)
 
 # And then mess with weeks (so confusing!)
 
+# after adding "periodEnd" to deltaHeadCount
 
+turn_day <- calculateTurnover(data = retData,
+                              calendar = "day")
+
+turn_week <- calculateTurnover(data = retData,
+                               calendar = "week")
+
+turn_month <- calculateTurnover(data = retData,
+                                calendar = "month")
+
+turn_quarter <- calculateTurnover(data = retData,
+                                  calendar = "quarter")
+
+turn_year <- calculateTurnover(data = retData,
+                               calendar = "year")
+
+plot(turn_day_old$delta.cum, x = turn_day$periodEnd, type = "l", col = "sienna")
+points(turn_day$delta.cum, x = turn_day$periodEnd, col ="firebrick", type = "l", lwd = "2")
+points(turn_week$delta.cum, x = turn_week$periodEnd, col ="dodgerblue", pch = 16)
+points(turn_month$delta.cum, x = turn_month$periodEnd, col ="seagreen3", pch = 16)
+points(turn_quarter$delta.cum, x = turn_quarter$periodEnd, col ="pink2", pch = 16)
+points(turn_year$delta.cum, x = turn_year$periodEnd, col ="darkorange3", pch = 16)
+
+# This is the way.
+# Now I should mess with deltaPlot to use this.
+
+# ...and I messed with them and something stopped working.
+# ...nope, works great, I just over-write "calculateTurnover" function when sourcing "Turnover Functions".
+# Now I need to figure out what is going on with the WEEKS.
+# Seriously.
+# WHAT IS GOING ON WITH THE WEEKS
+
+thaDays <- deltaHeadCount(minDate = ymd("1958-01-01"), maxDate = today(), calendar = "day", data = retData)
+
+
+# I should compare calculateTurnover for week with deltaHeadCount for week.
+# That would be informative.

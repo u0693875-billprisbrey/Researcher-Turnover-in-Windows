@@ -285,6 +285,9 @@ deltaHeadCount <- function(minDate,
   # calculate delta cumulative
   hrDates$delta.cum <- cumsum(hrDates$delta) + initial_count
   
+  # add a "periodEnd" column for clarity in plotting
+  hrDates$periodEnd <- ceiling_date(hrDates$actionDate, unit = calendar) - days(1)
+  
   return(hrDates)
   
 }
@@ -337,7 +340,7 @@ deltaPlot <- function(data,
   #####################
   
   plot(y = data[,"delta.cum"],
-       x = data[,"actionDate"],
+       x = data[,"periodEnd"],
        type = "n",
        xlab = "",
        xaxt = "n",
@@ -370,7 +373,7 @@ deltaPlot <- function(data,
   
   # experimenting with the grid
   grid_y <- axTicks(2)
-  grid_x <- pretty(data[,"actionDate"], n = 5)
+  grid_x <- pretty(data[,"periodEnd"], n = 5)
   
   do.call(abline, c(list(h=grid_y), cumulative_grid_args))
   do.call(abline, c(list(v=grid_x), cumulative_grid_args))
@@ -378,7 +381,7 @@ deltaPlot <- function(data,
   # Cumulative line
   default_cumulative_points_params <- list(
     y = data[,"delta.cum"],
-    x = data[,"actionDate"],
+    x = data[,"periodEnd"],
     type = "l",
     col = "sienna"
   )
@@ -409,7 +412,7 @@ deltaPlot <- function(data,
   
   
   plot(y= data[,"delta"],
-       x= data[,"actionDate"],
+       x= data[,"periodEnd"],
        type = "n",
        xlab = "",
        # col = "seagreen3",
@@ -454,14 +457,14 @@ deltaPlot <- function(data,
   
   # experimenting with the grid
   grid_y <- axTicks(2)
-  grid_x <- pretty(data[,"actionDate"], n = 5)
+  grid_x <- pretty(data[,"periodEnd"], n = 5)
   
   do.call(abline, c(list(h=grid_y), delta_grid_args))
   do.call(abline, c(list(v=grid_x), delta_grid_args))
   
   # Draw the points  
   default_delta_points_params <- list(y= data[,"delta"],
-                                      x= data[,"actionDate"],
+                                      x= data[,"periodEnd"],
                                       type = "l",
                                       col = "seagreen"
   )
