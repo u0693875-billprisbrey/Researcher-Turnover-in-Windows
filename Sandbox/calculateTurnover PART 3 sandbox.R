@@ -67,11 +67,36 @@ calculateTurnover <- function(initial_count=NA,
   
   if(is.na(initial_count)){
     
+    # Establish maximum date for the period that concludes before the first period of the minDate
+    
+    
+    if(calendar == "day"){initial_max <- minDate-1 }
+    
+    if(calendar == "week"){
+    initial_max <- minDate
+    while(isoweek(initial_max) == isoweek(minDate)) {initial_max = initial_max -1} 
+    }
+    
+    if(calendar == "month"){
+      initial_max <- minDate
+      while(month(initial_max) == month(minDate)) {initial_max = initial_max -1} 
+      }
+    
+    if(calendar == "quarter"){
+      initial_max <- minDate
+      while(quarter(initial_max) == quarter(minDate)) {initial_max = initial_max -1} 
+      }
+    
+    if(calendar == "year"){
+      initial_max <- minDate
+      while(year(initial_max) == year(minDate)) {initial_max = initial_max -1} 
+      }
+    
     # calculate a value for the initial count
     
     intermediate <- deltaHeadCount(
       minDate = initial_date,
-      maxDate = minDate-1,
+      maxDate = initial_max,
       calendar = "day",
       data = data
     ) 
