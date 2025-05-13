@@ -230,3 +230,689 @@ thaDays <- deltaHeadCount(minDate = ymd("1958-01-01"), maxDate = today(), calend
 
 # I should compare calculateTurnover for week with deltaHeadCount for week.
 # That would be informative.
+
+# Re-calculating the spans from deltaHeadCount plot sandbox
+# doing them for calculateTurnover as well
+
+###############
+## FULL SPAN ##
+###############
+
+calendarPeriods <- c("day","week","month","quarter","year")
+
+fullSpan <- lapply(calendarPeriods,
+                   function(x){
+                     
+                     deltaHeadCount(
+                       minDate = as.Date(min(retData$HIRE_DT, na.rm = TRUE)-1),
+                       maxDate = today(),
+                       calendar = x,
+                       data = retData
+                     )
+                   })
+names(fullSpan) <- calendarPeriods
+
+fullSpan_to <- lapply(calendarPeriods,
+                   function(x){
+                     
+                     calculateTurnover(
+                       minDate = as.Date(min(retData$HIRE_DT, na.rm = TRUE))+365,
+                       maxDate = today(),
+                       calendar = x,
+                       data = retData
+                     )
+                   })
+names(fullSpan_to) <- calendarPeriods
+
+
+############################
+## EARLY SPAN 2013<x<2020 ##
+############################
+
+earlySpan <- lapply(calendarPeriods,
+                    function(x){
+                      
+                      deltaHeadCount(
+                        minDate = ymd("2013-01-01"),
+                        maxDate = ymd("2019-12-31"),
+                        calendar = x,
+                        data = retData
+                      )
+                    })
+names(earlySpan) <- calendarPeriods
+
+
+earlySpan_to <- lapply(calendarPeriods,
+                    function(x){
+                      
+                      calculateTurnover(
+                        minDate = ymd("2013-01-01"),
+                        maxDate = ymd("2019-12-31"),
+                        calendar = x,
+                        data = retData
+                      )
+                    })
+names(earlySpan_to) <- calendarPeriods
+
+######################
+## LATE SPAN >=2020 ##
+######################
+
+lateSpan <- lapply(calendarPeriods,
+                   function(x){
+                     
+                     deltaHeadCount(
+                       minDate = ymd("2020-01-01"),
+                       maxDate = today(),
+                       calendar = x,
+                       data = retData
+                     )
+                   })
+names(lateSpan) <- calendarPeriods
+
+
+lateSpan_to <- lapply(calendarPeriods,
+                   function(x){
+                     
+                     calculateTurnover(
+                       minDate = ymd("2020-01-01"),
+                       maxDate = today(),
+                       calendar = x,
+                       data = retData
+                     )
+                   })
+names(lateSpan_to) <- calendarPeriods
+
+#################
+## BRIEF SPAN  ##
+#################
+
+briefSpan <- lapply(calendarPeriods,
+                    function(x){
+                      
+                      deltaHeadCount(
+                        minDate = ymd("2023-07-01"),
+                        maxDate = ymd("2024-10-31"),
+                        calendar = x,
+                        data = retData
+                      )
+                    })
+names(briefSpan) <- calendarPeriods
+
+briefSpan_to <- lapply(calendarPeriods,
+                    function(x){
+                      
+                      calculateTurnover(
+                        minDate = ymd("2023-07-01"),
+                        maxDate = ymd("2024-10-31"),
+                        calendar = x,
+                        data = retData
+                      )
+                    })
+names(briefSpan_to) <- calendarPeriods
+
+###################
+## COMPARE SPANS ##
+###################
+
+# Let's see how these compare
+
+sapply(fullSpan, function(x){ x[nrow(x),"delta.cum"]} ) / 
+sapply(fullSpan_to, function(x){ x[nrow(x),"delta.cum"]} )
+
+# good
+
+theDeltas <- list(fullSpan, earlySpan, lateSpan, briefSpan)
+names(theDeltas) <- 
+theTOs <- list(fullSpan_to, earlySpan_to, lateSpan_to, briefSpan_to)
+
+sapply(earlySpan, function(x){ x[nrow(x),"delta.cum"]} ) - 
+  sapply(earlySpan_to, function(x){ x[nrow(x),"delta.cum"]} )
+
+# good
+
+sapply(lateSpan, function(x){ x[nrow(x),"delta.cum"]} ) - 
+  sapply(lateSpan_to, function(x){ x[nrow(x),"delta.cum"]} )
+
+# good
+
+sapply(briefSpan, function(x){ x[nrow(x),"delta.cum"]} ) - 
+  sapply(briefSpan_to, function(x){ x[nrow(x),"delta.cum"]} )
+
+# mostly good. Week and Year are a little off
+
+# let's compare days and weeks for delta and turnover
+
+
+plot(y = theDeltas[[1]][["day"]][,"delta.cum"], 
+     x = theDeltas[[1]][["day"]][,"periodEnd"],
+     col = "sienna", type = "l")
+
+points(y=theTOs[[1]][["week"]][,"delta.cum"], 
+       x=theTOs[[1]][["week"]][,"periodEnd"],
+       col = "dodgerblue", type = "l", lwd = 0.5)
+
+# it's a little off. Not a lot; not crazy.  But a little.
+
+lowerDate <-ymd("2010-01-23")
+upperDate <- ymd("2020-02-23")
+
+deltasFilter <- theDeltas[[1]][["day"]][,"periodEnd"] >= lowerDate & 
+  theDeltas[[1]][["day"]][,"periodEnd"] < upperDate
+plot(y = theDeltas[[1]][["day"]][deltasFilter,"delta.cum"], 
+     x = theDeltas[[1]][["day"]][deltasFilter,"periodEnd"],
+     col = "sienna", type = "l")
+
+
+tosFilter <-  theTOs[[1]][["week"]][,"periodEnd"] >= lowerDate & 
+  theTOs[[1]][["week"]][,"periodEnd"] < upperDate
+points(y=theTOs[[1]][["week"]][tosFilter,"delta.cum"], 
+       x=theTOs[[1]][["week"]][tosFilter,"periodEnd"],
+       col = "dodgerblue", type = "l", lwd = 1)
+
+# some kind of weird week traceback in weeks at about 2012 and again at 2018
+# Why?
+
+# and there's a clear shift. Week (blue line) exaclty mirrors but just a little lower
+
+# let's do some more comparisons
+
+
+lowerDate <-ymd("2010-01-23")
+upperDate <- ymd("2020-02-23")
+
+deltasDayFilter <- theDeltas[[1]][["day"]][,"periodEnd"] >= lowerDate & 
+  theDeltas[[1]][["day"]][,"periodEnd"] < upperDate
+
+deltasWeekFilter <- theDeltas[[1]][["week"]][,"periodEnd"] >= lowerDate & 
+  theDeltas[[1]][["week"]][,"periodEnd"] < upperDate
+
+plot(y = theDeltas[[1]][["day"]][deltasDayFilter,"delta.cum"], 
+     x = theDeltas[[1]][["day"]][deltasDayFilter,"periodEnd"],
+     col = "sienna", type = "l")
+
+points(y=theDeltas[[1]][["week"]][deltasWeekFilter,"delta.cum"], 
+       x=theDeltas[[1]][["week"]][deltasWeekFilter,"periodEnd"],
+       col = "cyan", type = "l", lwd = 1)
+
+
+tosWeekFilter <-  theTOs[[1]][["week"]][,"periodEnd"] >= lowerDate & 
+  theTOs[[1]][["week"]][,"periodEnd"] < upperDate
+points(y=theTOs[[1]][["week"]][tosWeekFilter,"delta.cum"], 
+       x=theTOs[[1]][["week"]][tosWeekFilter,"periodEnd"],
+       col = "dodgerblue", type = "l", lwd = 1)
+
+# so the gap happens in delta
+# turnover overlaps delta[["week"]] --- except for that weird jump-back
+
+# let's see how big that gap is.
+
+
+theDeltas[[1]][["day"]][deltasDayFilter,"delta.cum"] - theDeltas[[1]][["week"]][deltasWeekFilter,"delta.cum"]
+
+# yeah that's silly
+
+checkMerge <- merge(theDeltas[[1]][["week"]][deltasWeekFilter,],
+                    theDeltas[[1]][["day"]],
+                    by = "periodEnd",
+                    all.x = TRUE
+                    )
+par(mfrow = c(2,1))
+plot(y = checkMerge$delta.cum.y,
+     x = checkMerge$periodEnd,
+     type = "l",
+     col = "sienna"
+     )
+
+points(y = checkMerge$delta.cum.x,
+     x = checkMerge$periodEnd,
+     type = "l",
+     col = "dodgerblue"
+)
+
+summary(checkMerge$delta.cum.y - checkMerge$delta.cum.x) # huh, that's interesting
+plot(checkMerge$delta.cum.y - checkMerge$delta.cum.x)
+
+# why is week under-counting?
+# it perfectly matches the "day" line --- it's just low by a median of 27
+# does that change over time?
+
+checkMerge <- merge(theDeltas[[1]][["week"]][,],
+                    theDeltas[[1]][["day"]],
+                    by = "periodEnd",
+                    all.x = TRUE
+)
+
+summary(checkMerge$delta.cum.y - checkMerge$delta.cum.x) # huh, that's interesting
+plot(checkMerge$delta.cum.y - checkMerge$delta.cum.x)
+# I've got that lagging or leading problem
+
+plot(y = scale(checkMerge$delta.cum.y),
+     x = checkMerge$periodEnd,
+     type = "l",
+     col = "sienna"
+)
+
+points(y = scale(checkMerge$delta.cum.x),
+       x = checkMerge$periodEnd,
+       type = "l",
+       col = "dodgerblue"
+)
+
+points(checkMerge$delta.cum.x - checkMerge$delta.cum.y,
+       x= checkMerge$periodEnd,
+       type = "l",
+       col = "firebrick")
+
+# that's not what I expected, that's fer sure
+
+plot(y = scale(checkMerge$delta.cum.y[deltasWeekFilter]),
+     x = checkMerge$periodEnd[deltasWeekFilter],
+     type = "l",
+     col = "sienna"
+)
+
+points(y = scale(checkMerge$delta.cum.x[deltasWeekFilter]),
+       x = checkMerge$periodEnd[deltasWeekFilter],
+       type = "l",
+       col = "dodgerblue"
+)
+
+points(scale(checkMerge$delta.cum.x[deltasWeekFilter] - checkMerge$delta.cum.y[deltasWeekFilter]),
+       x= checkMerge$periodEnd[deltasWeekFilter],
+       type = "l",
+       col = "firebrick")
+
+# time
+# for
+
+# I should compare days to months, quarters, and years
+# and then come back to this.
+# I think I just, like, over-corrected or double-corrected the lag
+# It should be obvious how to fix this I think
+
+##################################
+## DELTA DAYS AND DELTA PERIODS ##
+##################################
+
+checkMerge <- merge(theDeltas[[1]][["week"]][,],
+                    theDeltas[[1]][["day"]],
+                    by = "periodEnd",
+                    all.x = TRUE
+)
+
+summary(checkMerge$delta.cum.y - checkMerge$delta.cum.x) 
+plot(checkMerge$delta.cum.y - checkMerge$delta.cum.x)
+
+# Delta days and months is all zero
+# Delta days and quarters is all zero
+# Delta days and years is all zero
+
+# It's delta days and weeks that is off
+
+####################
+## TOS AND DELTAS ##
+####################
+
+checkMerge <- merge(theTOs[[1]][["week"]][,],
+                    theDeltas[[1]][["week"]],
+                    by = "periodEnd",
+                    all.x = TRUE
+)
+
+summary(checkMerge$delta.cum.y - checkMerge$delta.cum.x) 
+plot(checkMerge$delta.cum.y - checkMerge$delta.cum.x)
+
+# so theTOs and theDeltas are all identical to each other for all calendar periods
+
+##############################
+## DELTA DAY AND DELTA WEEK ##
+##############################
+
+checkMerge <- merge(theDeltas[[1]][["week"]][,],
+                    theDeltas[[1]][["day"]],
+                    by = "periodEnd",
+                    all.x = TRUE
+)
+
+summary(checkMerge$delta.cum.y - checkMerge$delta.cum.x) 
+plot(checkMerge$delta.cum.y - checkMerge$delta.cum.x)
+
+checkMerge <- merge(theDeltas[[1]][["week"]][,],
+                    theDeltas[[1]][["day"]],
+                    by = "actionDate",
+                    all.x = TRUE
+)
+
+summary(checkMerge$delta.cum.y - checkMerge$delta.cum.x) 
+plot(checkMerge$delta.cum.y - checkMerge$delta.cum.x)
+
+which(checkMerge$delta.cum.y - checkMerge$delta.cum.x == max(checkMerge$delta.cum.y - checkMerge$delta.cum.x, na.rm = TRUE))
+# 2851 2862 2880 2884
+
+checkMerge[c(2851, 2862, 2880,2884),c("periodEnd", "actionDate.x")]
+
+# periodEnd         actionDate.x
+# 2851 2013-04-13   2013-04-08
+# 2862 2013-06-29   2013-06-24
+# 2880 2013-11-02   2013-10-28
+# 2884 2013-11-30   2013-11-25
+
+# recall that periodEnd == actionDate.y (the actionDate for the days)
+
+summary(as.numeric(checkMerge$actionDate.x - checkMerge$actionDate.y)) # -5
+
+# why is it always five day shift?
+
+# seems like I should be able to step through this pretty easily
+
+# and let's check a different span
+
+
+checkMerge <- merge(theDeltas[[1]][["week"]][,],
+                    theDeltas[[1]][["day"]],
+                    by = "periodEnd",
+                    all.x = TRUE
+)
+
+summary(checkMerge$delta.cum.y - checkMerge$delta.cum.x) 
+plot(checkMerge$delta.cum.y - checkMerge$delta.cum.x)
+range(checkMerge$delta.cum.y - checkMerge$delta.cum.x, na.rm = TRUE)
+# full span has a range of -24, 31
+# early span has a range difference of c(-7,9)
+# late span has a range of c(-15, -2)
+# brief span has a range of c(5,13)
+
+
+# let's walk through the month of April in 2013
+
+weekApril <- deltaHeadCount(minDate = mdy("04-01-2013"),
+               maxDate = mdy("04-30-2013"),
+               calendar = "week",
+               data = retData
+               )
+
+dayApril <- deltaHeadCount(minDate = mdy("04-01-2013"),
+                           maxDate = mdy("04-30-2013"),
+                           calendar = "day",
+                           data = retData
+)
+
+aprilCheck <- merge(dayApril, weekApril, by = "periodEnd", all.x = TRUE)
+
+# wow... did I fix it by fixing the periodEnd adjustment for week?
+# was that it?
+
+
+debugonce(deltaHeadCount)
+
+deltaHeadCount(minDate = mdy("04-01-2013"),
+               maxDate = mdy("04-30-2013"),
+               calendar = "week",
+               data = retData
+)
+
+
+# wow... did I fix it by fixing the periodEnd adjustment for week? from week_start =7 to =1 ?
+# was that it?
+
+
+# let's re-calculate and check
+
+checkMerge <- merge(theDeltas[[1]][["week"]][,],
+                    theDeltas[[1]][["day"]],
+                    by = "periodEnd",
+                    all.x = TRUE
+)
+
+summary(checkMerge$delta.cum.y - checkMerge$delta.cum.x) 
+plot(checkMerge$delta.cum.y - checkMerge$delta.cum.x)
+range(checkMerge$delta.cum.y - checkMerge$delta.cum.x, na.rm = TRUE)
+# -24, 31 # as before 
+
+fullSpan <- lapply(calendarPeriods,
+                   function(x){
+                     
+                     deltaHeadCount(
+                       minDate = as.Date(min(retData$HIRE_DT, na.rm = TRUE)-1),
+                       maxDate = today(),
+                       calendar = x,
+                       data = retData
+                     )
+                   })
+names(fullSpan) <- calendarPeriods
+
+fullSpan_to <- lapply(calendarPeriods,
+                      function(x){
+                        
+                        calculateTurnover(
+                          minDate = as.Date(min(retData$HIRE_DT, na.rm = TRUE))+365,
+                          maxDate = today(),
+                          calendar = x,
+                          data = retData
+                        )
+                      })
+names(fullSpan_to) <- calendarPeriods
+
+# checking improved deltaHeadCount
+
+checkMerge <- merge(fullSpan[["week"]],
+                    fullSpan[["day"]],
+                    by = "periodEnd",
+                    all.x = TRUE
+)
+
+summary(checkMerge$delta.cum.y - checkMerge$delta.cum.x) 
+plot(checkMerge$delta.cum.y - checkMerge$delta.cum.x)
+range(checkMerge$delta.cum.y - checkMerge$delta.cum.x, na.rm = TRUE)
+# -3, 30 # wow, still so bad?
+
+fullSpanCheck <- merge(fullSpan[["day"]],
+                       fullSpan[["week"]],
+                       by = "periodEnd",
+                       all.x = TRUE
+)
+
+fullSpanCheck$diff <- fullSpanCheck$delta.cum.y - fullSpanCheck$delta.cum.x
+
+# looks like it peaks in June 2013, so let's take a closer look
+
+
+juneFilter <- fullSpanCheck$periodEnd > ymd("2013-03-15") & 
+  fullSpanCheck$periodEnd <= ymd("2013-08-31")   
+
+View(fullSpanCheck[juneFilter,])
+# These all have a diff of 30
+# I need a span where the diff changes
+
+# and man I'm getting tired of this
+
+View(fullSpanCheck[18000:22000,])
+
+# Big jumps at:
+
+# 2009-12-27 # big jump
+# 2010-12-26 # decent jump
+# 2011-12-26 (little jump)
+# 2012-12-24 # this one is VERY interesting; every week is off
+# 2013-12-30 
+# 2015-12-28
+
+# that's a clear pattern.
+# That makes the "steps" on the graphic make more sense
+
+# And so it scrambles at every new year?  How do I fix that?
+
+
+
+# let's walk through the year end of 2009
+
+dec2009day <- deltaHeadCount(minDate = ymd("2009-11-01"),
+                            maxDate = ymd("2010-02-01"),
+                            calendar = "day",
+                            data = retData
+)
+
+dec2009week <- deltaHeadCount(minDate = ymd("2009-11-01"),
+                           maxDate = ymd("2010-02-01"),
+                           calendar = "week",
+                           data = retData
+)
+
+dec2009check <- merge(dec2009day, dec2009week, by = "periodEnd", all.x = TRUE)
+
+dec2009check$diff <- dec2009check$delta.cum.y -  dec2009check$delta.cum.x
+
+# it's really easy.  I'm missing all Jan 1st activity when calendar == week
+
+# let's shorten the time frame
+
+lowerDate <- ymd("2009-12-20")
+upperDate <- ymd("2010-01-10")
+
+dec2009day <- deltaHeadCount(minDate = lowerDate,
+                             maxDate = upperDate,
+                             calendar = "day",
+                             data = retData
+)
+
+dec2009week <- deltaHeadCount(minDate = lowerDate,
+                              maxDate = upperDate,
+                              calendar = "week",
+                              data = retData
+)
+
+dec2009check <- merge(dec2009day, dec2009week, by = "periodEnd", all.x = TRUE)
+
+dec2009check$diff <- dec2009check$delta.cum.y -  dec2009check$delta.cum.x
+
+#ok, NOW let's step through my equation
+
+debugonce(deltaHeadCount)
+
+deltaHeadCount(minDate = lowerDate,
+               maxDate = upperDate,
+               calendar = "week",
+               data = retData
+)
+
+# ok, I have attempted to fix it.
+
+# let's try again
+
+
+# check after correction
+
+lowerDate <- ymd("2009-12-20")
+upperDate <- ymd("2010-01-10")
+
+dec2009day <- deltaHeadCount(minDate = lowerDate,
+                             maxDate = upperDate,
+                             calendar = "day",
+                             data = retData
+)
+
+dec2009week <- deltaHeadCount(minDate = lowerDate,
+                              maxDate = upperDate,
+                              calendar = "week",
+                              data = retData
+)
+
+dec2009check <- merge(dec2009day, dec2009week, by = "periodEnd", all.x = TRUE)
+
+dec2009check$diff <- dec2009check$delta.cum.y -  dec2009check$delta.cum.x
+
+# NO! # YES!
+
+# let's debug again
+
+debugonce(deltaHeadCount)
+
+deltaHeadCount(minDate = lowerDate,
+               maxDate = upperDate,
+               calendar = "week",
+               data = retData
+)
+
+# ok, found the problem and attempting again
+
+# ok, I think that completes the fix!
+
+# let's look at the fullSpan again
+
+
+fullSpan <- lapply(calendarPeriods,
+                   function(x){
+                     
+                     deltaHeadCount(
+                       minDate = as.Date(min(retData$HIRE_DT, na.rm = TRUE)-1),
+                       maxDate = today(),
+                       calendar = x,
+                       data = retData
+                     )
+                   })
+names(fullSpan) <- calendarPeriods
+
+fullSpan_to <- lapply(calendarPeriods,
+                      function(x){
+                        
+                        calculateTurnover(
+                          minDate = as.Date(min(retData$HIRE_DT, na.rm = TRUE))+365,
+                          maxDate = today(),
+                          calendar = x,
+                          data = retData
+                        )
+                      })
+names(fullSpan_to) <- calendarPeriods
+
+fullSpanCheck <- merge(fullSpan[["day"]],
+                       fullSpan[["week"]],
+                       by = "periodEnd",
+                       all.x = TRUE
+)
+
+fullSpanCheck$diff <- fullSpanCheck$delta.cum.y - fullSpanCheck$delta.cum.x
+
+summary(fullSpanCheck$diff)
+# YES!  THAT DID IT!
+
+# man that was alotta days of debugging.
+
+# BUT
+# IT.
+# IS.
+# FIXED.
+
+# now let's plot and confirm
+
+plot(y = fullSpan[["day"]][,"delta.cum"],
+     x = fullSpan[["day"]][,"periodEnd"],
+     type = "l",
+     col = "sienna"
+    )
+
+points(y = fullSpan[["week"]][,"delta.cum"],
+     x = fullSpan[["week"]][,"periodEnd"],
+     type = "l",
+     col = "dodgerblue"
+)
+
+# PERFECT!
+
+plot(y = fullSpan_to[["day"]][,"delta.cum"],
+     x = fullSpan_to[["day"]][,"periodEnd"],
+     type = "l",
+     col = "cyan"
+)
+
+points(y = fullSpan_to[["week"]][,"delta.cum"],
+       x = fullSpan_to[["week"]][,"periodEnd"],
+       type = "l",
+       col = "dodgerblue"
+)
+
+# man am I glad THAT is fixed!
+# ok, let's update the functions and push to git !
+
+
+

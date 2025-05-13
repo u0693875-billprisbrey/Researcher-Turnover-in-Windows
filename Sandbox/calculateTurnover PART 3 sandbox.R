@@ -257,12 +257,13 @@ deltaHeadCount <- function(minDate,
     hrDates <- data.frame(actionDate = seq(from = weekMin, to = weekMax, by = calendar)) 
     
     # convert to ISO standard format
-    hrDates$adjDate <- paste(year(hrDates$actionDate), isoweek(hrDates$actionDate), sep = "-W")
+    hrDates$adjDate <- paste(isoyear(hrDates$actionDate), sprintf("%02d", isoweek(hrDates$actionDate)), sep = "-W")
+    # hrDates$adjDate <- paste(year(hrDates$actionDate), isoweek(hrDates$actionDate), sep = "-W")
     
     # aggregate
-    hireActions <- aggregate(one ~ paste(year(HIRE_DT), isoweek(HIRE_DT), sep = "-W"), data = data, sum)
+    hireActions <- aggregate(one ~ paste(isoyear(HIRE_DT), sprintf("%02d", isoweek(HIRE_DT)), sep = "-W"), data = data, sum)
     names(hireActions) <- c("adjDate","one")
-    termActions <- aggregate(one ~ paste(year(TERMINATION_DT), isoweek(TERMINATION_DT), sep = "-W"), data = data, sum)
+    termActions <- aggregate(one ~ paste(isoyear(TERMINATION_DT), sprintf("%02d", isoweek(TERMINATION_DT)), sep = "-W"), data = data, sum)
     names(termActions) <- c("adjDate","one")
     
   }
@@ -352,8 +353,11 @@ deltaHeadCount <- function(minDate,
   hrDates$delta.cum <- cumsum(hrDates$delta) + initial_count
   
   # add a "periodEnd" column for clarity in plotting
+  if(calendar == "week"){ 
+    hrDates$periodEnd <- ceiling_date(hrDates$actionDate, unit = calendar, week_start = 1) - days(1)
+    } else {
   hrDates$periodEnd <- ceiling_date(hrDates$actionDate, unit = calendar) - days(1)
-  
+  }
   
   return(hrDates)
   
