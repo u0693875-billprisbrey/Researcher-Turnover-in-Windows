@@ -42,7 +42,7 @@ deltaPlot <- function(data,
   
   if("turnover" %in% colnames(data)) {
     
-    layout(matrix(1:3, nrow = 3), heights = c(0.236, 0.382, 0.382))
+    layout(matrix(1:3, nrow = 3), heights = c(0.456, 0.281, 0.263))
       
   } else {
   
@@ -137,6 +137,95 @@ deltaPlot <- function(data,
   
   do.call(mtext, cumulative_mtext_params)
   
+  
+  ###################
+  ## TURNOVER PLOT ##
+  ###################
+  
+  if("turnover" %in% colnames(data)) {
+    
+    default_turnover_plot_params <- list(mar = c(0,4,0,1))
+    
+    turnover_plot_params <- modifyList(default_turnover_plot_params,
+                                       turnover_plot_params)
+    
+    do.call(par, turnover_plot_params)
+    
+    
+    plot(y= 100*data[,"turnover"],
+         x= data[,"periodEnd"],
+         type = "n",
+         xlab = "",
+         xaxt = "n",
+         # col = "seagreen3",
+         las = 2,
+         ylab = "" # "delta"
+    )
+    
+    # Rectangle (plot color) (Establish after plot is drawn)
+    
+    default_turnover_upper_rect_args <- list(
+      xleft = par("usr")[1], 
+      ybottom = 0, #par("usr")[3], 
+      xright = par("usr")[2], 
+      ytop = par("usr")[4],
+      col = adjustcolor("palegreen3", alpha.f = 0.1), 
+      border = NA
+    )
+    
+    turnover_upper_rect_args <- modifyList(default_turnover_upper_rect_args, turnover_upper_rect_args)
+    
+    default_turnover_lower_rect_args <- list(
+      xleft = par("usr")[1], 
+      ybottom = par("usr")[3], 
+      xright = par("usr")[2], 
+      ytop = 0, #par("usr")[4],
+      col = adjustcolor("pink", alpha.f = 0.5), 
+      border = NA
+    )
+    
+    turnover_lower_rect_args <- modifyList(default_turnover_lower_rect_args, turnover_lower_rect_args)
+    
+    
+    # Grid (Establish after the plot is drawn)
+    
+    default_turnover_grid_args <- list(col = "lightgray", lwd = 1, lty = "dotted")
+    turnover_grid_args <- modifyList(default_turnover_grid_args, turnover_grid_args)
+    
+    # Draw rectangle and grid
+    do.call("rect", turnover_upper_rect_args)
+    do.call("rect", turnover_lower_rect_args)
+    # do.call("grid", turnover_grid_args)
+    
+    # experimenting with the grid
+    grid_y <- axTicks(2)
+    grid_x <- pretty(data[,"periodEnd"], n = 5)
+    
+    do.call(abline, c(list(h=grid_y), turnover_grid_args))
+    do.call(abline, c(list(v=grid_x), turnover_grid_args))
+    
+    # Draw the points  
+    default_turnover_points_params <- list(y= 100*data[,"turnover"],
+                                           x= data[,"periodEnd"],
+                                           type = "l",
+                                           col = "seagreen"
+    )
+    
+    turnover_points_params <- modifyList(default_turnover_points_params, turnover_points_params)
+    
+    do.call(points, turnover_points_params)
+    
+    default_turnover_mtext_params <- list(side = 2,
+                                          line = 3,
+                                          text = "turnover (%)"
+    )
+    turnover_mtext_params <- modifyList(default_turnover_mtext_params, 
+                                        turnover_mtext_params)
+    
+    do.call(mtext, turnover_mtext_params)
+    
+  }
+  
   ################
   ## DELTA PLOT ##
   ################
@@ -226,93 +315,6 @@ deltaPlot <- function(data,
   
   
     
-  
-  ###################
-  ## TURNOVER PLOT ##
-  ###################
-  
-  if("turnover" %in% colnames(data)) {
-  
-  default_turnover_plot_params <- list(mar = c(4,4,0,1))
-  
-  turnover_plot_params <- modifyList(default_turnover_plot_params,
-                                  turnover_plot_params)
-  
-  do.call(par, turnover_plot_params)
-  
-  
-  plot(y= data[,"turnover"],
-       x= data[,"periodEnd"],
-       type = "n",
-       xlab = "",
-       # col = "seagreen3",
-       las = 2,
-       ylab = "" # "delta"
-  )
-  
-  # Rectangle (plot color) (Establish after plot is drawn)
-  
-  default_turnover_upper_rect_args <- list(
-    xleft = par("usr")[1], 
-    ybottom = 0, #par("usr")[3], 
-    xright = par("usr")[2], 
-    ytop = par("usr")[4],
-    col = adjustcolor("palegreen3", alpha.f = 0.1), 
-    border = NA
-  )
-  
-  turnover_upper_rect_args <- modifyList(default_turnover_upper_rect_args, turnover_upper_rect_args)
-  
-  default_turnover_lower_rect_args <- list(
-    xleft = par("usr")[1], 
-    ybottom = par("usr")[3], 
-    xright = par("usr")[2], 
-    ytop = 0, #par("usr")[4],
-    col = adjustcolor("pink", alpha.f = 0.5), 
-    border = NA
-  )
-  
-  turnover_lower_rect_args <- modifyList(default_turnover_lower_rect_args, turnover_lower_rect_args)
-  
-  
-  # Grid (Establish after the plot is drawn)
-  
-  default_turnover_grid_args <- list(col = "lightgray", lwd = 1, lty = "dotted")
-  turnover_grid_args <- modifyList(default_turnover_grid_args, turnover_grid_args)
-  
-  # Draw rectangle and grid
-  do.call("rect", turnover_upper_rect_args)
-  do.call("rect", turnover_lower_rect_args)
-  # do.call("grid", turnover_grid_args)
-  
-  # experimenting with the grid
-  grid_y <- axTicks(2)
-  grid_x <- pretty(data[,"periodEnd"], n = 5)
-  
-  do.call(abline, c(list(h=grid_y), turnover_grid_args))
-  do.call(abline, c(list(v=grid_x), turnover_grid_args))
-  
-  # Draw the points  
-  default_turnover_points_params <- list(y= data[,"turnover"],
-                                      x= data[,"periodEnd"],
-                                      type = "l",
-                                      col = "seagreen"
-  )
-  
-  turnover_points_params <- modifyList(default_turnover_points_params, turnover_points_params)
-  
-  do.call(points, turnover_points_params)
-  
-  default_turnover_mtext_params <- list(side = 2,
-                                     line = 3,
-                                     text = "turnover"
-  )
-  turnover_mtext_params <- modifyList(default_turnover_mtext_params, 
-                                   turnover_mtext_params)
-  
-  do.call(mtext, turnover_mtext_params)
-  
-  }
   
   
   
