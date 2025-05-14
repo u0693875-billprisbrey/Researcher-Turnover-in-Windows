@@ -163,16 +163,19 @@ calculateTurnover <- function(initial_count=NA,
   names(periodTerminationsSum)[grepl("actionDate", names(periodTerminationsSum))] <- "adjDate"
   }
   
+  browser()
+  
   # merge mean and sum calculations
   turnOver_intermediate <- merge(periodHeadCountMean, periodTerminationsSum, by = "adjDate", sort = FALSE)
-  
-  
-  # calculate the turnover
-  turnOver_intermediate$turnover <- turnOver_intermediate$termCount/turnOver_intermediate$delta.cum
   names(turnOver_intermediate)[names(turnOver_intermediate) == "delta.cum"] <- "headcount_mean"
   
   # merge back into the foundation
-  turnOver_final <- merge(foundation, turnOver_intermediate, by = "adjDate", sort = FALSE)
+  turnOver_final <- merge(foundation, turnOver_intermediate[,-which(colnames(turnOver_intermediate) == "termCount")], by = "adjDate", sort = FALSE)
+  
+  # calculate metrics
+  turnOver_final$hireRate <- turnOver_intermediate$hireCount/turnOver_intermediate$headcount_mean
+  turnOver_final$termRate <- turnOver_intermediate$termCount/turnOver_intermediate$headcount_mean
+  turnOver_final$deltaRate <- turnOver_intermediate$delta/turnOver_intermediate$headcount_mean
   
   
   return(turnOver_final)  
