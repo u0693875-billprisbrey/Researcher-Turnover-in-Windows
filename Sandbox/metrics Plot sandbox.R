@@ -28,22 +28,29 @@ metricsPlot <- function(data,
 ){
   
   # This accepts the output of "deltaHeadCount" or "calculateMetrics" 
-  # and creates a nice little graphic
+  # and creates several graphics of different metrics over time.
+  
+  # NOTES FOR USING:
+  # If I don't want to show both hire and term rate lines, then I can set the argument "type="n""
+  #  in the appropriate params list (but it would still show up in the legend.  Hmm.)
+  
+  # Values for plotList are c("all", "headcount", "cumulative", "rate", "count", "delta", "delta.count", "delta.rate")
+  
+  # overall the default title doesn't describe the plot as well as I'd like
+  
   
   # POSSIBLE ADJUSTMENTS:
-  #  adjust delta legend to properly reflect rate or count
-  #  rates plot has the wrong margins and has no xlab when plotList == c("cumulative", "rate")
-  #  explicitly call out the starting date (and ending date and delta cum?)
-  
-  # If I don't want to show both hire and term rates, then I can set the argument "type="n""
-  #  in the appropriate params list (but it would still show up in the legend.  Hmm.)
+  #  The biggest problem is that it has to have a delta plot, or there's no x-axis.
+  #      Plots for cumulative/headcount and the rates have no x-axis, and no way to add them.
+  #      Only the delta count or delta rate graphic has the x-axis.
 
-  # plotList values are "all", "headcount", "cumulative", "rate", "count", "delta.count", "delta.rate"
+  #  I could explicitly label things like starting date and concluding headcount values 
+  #    with text on the graphic
   
-  # overall title doesn't align perfectly
-  
-  # and now I want to be able to plot hire and termination counts as well as rates # DONE
-  # count margin is wrong
+  # NEXT STEPS:
+  #  I'd like a plot that has multiple lines, for example per-cluster.
+  #  Maybe as a different graphic using "plotly" to un-tangle the lines.  
+
   
   ############
   ## LAYOUT ##
@@ -65,7 +72,7 @@ metricsPlot <- function(data,
   }
   
   default_cumulative_plot_params <- list(oma = c(0,0,2,0),
-                                         mar = c(0,4,0,1),
+                                         mar = c(0,6,0,1),
                                          bg="ivory",
                                          fg = "grey10")
   
@@ -136,14 +143,14 @@ metricsPlot <- function(data,
     
     default_cumulative_mtext_params <- list(
       side = 2,
-      line = 3,
+      line = 4,
       text = "head count")
     
   } else {
     
     default_cumulative_mtext_params <- list(
       side = 2,
-      line = 3,
+      line = 4,
       text = "cumulative")
     
   }
@@ -178,15 +185,15 @@ metricsPlot <- function(data,
       hireVal <- data[,"hireCount"]
       termVal <- data[,"termCount"] 
       
-      yLim <- c(100*min(apply(data[,c("hireCount","termCount")],1,min, na.rm=TRUE)),
-                100*max(apply(data[,c("hireCount","termCount")],1,max, na.rm=TRUE))
+      yLim <- c(min(apply(data[,c("hireCount","termCount")],1,min, na.rm=TRUE)),
+                max(apply(data[,c("hireCount","termCount")],1,max, na.rm=TRUE))
       )
       
       y_label <- "count"
       
       }
     
-    default_rate_plot_params <- list(mar = c(0,4,0,1))
+    default_rate_plot_params <- list(mar = c(0,6,0,1))
     
     rate_plot_params <- modifyList(default_rate_plot_params,
                                        rate_plot_params)
@@ -261,7 +268,7 @@ metricsPlot <- function(data,
     # Margin text
     
     default_rate_mtext_params <- list(side = 2,
-                                          line = 3,
+                                          line = 4,
                                           text = y_label #"rates (%)"
     )
     rate_mtext_params <- modifyList(default_rate_mtext_params, 
@@ -296,7 +303,7 @@ metricsPlot <- function(data,
 
   if(any(c("all", "delta.count","delta.rate") %in% plotList)) {
     
-  default_delta_plot_params <- list(mar = c(4,4,0,1))
+  default_delta_plot_params <- list(mar = c(4,6,0,1))
   
   delta_plot_params <- modifyList(default_delta_plot_params,
                                   delta_plot_params)
@@ -367,7 +374,7 @@ metricsPlot <- function(data,
   do.call(points, delta_points_params)
   
   default_delta_mtext_params <- list(side = 2,
-                                     line = 3,
+                                     line = 4,
                                      text = y_label #"delta"
   )
   delta_mtext_params <- modifyList(default_delta_mtext_params, 

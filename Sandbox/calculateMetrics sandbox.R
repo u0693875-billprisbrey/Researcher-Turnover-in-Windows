@@ -31,7 +31,7 @@ calculateMetrics <- function(initial_count=NA,
   # and then aggregate that to a mean value over the desired period.  This mean is the denominator
   # for the rate calculations.
   
-  #  calculateTurnover and deltaHeadCount will provide identical results if the minDate used
+  #  calculateTurnover (or calculateMetrics) and deltaHeadCount will provide identical results if the minDate used
   #  for deltaHeadCount is the same as the initial_date used in calculateTurnover, and the other arguments
   #  are identical.
   
