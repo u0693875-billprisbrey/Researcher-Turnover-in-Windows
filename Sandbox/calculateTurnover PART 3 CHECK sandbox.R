@@ -914,5 +914,13 @@ points(y = fullSpan_to[["week"]][,"delta.cum"],
 # man am I glad THAT is fixed!
 # ok, let's update the functions and push to git !
 
+###########################################################
+## ADDING METRICS AND REPLACING "TURNOVER" TO "termRate" ##
+###########################################################
+
+debugonce(calculateTurnover)
+fobo <- calculateTurnover(minDate == ymd("2013-03-15"), maxDate = today(), calendar = "quarter", data = retData)
+
+# I'm just going to create a new function in a new sandbox.
 
 

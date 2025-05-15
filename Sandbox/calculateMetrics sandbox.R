@@ -100,7 +100,7 @@ calculateMetrics <- function(initial_count=NA,
   
   # Calculate mean headcount by first repeating deltaHeadCount by day
   
-  meanHeadcount <- deltaHeadCount(minDate = minDate,
+  meanHeadCount <- deltaHeadCount(minDate = minDate,
                              maxDate = maxDate,
                              calendar = "day",
                              initial_count = initial_count,
