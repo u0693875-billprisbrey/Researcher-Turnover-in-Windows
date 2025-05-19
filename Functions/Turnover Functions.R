@@ -726,7 +726,7 @@ calculateMetrics <- function(initial_count=NA,
   
 }
 
-metricsPlot <- function(data,
+plotMetrics <- function(data,
                         plotList = "all",
                         cumulative_plot_params = list(),
                         cumulative_points_params = list(),
