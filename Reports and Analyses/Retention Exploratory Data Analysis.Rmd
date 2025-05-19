@@ -704,7 +704,7 @@ names(lateSpan) <- calendar
 
 ```{r}
 
-metricsPlot(
+plotMetrics(
   data = fullSpan[["year"]],
   plotList = "all",
   title_mtext_params = list(text = "Approximate PI Headcount\nrehire dates ignored", line = -1.618),
@@ -712,7 +712,7 @@ metricsPlot(
 )
 
 
-metricsPlot(
+plotMetrics(
   data = midSpan[["year"]],
   plotList = "all",
     title_mtext_params = list(text = "Approximate PI Headcount\nrehire dates ignored", line = -1.618),
@@ -758,7 +758,7 @@ calculateMetrics(calendar = "year",
                  maxDate = today(),
                  data = retData[is.na(retData$REHIRE_DT),]) |>
   (\(x){
-  metricsPlot(
+  plotMetrics(
       data = x,
   plotList = "all",
     title_mtext_params = list(text = "Approximate PI Headcount\nrehires removed", line = -1.618),
@@ -1213,7 +1213,7 @@ mtext(side = 3,
 
 ```
 
-```{r}
+```{r eval=FALSE}
 
   p <- plot_ly(
     type = "scatter",
