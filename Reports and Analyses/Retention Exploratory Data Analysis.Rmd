@@ -9,6 +9,10 @@ output: html_document
 
 ```{r include=FALSE}
 
+# It's hard to re-write the flow of an existing report.
+# I think it's easier to copy to a new place and start over.
+# But I'll keep working on adapting this current one (with lots of frequent commits.)
+
 # I like my new direction  -- it's like two chapters.
 # Chapter 1 is the retention data by itself -- basically cleaning up the "quick'n'dirty" version.
 # Chapter 2 is the combination, which will require adapting the functions and will probably tell a pretty different story.
@@ -46,13 +50,13 @@ output: html_document
       b.  By departments **NOT DONE**   
       c.  By PI clusters **DONE**    
       d.  By percentiles **TO BE DONE**    
-  4.  Describe the combination of the retention data and the proposal data.   
-  5.  Re-calculate and compare turnover   
+  3.  Describe the combination of the retention data and the proposal data.   
+  4.  Re-calculate and compare turnover   
       a.  By colleges      
       b.  By departments    
       c.  By PI clusters     
       d.  By percentiles 
-  3.  Describe differences and identify avenues for further exploration and next steps.           
+  5.  Describe differences and identify avenues for further exploration and next steps.           
 
 **NOTES FROM REVIEW MEETING:**
 
@@ -271,7 +275,7 @@ percentileMapping[,"pch"] <- rep(19, nrow(percentileMapping))
 percentileMapping[,"color"] <- percentileColors[as.numeric(cut(piEmplid$win.sum_percentile, breaks = seq(0.2,1,by=0.1)))]
 
 
-# I need the college map
+# I need the college colors map
 
 
 
@@ -404,127 +408,15 @@ activeProposing$effective_hire[rehire_condition] <- activeProposing$REHIRE_DT[re
 
 ```
 
-# DURATIONS
+#1) DESCRIBE THE RETENTION DATA   
 
-```{r}
+Put a few words here describing the query.
 
-#########################
-## CALCULATE INTERVALS ##
-#########################
+Put a few words here describing "skimr" results -- number of rows, PI's, hires, re-hires, and terminations.
 
-# library(lubridate)
+Then explain the handful of graphics that I want to show here.  Show the graphics under their own headings.
 
-# This is the initial time between "hire date" and "re-hire date"
-retData$initial <- time_length(interval(retData$HIRE_DT, retData$REHIRE_DT), unit = "year")
-
-# This is the time between "re-hire date" and "termination date"
-retData$rehire <- time_length(interval(retData$REHIRE_DT, retData$TERMINATION_DT), unit = "year")
-
-# This is the time from initial hire to termination date
-retData$hire <- time_length(interval(retData$HIRE_DT, retData$TERMINATION_DT), unit = "year")
-
-
-```
-
-```{r}
-
-#######################
-## DISPLAY INTERVALS ##
-#######################
-
-histPar <- par(mfrow = c(3,1), mar = c(2, 4.1, 1.1, 0.1)) # c(5.1,4.1,4.1,2.1)
-
-hist(retData$initial,
-     main = "Duration in years after hire until rehire",
-     ylab = "Count",
-     xlab = "", # "Duration in years",
-     col = "lightgreen")
-legend("topright", legend = paste( sum(is.na(retData$initial)), "NA values"), bty = "n", text.col = "red")
-
-hist(retData$rehire,
-     main = "Duration in years after rehire until termination",
-     ylab = "Count",
-     xlab = "", # "Duration in years",
-     col = "seagreen")
-legend("topright", legend = paste( sum(is.na(retData$rehire)), "NA values"), bty = "n", text.col = "red")
-
-
-hist(retData$hire,
-     main = "Duration in years after hire until termination",
-     ylab = "Count",
-     xlab = "", # "Duration in years",
-     col = "darkgreen")
-legend("topright", legend = paste( sum(is.na(retData$hire)), "NA values"), bty = "n", text.col = "red")
-
-par(histPar)
-
-```
-
-Duration thoughts:    
-
-  - The lack of a termination date before the re-hire date introduces guess-work.   
-  - Some researchers are apparently hired as students and re-hired later in their career.    
-  - Some researchers are apparently hired in retirement after their career. 
-  - These durations need to be aligned with proposal submission dates.    
-  - This shows that we currently have 2,994 active principal investigators.   
-
-# DATES
-
-```{r eval=FALSE}
-
-plotPar <- par(bg = "ivory", fg = "gray20")
-table(week(retData$TERMINATION_DT)) |>
-  plot(xlab = "week of year",
-       ylab = "Count of terminations per week",
-       main = "PIs are mostly terminated around June 30th")
-
-par(plotPar)
-
-```
-
-```{r eval=FALSE}
-
-# Raw numbers, quarterly, individual graphics
-
-plotPar <- par(mfrow = c(3,1), bg = "ivory", fg = "gray20")
-
-table(paste(year(retData$HIRE_DT), quarter(retData$HIRE_DT), sep = "-")) |>
-  (\(x){ 
-    x[names(x) != "NA-NA"]
-    })() |>
-  plot(ylab = "Count of hires",
-       main = "Hires over time",
-       col = "chocolate4")
-
-
-table(paste(year(retData$REHIRE_DT), quarter(retData$REHIRE_DT), sep = "-")) |>
-  (\(x){ 
-    x[names(x) != "NA-NA"]
-    })() |>
-  plot(ylab = "Count of re-hires",
-       main = "Re-hires over time",
-       col = "chocolate4")
-
-
-
-table(paste(year(retData$TERMINATION_DT), quarter(retData$TERMINATION_DT), sep = "-")) |>
-  (\(x){ 
-    x[names(x) != "NA-NA"]
-    })() |>
-  plot(ylab = "Count of terminations",
-       main = "Terminations over time",
-       col = "chocolate4")
-
-
-
-par(plotPar)
-
-# maybe a cumulative graphic?
-# maybe scaled lines on the same graphic? (Gotta do this one!)
-
-```
-
-
+### Retention dates
 
 ```{r}
 
@@ -579,11 +471,304 @@ par(plotPar)
 
 
 
-
-# ACTIVE PRINCIPAL INVESTIGATORS
-
+### Retention intervals
 
 ```{r}
+
+#########################
+## CALCULATE INTERVALS ##
+#########################
+
+# library(lubridate)
+
+# This is the initial time between "hire date" and "re-hire date"
+retData$initial <- time_length(interval(retData$HIRE_DT, retData$REHIRE_DT), unit = "year")
+
+# This is the time between "re-hire date" and "termination date"
+retData$rehire <- time_length(interval(retData$REHIRE_DT, retData$TERMINATION_DT), unit = "year")
+
+# This is the time from initial hire to termination date
+retData$hire <- time_length(interval(retData$HIRE_DT, retData$TERMINATION_DT), unit = "year")
+
+
+```
+
+```{r}
+
+#######################
+## DISPLAY INTERVALS ##
+#######################
+
+histPar <- par(mfrow = c(3,1), mar = c(2.5, 4.1, 2.6, 0.1)) # c(5.1,4.1,4.1,2.1)
+
+hist(retData$initial,
+     main = "Interval in years after hire until rehire",
+     cex.main = 1.382,
+     ylab = "Count",
+     xlab = "", # "Duration in years",
+     col = "lightseagreen")
+legend("topright", legend = paste( format(sum(is.na(retData$initial)), big.mark = ","), "NA values"), bty = "n", text.col = "red", cex = 1.618)
+
+hist(retData$rehire,
+     main = "Interval in years after rehire until termination",
+     cex.main = 1.382,
+     ylab = "Count",
+     xlab = "", # "Duration in years",
+     col = "lightgreen")
+legend("topright", legend = paste(format( sum(is.na(retData$rehire)), big.mark=",") , "NA values"), bty = "n", text.col = "red", cex = 1.618)
+
+
+hist(retData$hire,
+     main = "Interval in years after hire until termination",
+     cex.main = 1.382,
+     ylab = "Count",
+     xlab = "", # "Duration in years",
+     col = "aquamarine")
+legend("topright", legend = paste(format( sum(is.na(retData$hire)), big.mark= ","), "NA values"), bty = "n", text.col = "red", cex = 1.618)
+
+par(histPar)
+
+```
+
+Duration thoughts:    
+
+  - The lack of a termination date before the re-hire date introduces guess-work.   
+  - Some researchers are apparently hired as students and re-hired later in their career.    
+  - Some researchers are apparently hired in retirement after their career. 
+  - These durations need to be aligned with proposal submission dates.    
+  - This shows that we currently have 2,994 active principal investigators.   
+
+### Seasonality
+
+```{r}
+
+# I like this graphic.
+# Convert it to three lines for my three date columns.
+# Maybe move this after "dates" and before "intervals."
+
+weeklyTerms <- table(week(retData$TERMINATION_DT))
+weeklyHires <- table(week(retData$HIRE_DT))
+weeklyRehires <- table(week(retData$REHIRE_DT))
+
+yLim <- c(min(c(weeklyTerms, weeklyHires,weeklyRehires), na.rm = TRUE), max(c(weeklyTerms, weeklyHires,weeklyRehires), na.rm = TRUE) )
+
+plotPar <- par(bg = "ivory", fg = "gray20")
+
+plot(weeklyTerms,
+     ylim = yLim,
+     type = "n",
+     ylab = "",
+     las = 1,
+     xlab = "week of year")
+
+points(weeklyHires,
+       type = "l",
+       col = "purple")
+
+points(weeklyRehires,
+       type = "l",
+       col = "orange")
+
+points(weeklyTerms,
+       type = "l",
+       col = "firebrick")
+
+mtext(side = 3,
+      "Workforce flow has strong seasonality\nwith most activity happening in Week 26",
+      font =2,
+      cex = 1.384,
+      line = 1)
+
+legend("topleft",
+       legend = c("hire","rehire","termination"),
+       col = c("purple","orange", "firebrick"),
+       pch = 15,
+       pt.cex = 2)
+
+par(plotPar)
+
+
+
+table(week(retData$TERMINATION_DT)) |>
+  plot(xlab = "week of year",
+       ylab = "Count of terminations per week",
+       main = "PIs are mostly terminated around June 30th")
+
+
+
+```
+
+```{r eval=FALSE}
+
+# I decided to use the annual one instead (converted to a line chart)
+
+# Raw numbers, quarterly, individual graphics
+
+plotPar <- par(mfrow = c(3,1), bg = "ivory", fg = "gray20")
+
+table(paste(year(retData$HIRE_DT), quarter(retData$HIRE_DT), sep = "-")) |>
+  (\(x){ 
+    x[names(x) != "NA-NA"]
+    })() |>
+  plot(ylab = "Count of hires",
+       main = "Hires over time",
+       col = "chocolate4")
+
+
+table(paste(year(retData$REHIRE_DT), quarter(retData$REHIRE_DT), sep = "-")) |>
+  (\(x){ 
+    x[names(x) != "NA-NA"]
+    })() |>
+  plot(ylab = "Count of re-hires",
+       main = "Re-hires over time",
+       col = "chocolate4")
+
+
+
+table(paste(year(retData$TERMINATION_DT), quarter(retData$TERMINATION_DT), sep = "-")) |>
+  (\(x){ 
+    x[names(x) != "NA-NA"]
+    })() |>
+  plot(ylab = "Count of terminations",
+       main = "Terminations over time",
+       col = "chocolate4")
+
+
+
+par(plotPar)
+
+# maybe a cumulative graphic?
+# maybe scaled lines on the same graphic? (Gotta do this one!)
+
+```
+
+
+
+#2) CALCULATE AND COMPARE TURNOVER
+
+### Active principal investigators
+
+Except this is the date between "hire" and "rehire", so it's not accurate. 
+
+"Active" is not a good term.
+
+```{r}
+
+########################
+## CALCULATE TURNOVER ##
+########################
+
+calendar <- c("day","week", "month", "quarter", "year")
+
+fullSpan <- lapply(calendar, function(x){
+  
+  calculateMetrics(calendar = x,
+                   minDate = ymd("1960-01-01"),
+                   maxDate = today(),
+                   data = retData)
+  
+})
+names(fullSpan) <- calendar
+
+midSpan <- lapply(calendar, function(x){
+  
+  calculateMetrics(calendar = x,
+                   minDate = ymd("2013-01-01"),
+                   maxDate = today(),
+                   data = retData)
+  
+})
+names(midSpan) <- calendar
+
+earlySpan <- lapply(calendar, function(x){
+  
+  calculateMetrics(calendar = x,
+                   minDate = ymd("2000-01-01"),
+                   maxDate = ymd("2020-12-31"),
+                   data = retData)
+  
+})
+names(earlySpan) <- calendar
+
+lateSpan <- lapply(calendar, function(x){
+  
+  calculateMetrics(calendar = x,
+                   minDate = ymd("2020-01-01"),
+                   maxDate = today(),
+                   data = retData)
+  
+})
+names(lateSpan) <- calendar
+
+```
+
+```{r}
+
+metricsPlot(
+  data = fullSpan[["year"]],
+  plotList = "all",
+  title_mtext_params = list(text = "Approximate PI Headcount\nrehire dates ignored", line = -1.618),
+  cumulative_plot_params = list(mar = c(0,6,3,1))
+)
+
+
+metricsPlot(
+  data = midSpan[["year"]],
+  plotList = "all",
+    title_mtext_params = list(text = "Approximate PI Headcount\nrehire dates ignored", line = -1.618),
+  cumulative_plot_params = list(mar = c(0,6,3,1))
+)
+
+```
+
+
+I need some words like
+
+[x] number of PI's have hire and rehire dates.  This creates uncertainty in the data as there is only one termination date.
+
+Therefore, only the hire date is used.  And the re-hire date is completely ignored.
+
+This means that individuals are counted after their hire date.  "Headcount" includes individuals who are after their hire date and before their termination date.
+
+It means I am including someone who might have worked as a janitor during their undergraduate years, quit upon graduation, and have been elsewhere.
+
+It also means that I am including someone who 
+
+(room with hallway graphic (?))
+
+Let's show a graphic with the re-hires removed completely.
+
+I really need to emphasize my uncertainty with this data and graphic.  There's a strong guess here, or this reflects an assumption that is wrong.
+
+Probably a discussion on how my hire and departure rates are calculated on an avg headcount basis.
+
+And, what if this is COMPLETELY wrong?  Like, laughably and insanely wrong?
+
+It might be a good time to walk through the SQL logic, too.
+
+I should pull up a specific example of where I think they were a student, and where they were re-hired after their career.
+
+```{r eval = FALSE}
+
+# Removing the re-hires
+# I don't think there's a point in showing this graphic.
+
+calculateMetrics(calendar = "year",
+                 minDate = ymd("2013-01-01"),
+                 maxDate = today(),
+                 data = retData[is.na(retData$REHIRE_DT),]) |>
+  (\(x){
+  metricsPlot(
+      data = x,
+  plotList = "all",
+    title_mtext_params = list(text = "Approximate PI Headcount\nrehires removed", line = -1.618),
+  cumulative_plot_params = list(mar = c(0,6,3,1))
+  )})()
+
+
+```
+
+```{r eval=FALSE}
 
 ########################
 ## CALCULATE TURNOVER ##
@@ -598,7 +783,9 @@ turnover_yr <- calculateTurnover(data = retData, interval = "year")
 
 ```
 
-```{r}
+```{r eval=FALSE}
+
+# delete me sooner rather than later
 
 plotPar <- par(mfrow = c(3,1), 
                bg = "ivory", 
@@ -652,18 +839,21 @@ axis(side = 1,
 
 ```
 
-Discussion points:    
 
+[FIXED discussion points]
   - Some aspects of this graph appear to be mis-aligned due to how counts per interval were aggregated:
     - Axis labels  
     - Points not along the main curve   
     - This needs to be investigated   
+    
+[RELEVANT discussion points]    
   - The general pattern of an increasing count of PI's that peaked around the year 2020 and declined since needs to be confirmed    
   - Because the total money requested won has increased, this would mean the average per PI has increased.  This could be one double-check. 
 
 
 ```{r eval=FALSE}
 
+# I can delete this
 # investigating the "tendrils"
 
 plotPar <- par(mfrow = c(1,1), 
@@ -726,9 +916,8 @@ par(plotPar)
 ```
 
   
-# DATES
 
-```{r}
+```{r eval=FALSE}
 
 
 plotPar <- par(bg = "ivory", fg = "gray20")
@@ -753,7 +942,7 @@ axis(side = 1,
 
 ```
 
-```{r}
+```{r eval=FALSE}
 
 qt_sc <- turnover_qt[,-(1:2)] |>
   scale()
@@ -765,7 +954,7 @@ yr_sc <- turnover_yr[,-(1:2)] |>
 ```
 
 
-```{r}
+```{r eval=FALSE}
 
 plot(1,
      ylim = c(min(qt_sc),max(qt_sc)),
@@ -801,7 +990,11 @@ axis(side = 1,
 
 ```
 
-```{r}
+```{r eval=FALSE}
+
+# because the turnover is in error (based on assumptions we know are faulty) then there's not so much point in emphasizing or zooming in on this graphic or scaling it with the headcount.
+
+# but the increasing departure rate is an interesting talking point.
 
 plot(1,
      ylim = c(min(yr_sc),max(yr_sc)),
@@ -844,7 +1037,30 @@ Discussion points:
 
 # TURNOVER BY COLLEGE
 
+I'm struggling if there's a point to do this.
+
+Maybe just to develop the mechanics?
+
 ```{r}
+
+colleges <- unique(prepData$college)
+collegePIs <- lapply(colleges, function(x) unique(prepData$PROPOSAL_PI_EMPLID[prepData$college == x]))
+names(collegePIs) <- colleges
+
+collegeMetrics <- lapply(collegePIs, function(x){
+  
+  calculateMetrics(data=retData[retData$PI_EMPLID %in% x,],
+                   minDate = ymd("2013-01-01"),
+                   maxDate = today(), 
+                     calendar = "year")
+  
+})
+
+
+```
+
+
+```{r eval=FALSE}
 
 colleges <- unique(prepData$college)
 collegePIs <- lapply(colleges, function(x) unique(prepData$PROPOSAL_PI_EMPLID[prepData$college == x]))
@@ -859,7 +1075,9 @@ collegeTurnover <- lapply(collegePIs, function(x){
 ```
 
 
-```{r}
+```{r eval=FALSE}
+
+# Waiting on better data with fewer assumptions
 
 # Kruskal-wallis
 
@@ -875,7 +1093,10 @@ college.kW <- kruskal.test(to ~ college, data = cT.frame)
 ```
 
 
-```{r}
+```{r eval=FALSE}
+
+# Do this with the adjusted data,
+# or better data if you get it (that doesn't ignore "rehire" date)
 
 plot(1, 
      type = "n", 
@@ -928,15 +1149,20 @@ complex_clusters <- levels(prepData$complex_cluster)
 complexPIs <- lapply(complex_clusters, function(x) unique(prepData$PROPOSAL_PI_EMPLID[prepData$complex_cluster == x]))
 names(complexPIs) <- complex_clusters
 
-complexTurnover <- lapply(complexPIs, function(x){
+complexMetrics <- lapply(complexPIs, function(x){
   
-  calculateTurnover(data=retData[retData$PI_EMPLID %in% x,] , interval = "year")
+  calculateMetrics(data=retData[retData$PI_EMPLID %in% x,],
+                    minDate = ymd("2013-01-01"),
+                    maxDate = today(), 
+                    calendar = "year")
   
 })
 
 ```
 
-```{r}
+```{r eval=FALSE}
+
+# repeat with better data that doesn't ignore "rehire" date
 
 # Kruskal-wallis
 
@@ -948,7 +1174,9 @@ complex.kW <- kruskal.test(to ~ complex_cluster, data = compT.frame)
 ```
 
 
-```{r}
+```{r eval=FALSE}
+
+# re-do this with plotly and the correct cluster colors
 
 plot(1, 
      type = "n", 
@@ -984,6 +1212,38 @@ mtext(side = 3,
 
 
 ```
+
+```{r}
+
+  p <- plot_ly(
+    type = "scatter",
+    mode = "lines",
+    xaxis = list(title = "", range = c(2013,2026)),
+    yaxis = list(title = "Departure rate", range = c(0,0.1))
+  )
+  
+for(x in complexMetrics){
+    
+     p <- add_lines(p, 
+                   x = as.numeric(x[, "adjDate"]),
+                   y = 100*x[, "termRate"],
+                   line = list(color = "gray40"),
+                   showlegend = FALSE)
+    
+  }
+
+# Needs a title
+# Needs cluster colors
+# Without reference to the cluster, it's pretty pointless
+# This really doesn't need to be a "plotly" graphic.
+# I can do this with the correct colors and a good legend that has the cluster nick-name.
+
+
+
+```
+
+
+
 
 Discussion points:    
 
@@ -1024,8 +1284,10 @@ VPR.D_PI_EMP_DT_VW as
          FROM osp.d_pi_vw pi
          LEFT JOIN uuetl_hr.PS_UU_EMPLOYMENT_VW emp ON pi.pi_emplid = emp.emplid
  
+#3) COMBINE RETENTION AND PROPOSAL DATA
+
+  3.  Describe the combination of the retention data and the proposal data.
  
-# COMBINING RETENTION DATA AND ACTIVE PROPOSAL DATA         
 
 ```{r}
 
