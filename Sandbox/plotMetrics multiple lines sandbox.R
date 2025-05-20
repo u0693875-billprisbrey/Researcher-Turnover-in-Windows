@@ -77,21 +77,27 @@ plotMetrics <- function(data,
   #  I'd like a plot that has multiple lines, for example per-cluster.
   #  Maybe as a different graphic using "plotly" to un-tangle the lines.  
   
-  ##########################
-  ## MANAGE INCOMING LIST ##
-  ##########################
+  ###############################
+  ## MANAGE INCOMING ARGUMENTS ##
+  ###############################
   
   if(is.data.frame(data)) {data <- list(data)}
   
+  if("all" %in% plotList){ plotList <- c("cumulative", "rate", "delta.count")  }
+  
+  if(all(c("rate","count") %in% plotList )) { 
+    stop("Select 'rate' or 'count' in plotList argument.")
+    }
   
   ############
   ## LAYOUT ##
   ############
   
   if(any(grepl("rate", tolower(colnames(data[[1]])))) # has the necessary columns
-     & ("all" %in% plotList | # if all plots are being shown
+     & (
         any(c("headcount", "cumulative") %in% plotList) &&
-        all(c("rate", "delta") %in% plotList)
+        any(c("rate", "count") %in% plotList) &&
+        any(c("delta",  "delta.rate", "delta.count") %in% plotList)
      )
   ) {
     
@@ -118,7 +124,7 @@ plotMetrics <- function(data,
   ## CUMULATIVE PLOT ##
   #####################
   
-  if( any(c("all", "cumulative", "headcount") %in% plotList)  ){
+  if( any(c("cumulative", "headcount") %in% plotList)  ){
     
     # set yLim
     yLim <- range(sapply(data, function(x){range(x[,"delta.cum"])}))
@@ -239,15 +245,17 @@ plotMetrics <- function(data,
     default_cumulative_legend_params <- list(
       x = "topleft",
       legend = names(data),
-      col = ifelse(length(data) == 1, "sienna",featureMap[names(data)]),
+      col = featureMap[names(data)],
+      #col = ifelse(length(data) == 1, "sienna",featureMap[names(data)]),
       pch = 15, 
       pt.cex = 2
     )
     
     cumulative_legend_params <- modifyList(default_cumulative_legend_params, cumulative_legend_params)
     
+    if(length(data) >1 ) {
     do.call(legend, cumulative_legend_params)
-    
+    }
     
      
   }
@@ -259,10 +267,10 @@ plotMetrics <- function(data,
   ##################
   
   if(any(grepl("rate", tolower(colnames(data[[1]])))) &
-     any(c("all", "rate", "count") %in% plotList)
+     any(c("rate", "count") %in% plotList)
   ) {
     
-    if(any(c("rate","all") %in% plotList) ) {
+    if("rate" %in% plotList && !("count" %in% plotList) ) {
       
       hireVal <- 100*data[[1]][,"hireRate"]
       termVal <- 100*data[[1]][,"termRate"]
@@ -283,7 +291,7 @@ plotMetrics <- function(data,
       
     }
     
-    if("count" %in% plotList ) {
+    if("count" %in% plotList && !("rate" %in% plotList) ) {
       hireVal <- data[[1]][,"hireCount"]
       termVal <- data[[1]][,"termCount"] 
       
@@ -352,7 +360,7 @@ plotMetrics <- function(data,
     
     # Draw the points  
     
-    if(any(c("rate","all") %in% plotList) ) {
+    if("rate" %in% plotList && !("count" %in% plotList)  ) {
     
       # draw the hire points using Map
       invisible(Map(function(df, col) {
@@ -447,7 +455,7 @@ plotMetrics <- function(data,
 
     }
     
-    if("count" %in% plotList ) {
+    if("count" %in% plotList && !("rate" %in% plotList) ) {
       
       # draw the hire lines using Map
       invisible(Map(function(df, col) {
