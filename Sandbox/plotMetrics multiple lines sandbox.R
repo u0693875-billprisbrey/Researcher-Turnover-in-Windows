@@ -604,8 +604,22 @@ plotMetrics <- function(data,
   ## DELTA PLOT ##
   ################
   
-  if("delta.count" %in% plotList && !("delta.rate" %in% plotList) ) {yVal <- data[[1]][,"delta"]; y_label <- "delta count" }
-  if("delta.rate" %in% plotList && !("delta.count" %in% plotList) ) {yVal <- 100*data[[1]][,"deltaRate"]; y_label <- "delta (%)" }
+  # browser()
+  
+  if("delta.count" %in% plotList && !("delta.rate" %in% plotList) ) {
+    yVal <- data[[1]][,"delta"]; 
+    y_label <- "delta count"
+    yLim <- range(sapply(data, function(x){range(x[,"delta"])}))
+    
+  }
+  
+  if("delta.rate" %in% plotList && !("delta.count" %in% plotList) ) {
+    
+    yVal <- 100*data[[1]][,"deltaRate"]; 
+    y_label <- "delta (%)"
+    yLim <- 100*range(sapply(data, function(x){range(x[,"deltaRate"])}))
+    
+    }
   
   if(any(c("delta.count","delta.rate") %in% plotList)) {
     
@@ -621,6 +635,7 @@ plotMetrics <- function(data,
     plot(y= yVal, #data[,"delta"],
          x= data[[1]][,"periodEnd"],
          type = "n",
+         ylim = yLim,
          xlab = "",
          # col = "seagreen3",
          las = 2,
@@ -737,7 +752,7 @@ plotMetrics <- function(data,
   ################
   
   if(any(grepl("rate", tolower(colnames(data)))) &
-     any(c("all","headcount") %in% plotList )
+     any(c("all","headcount", "cumulative") %in% plotList )
   ) {
     default_title_mtext_params <- list(text = "PI Headcount", 
                                        side = 3,
