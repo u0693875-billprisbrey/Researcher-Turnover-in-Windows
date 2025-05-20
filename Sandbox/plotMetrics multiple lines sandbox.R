@@ -288,6 +288,7 @@ plotMetrics <- function(data,
 #      )
       
       y_label <- "rates (%)"
+      legendText <- c("Hire", "Departure")
       
     }
     
@@ -306,7 +307,7 @@ plotMetrics <- function(data,
 #      )
       
       y_label <- "count"
-      
+      legendText <- c("Hire", "Departure")
     }
     
     default_rate_plot_params <- list(mar = c(0,6,0,1))
@@ -563,15 +564,33 @@ plotMetrics <- function(data,
     
     # legend
     
+    # several problems here
+    # The legend says "rate" even if it's "count"
+    # I've got labels, colors, and dashes mixed up 
+    
+    if (length(data) == 1) {
     default_rate_legend_params <- list(
       x = "topleft",
-      legend = c("Hire rate", "Departure rate"),
+      legend = legendText, #c("Hire rate", "Departure rate"),
       col = c("darkcyan","coral"),
-      lty = c(1,3),
-      lwd = 2
+      lty = c(3,1),
+      lwd = c(1.5,3)
     #  pch = 15, 
     #  pt.cex = 2
     )
+    } else {
+     
+      default_rate_legend_params <- list(
+        x = "topleft",
+        legend = legendText, #c("Hire rate", "Departure rate"),
+        col = c("gray50","gray50"),
+        lty = c(3,1),
+        lwd = c(1.5,3)
+        #  pch = 15, 
+        #  pt.cex = 2
+      ) 
+      
+    }
     
     rate_legend_params <- modifyList(default_rate_legend_params, rate_legend_params)
     
