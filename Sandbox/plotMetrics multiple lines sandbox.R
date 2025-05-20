@@ -21,7 +21,9 @@
 
 # maybe it will use plotMetrics internally?
 
-
+#ok, this is working great
+# I need to do "delta"
+# and have default colors if featureMap (colorMap?) is NA
 
 
 plotMetrics <- function(data,
@@ -169,31 +171,31 @@ plotMetrics <- function(data,
         ),
         cumulative_points_params
       ))
-    }, data, featureMap))
+    }, data, featureMap[names(data)]))
     
     # draw the lines using lapply
     # I need to use the color mapping here
     
-    invisible(lapply(data, function(theLines){
-      
-      # Cumulative line
-      default_cumulative_points_params <- list(
-        y = theLines[,"delta.cum"],
-        x = theLines[,"periodEnd"],
-        type = "l",
-        col = featureMap  #"red"
-      )
+#    invisible(lapply(data, function(theLines){
+#      
+#      # Cumulative line
+#      default_cumulative_points_params <- list(
+#        y = theLines[,"delta.cum"],
+#        x = theLines[,"periodEnd"],
+#        type = "l",
+#        col = featureMap  #"red"
+#      )
       
 
-      cumulative_points_params <- modifyList(default_cumulative_points_params, cumulative_points_params)
+#      cumulative_points_params <- modifyList(default_cumulative_points_params, cumulative_points_params)
       
-      do.call(points, cumulative_points_params)
+#      do.call(points, cumulative_points_params)
       
             
       
-    }
-    )
-    )
+#    }
+#    )
+#    )
     
     # Cumulative line
 #    default_cumulative_points_params <- list(
@@ -334,26 +336,41 @@ plotMetrics <- function(data,
     
     if(any(c("rate","all") %in% plotList) ) {
     
+      # draw the hire points using Map
+      invisible(Map(function(df, col) {
+        do.call(points, modifyList(
+          list(
+            y = 100*df[,"hireRate"],
+            x = df[,"periodEnd"],
+            type = "l",
+            lty =3,
+            col = col
+          ),
+          hire_points_params
+        ))
+      }, data, featureMap[names(data)]))  
+      
+      
     # Draw the hire points  
       
-    invisible(
-      lapply(data, function(hireLines){
-        
-        hireVal <- 100*hireLines[,"hireRate"]
-
-        default_hire_points_params <- list(y= hireVal, #100*data[,"hireRate"],
-                                           x= data[[1]][,"periodEnd"],
-                                           type = "l",
-                                           col = "darkcyan"
-        )        
-        
-        hire_points_params <- modifyList(default_hire_points_params, hire_points_params)
-        
-        do.call(points, hire_points_params)
-         
-      }
-      )
-    )
+#    invisible(
+#      lapply(data, function(hireLines){
+#        
+#        hireVal <- 100*hireLines[,"hireRate"]
+#
+#        default_hire_points_params <- list(y= hireVal, #100*data[,"hireRate"],
+#                                           x= data[[1]][,"periodEnd"],
+#                                           type = "l",
+#                                           col = "darkcyan"
+#        )        
+#        
+#        hire_points_params <- modifyList(default_hire_points_params, hire_points_params)
+#        
+#        do.call(points, hire_points_params)
+#         
+#      }
+#      )
+#    )
     
 #    default_hire_points_params <- list(y= hireVal, #100*data[,"hireRate"],
 #                                       x= data[,"periodEnd"],
@@ -366,27 +383,39 @@ plotMetrics <- function(data,
 #    do.call(points, hire_points_params)
     
     
+      # draw the termination points using Map
+      invisible(Map(function(df, col) {
+        do.call(points, modifyList(
+          list(
+            y = 100*df[,"termRate"],
+            x = df[,"periodEnd"],
+            type = "l",
+            col = col
+          ),
+          term_points_params
+        ))
+      }, data, featureMap[names(data)]))  
     
     # Draw the termination points  
-    
-    invisible(
-      lapply(data, function(termLines){
+#    
+#    invisible(
+#      lapply(data, function(termLines){
+#        
+#        termVal <- 100*termLines[,"termRate"] 
+#        
+#        default_term_points_params <- list(y= termVal, # 100*data[,"termRate"],
+#                                           x= data[[1]][,"periodEnd"],
+#                                           type = "l",
+#                                           col = "coral"
+#        )
         
-        termVal <- 100*termLines[,"termRate"] 
+#        term_points_params <- modifyList(default_term_points_params, term_points_params)
+#        
+#        do.call(points, term_points_params)
         
-        default_term_points_params <- list(y= termVal, # 100*data[,"termRate"],
-                                           x= data[[1]][,"periodEnd"],
-                                           type = "l",
-                                           col = "coral"
-        )
-        
-        term_points_params <- modifyList(default_term_points_params, term_points_params)
-        
-        do.call(points, term_points_params)
-        
-      }
-      )
-    )
+#      }
+#      )
+#    )
     
 #    default_term_points_params <- list(y= termVal, # 100*data[,"termRate"],
 #                                       x= data[,"periodEnd"],
@@ -402,26 +431,41 @@ plotMetrics <- function(data,
     
     if("count" %in% plotList ) {
       
+      # draw the hire lines using Map
+      invisible(Map(function(df, col) {
+        do.call(points, modifyList(
+          list(
+            y = df[,"hireCount"],
+            x = df[,"periodEnd"],
+            type = "l",
+            lty = 3,
+            col = col
+          ),
+          hire_points_params
+        ))
+      }, data, featureMap[names(data)]))
+      
+
       # Draw the hire points  
       
-      invisible(
-        lapply(data, function(hireLines){
+#      invisible(
+#        lapply(data, function(hireLines){
+#          
+#          hireVal <- hireLines[,"hireCount"]
+#          
+#          default_hire_points_params <- list(y= hireVal, #100*data[,"hireRate"],
+#                                             x= data[[1]][,"periodEnd"],
+#                                             type = "l",
+#                                             col = "darkcyan"
+#          )        
           
-          hireVal <- hireLines[,"hireCount"]
+#          hire_points_params <- modifyList(default_hire_points_params, hire_points_params)
+#          
+#          do.call(points, hire_points_params)
           
-          default_hire_points_params <- list(y= hireVal, #100*data[,"hireRate"],
-                                             x= data[[1]][,"periodEnd"],
-                                             type = "l",
-                                             col = "darkcyan"
-          )        
-          
-          hire_points_params <- modifyList(default_hire_points_params, hire_points_params)
-          
-          do.call(points, hire_points_params)
-          
-        }
-        )
-      )
+#        }
+#        )
+#      )
       
       #    default_hire_points_params <- list(y= hireVal, #100*data[,"hireRate"],
       #                                       x= data[,"periodEnd"],
@@ -433,28 +477,39 @@ plotMetrics <- function(data,
       
       #    do.call(points, hire_points_params)
       
+      # draw the termination lines using Map
+      invisible(Map(function(df, col) {
+        do.call(points, modifyList(
+          list(
+            y = df[,"termCount"],
+            x = df[,"periodEnd"],
+            type = "l",
+            col = col
+          ),
+          term_points_params
+        ))
+      }, data, featureMap[names(data)]))
       
-      
-      # Draw the termination points  
-      
-      invisible(
-        lapply(data, function(termLines){
-          
-          termVal <- termLines[,"termCount"] 
-          
-          default_term_points_params <- list(y= termVal, # 100*data[,"termRate"],
-                                             x= data[[1]][,"periodEnd"],
-                                             type = "l",
-                                             col = "coral"
-          )
-          
-          term_points_params <- modifyList(default_term_points_params, term_points_params)
-          
-          do.call(points, term_points_params)
-          
-        }
-        )
-      )
+#      # Draw the termination points  
+#      
+#      invisible(
+#        lapply(data, function(termLines){
+#          
+#          termVal <- termLines[,"termCount"] 
+#          
+#          default_term_points_params <- list(y= termVal, # 100*data[,"termRate"],
+#                                             x= data[[1]][,"periodEnd"],
+#                                             type = "l",
+#                                             col = "coral"
+#          )
+#          
+#          term_points_params <- modifyList(default_term_points_params, term_points_params)
+#          
+#          do.call(points, term_points_params)
+#          
+#        }
+#        )
+#      )
       
       #    default_term_points_params <- list(y= termVal, # 100*data[,"termRate"],
       #                                       x= data[,"periodEnd"],

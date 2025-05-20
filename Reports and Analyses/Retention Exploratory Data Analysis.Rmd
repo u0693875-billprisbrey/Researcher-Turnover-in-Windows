@@ -235,6 +235,8 @@ complexClusterColors <- c("forestgreen", "deepskyblue", "goldenrod",
                             "firebrick", "darkslategray", "chartreuse",  
                             "slateblue", "darkkhaki", "coral")
 
+names(complexClusterColors) <- c(as.character(1:5),"unassigned") # I'll surely regret this
+
 clusterComplexMapping <- piMap
 clusterComplexMapping[,"pch"] <- rep(19, nrow(clusterComplexMapping))
 
@@ -1146,8 +1148,12 @@ Discussion points:
 
 complex_clusters <- levels(prepData$complex_cluster)
 
-complexPIs <- lapply(complex_clusters, function(x) unique(prepData$PROPOSAL_PI_EMPLID[prepData$complex_cluster == x]))
+complexPIs <- lapply(complex_clusters, function(x) unique(prepData$PROPOSAL_PI_EMPLID[prepData$complex_cluster == x & !is.na(prepData$complex_cluster)]))
 names(complexPIs) <- complex_clusters
+
+# add the unassigned PI's, or NA values for prepData$complex_cluster
+
+complexPIs[["unassigned"]] <- unique(prepData$PROPOSAL_PI_EMPLID[is.na(prepData$complex_cluster)])
 
 complexMetrics <- lapply(complexPIs, function(x){
   
