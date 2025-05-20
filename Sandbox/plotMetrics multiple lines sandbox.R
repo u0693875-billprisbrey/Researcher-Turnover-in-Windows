@@ -755,24 +755,14 @@ plotMetrics <- function(data,
   ## OUTER TEXT ##
   ################
   
-  if(any(grepl("rate", tolower(colnames(data)))) &
-     any(c("all","headcount", "cumulative") %in% plotList )
-  ) {
-    default_title_mtext_params <- list(text = "PI Headcount", 
-                                       side = 3,
-                                       line = 0.3,
-                                       font =2, 
-                                       cex = 1.3, 
-                                       outer = TRUE)
-  } else {
-    default_title_mtext_params <- list(text = "Delta PI Headcount", 
-                                       side = 3,
-                                       line = 0.3,
-                                       font =2, 
-                                       cex = 1.3, 
-                                       outer = TRUE)
-    
-  }
+  titleText <- "Head count metrics"
+  
+  default_title_mtext_params <- list(text = titleText, 
+                                     side = 3,
+                                     line = 0.3,
+                                     font =2, 
+                                     cex = 1.3, 
+                                     outer = TRUE)
   
   
   title_mtext_params <- modifyList(default_title_mtext_params, title_mtext_params)
