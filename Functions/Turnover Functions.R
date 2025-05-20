@@ -728,8 +728,10 @@ calculateMetrics <- function(initial_count=NA,
 
 plotMetrics <- function(data,
                         plotList = "all",
+                        featureMap = NA,
                         cumulative_plot_params = list(),
                         cumulative_points_params = list(),
+                        cumulative_legend_params = list(),
                         cumulative_mtext_params = list(),
                         cumulative_rect_args = list(),
                         cumulative_grid_args = list(),
@@ -739,13 +741,13 @@ plotMetrics <- function(data,
                         delta_upper_rect_args = list(),
                         delta_lower_rect_args = list(),
                         delta_grid_args = list(),
-                        rate_plot_params = list(),
+                        metric_plot_params = list(),
                         hire_points_params = list(),
                         term_points_params = list(),
-                        rate_legend_params = list(),
-                        rate_mtext_params = list(),
-                        rate_rect_args = list(),
-                        rate_grid_args = list(),
+                        metric_legend_params = list(),
+                        metric_mtext_params = list(),
+                        metric_rect_args = list(),
+                        metric_grid_args = list(),
                         title_mtext_params = list()
 ){
   
@@ -753,35 +755,45 @@ plotMetrics <- function(data,
   # and creates several graphics of different metrics over time.
   
   # NOTES FOR USING:
-  # If I don't want to show both hire and term rate lines, then I can set the argument "type="n""
+  # If I don't want to show both hire and term rate lines, then I can set the argument "type='n'"
   #  in the appropriate params list (but it would still show up in the legend.  Hmm.)
   
-  # Values for plotList are c("all", "headcount", "cumulative", "rate", "count", "delta", "delta.count", "delta.rate")
-  
-  # overall the default title doesn't describe the plot as well as I'd like
-  
+  # Values for plotList are c("all", "headcount", "cumulative", "rate", "count", "delta.count", "delta.rate")
   
   # POSSIBLE ADJUSTMENTS:
-  #  The biggest problem is that it has to have a delta plot, or there's no x-axis.
-  #      Plots for cumulative/headcount and the rates have no x-axis, and no way to add them.
-  #      Only the delta count or delta rate graphic has the x-axis.
-  
-  #  I could explicitly label things like starting date and concluding headcount values 
+  # Only the "delta" plot has an x-axis.
+  #  The other two plots could have an adjustment to create an x-axis.
+  # Only the "cumulative" (or "headcount") plot has a color legend for multiple lines.
+  #  The other two plots could have an adjustment to create a legend.
+  # I could explicitly label points like starting date and concluding headcount values 
   #    with text on the graphic
   
-  # NEXT STEPS:
-  #  I'd like a plot that has multiple lines, for example per-cluster.
-  #  Maybe as a different graphic using "plotly" to un-tangle the lines.  
+
+  ###############################
+  ## MANAGE INCOMING ARGUMENTS ##
+  ###############################
   
+  if(is.data.frame(data)) {data <- list(data)}
+  
+  if("all" %in% plotList){ plotList <- c("cumulative", "rate", "delta.rate")  }
+  
+  if(all(c("rate","count") %in% plotList )) { 
+    stop("Select 'rate' or 'count' in plotList argument.")
+  }
+  
+  if(all(c("delta.rate","delta.count") %in% plotList )) { 
+    stop("Select 'delta.rate' or 'delta.count' in plotList argument.")
+  }
   
   ############
   ## LAYOUT ##
   ############
   
-  if(any(grepl("rate", tolower(colnames(data)))) # has the necessary columns
-     & ("all" %in% plotList | # if all plots are being shown
-        any(c("headcount", "cumulative") %in% plotList) &&
-        all(c("rate", "delta") %in% plotList)
+  if(any(grepl("rate", tolower(colnames(data[[1]])))) # has the necessary columns
+     & (
+       any(c("headcount", "cumulative") %in% plotList) &&
+       any(c("rate", "count") %in% plotList) &&
+       any(c("delta",  "delta.rate", "delta.count") %in% plotList)
      )
   ) {
     
@@ -796,7 +808,7 @@ plotMetrics <- function(data,
   default_cumulative_plot_params <- list(oma = c(0,0,2,0),
                                          mar = c(0,6,0,1),
                                          bg="ivory",
-                                         fg = "grey10")
+                                         fg = "grey30")
   
   cumulative_plot_params <- modifyList(default_cumulative_plot_params,
                                        cumulative_plot_params)
@@ -808,16 +820,19 @@ plotMetrics <- function(data,
   ## CUMULATIVE PLOT ##
   #####################
   
-  if( any(c("all", "cumulative", "headcount") %in% plotList)  ){
+  if( any(c("cumulative", "headcount") %in% plotList)  ){
     
-    plot(y = data[,"delta.cum"],
-         x = data[,"periodEnd"],
+    # set yLim
+    yLim <- range(sapply(data, function(x){range(x[,"delta.cum"])}))
+    
+    plot(y = data[[1]][,"delta.cum"],
+         x = data[[1]][,"periodEnd"],
+         ylim = yLim,
          type = "n",
          xlab = "",
          xaxt = "n",
-         # col = "sienna",
          las = 1,
-         ylab = ""# "headcount\ncumulative"
+         ylab = ""
     )
     
     # Rectangle (plot color) (Establish after plot is drawn)
@@ -840,28 +855,30 @@ plotMetrics <- function(data,
     
     # Draw rectangle and grid
     do.call("rect", cumulative_rect_args)
-    #  do.call("grid", cumulative_grid_args)
-    
+
     # experimenting with the grid
     grid_y <- axTicks(2)
-    grid_x <- pretty(data[,"periodEnd"], n = 5)
+    grid_x <- pretty(data[[1]][,"periodEnd"], n = 5)
     
     do.call(abline, c(list(h=grid_y), cumulative_grid_args))
     do.call(abline, c(list(v=grid_x), cumulative_grid_args))
     
-    # Cumulative line
-    default_cumulative_points_params <- list(
-      y = data[,"delta.cum"],
-      x = data[,"periodEnd"],
-      type = "l",
-      col = "sienna"
-    )
+    # draw the lines using Map
+    invisible(Map(function(df, col) {
+      do.call(points, modifyList(
+        list(
+          y = df[,"delta.cum"],
+          x = df[,"periodEnd"],
+          type = "l",
+          col = ifelse(length(data) == 1, "sienna",col)
+        ),
+        cumulative_points_params
+      ))
+    }, data, featureMap[names(data)]))
     
-    cumulative_points_params <- modifyList(default_cumulative_points_params, cumulative_points_params)
+    # margin text
     
-    do.call(points, cumulative_points_params)
-    
-    if(any(grepl("rate", tolower(colnames(data))))){ 
+    if(any(grepl("rate", tolower(colnames(data[[1]]))))){ 
       
       default_cumulative_mtext_params <- list(
         side = 2,
@@ -882,51 +899,79 @@ plotMetrics <- function(data,
     
     do.call(mtext, cumulative_mtext_params)
     
+    # legend
+    
+    default_cumulative_legend_params <- list(
+      x = "topleft",
+      legend = names(data),
+      col = featureMap[names(data)],
+      pch = 15, 
+      pt.cex = 2
+    )
+    
+    cumulative_legend_params <- modifyList(default_cumulative_legend_params, cumulative_legend_params)
+    
+    if(length(data) >1 ) {
+      do.call(legend, cumulative_legend_params)
+    }
+    
+    
   }
+  
+  
   
   ##################
   ## METRICS PLOT ##
   ##################
   
-  if(any(grepl("rate", tolower(colnames(data)))) &
-     any(c("all", "rate", "count") %in% plotList)
+  if(any(grepl("rate", tolower(colnames(data[[1]])))) &
+     any(c("rate", "count") %in% plotList)
   ) {
     
-    if(any(c("rate","all") %in% plotList) ) {
-      hireVal <- 100*data[,"hireRate"]
-      termVal <- 100*data[,"termRate"]
+    if("rate" %in% plotList && !("count" %in% plotList) ) {
       
-      yLim <- c(100*min(apply(data[,c("hireRate","termRate")],1,min, na.rm=TRUE)),
-                100*max(apply(data[,c("hireRate","termRate")],1,max, na.rm=TRUE))
-      )
+      hireVal <- 100*data[[1]][,"hireRate"]
+      termVal <- 100*data[[1]][,"termRate"]
+      
+      
+      yLim <- range(unlist(
+        lapply(data, function(df) {
+          apply(df[, c("hireRate", "termRate")], 1, range, na.rm = TRUE)
+        })
+      ), na.rm = TRUE) * 100
       
       y_label <- "rates (%)"
+      legendText <- c("Hire", "Departure")
       
     }
-    if("count" %in% plotList ) {
-      hireVal <- data[,"hireCount"]
-      termVal <- data[,"termCount"] 
+    
+    if("count" %in% plotList && !("rate" %in% plotList) ) {
+      hireVal <- data[[1]][,"hireCount"]
+      termVal <- data[[1]][,"termCount"] 
       
-      yLim <- c(min(apply(data[,c("hireCount","termCount")],1,min, na.rm=TRUE)),
-                max(apply(data[,c("hireCount","termCount")],1,max, na.rm=TRUE))
-      )
+      yLim <- range(unlist(
+        lapply(data, function(df) {
+          apply(df[, c("hireCount", "termCount")], 1, range, na.rm = TRUE)
+        })
+      ), na.rm = TRUE)    
       
       y_label <- "count"
-      
+      legendText <- c("Hire", "Departure")
     }
     
-    default_rate_plot_params <- list(mar = c(0,6,0,1))
+    default_metric_plot_params <- list(mar = c(0,6,0,1),
+                                       bg = "ivory",
+                                       fg = "grey30")
     
-    rate_plot_params <- modifyList(default_rate_plot_params,
-                                   rate_plot_params)
+    metric_plot_params <- modifyList(default_metric_plot_params,
+                                     metric_plot_params)
     
-    do.call(par, rate_plot_params)
+    do.call(par, metric_plot_params)
     
     # empty plot
-    
-    
+  
     plot(y= hireVal, #100*data[,"hireRate"],
-         x= data[,"periodEnd"],
+         x= data[[1]][,"periodEnd"],
          ylim = yLim,
          type = "n",
          xlab = "",
@@ -938,7 +983,7 @@ plotMetrics <- function(data,
     
     # Rectangle (plot color) (Establish after plot is drawn)
     
-    default_rate_rect_args <- list(
+    default_metric_rect_args <- list(
       xleft = par("usr")[1], 
       ybottom = par("usr")[3], 
       xright = par("usr")[2], 
@@ -947,70 +992,124 @@ plotMetrics <- function(data,
       border = NA
     )
     
-    rate_rect_args <- modifyList(default_rate_rect_args, rate_rect_args)
+    metric_rect_args <- modifyList(default_metric_rect_args, metric_rect_args)
     
     # Grid (Establish after the plot is drawn)
     
-    default_rate_grid_args <- list(col = "gray100", lwd = 2, lty = "dotted")
-    rate_grid_args <- modifyList(default_rate_grid_args, rate_grid_args)
+    default_metric_grid_args <- list(col = "gray100", lwd = 2, lty = "dotted")
+    metric_grid_args <- modifyList(default_metric_grid_args, metric_grid_args)
     
     # Draw rectangle
-    do.call("rect", rate_rect_args)
+    do.call("rect", metric_rect_args)
     
     # Draw the grid
     grid_y <- axTicks(2)
-    grid_x <- pretty(data[,"periodEnd"], n = 5)
+    grid_x <- pretty(data[[1]][,"periodEnd"], n = 5)
     
-    do.call(abline, c(list(h=grid_y), rate_grid_args))
-    do.call(abline, c(list(v=grid_x), rate_grid_args))
+    do.call(abline, c(list(h=grid_y), metric_grid_args))
+    do.call(abline, c(list(v=grid_x), metric_grid_args))
     
-    # Draw the hire points  
-    default_hire_points_params <- list(y= hireVal, #100*data[,"hireRate"],
-                                       x= data[,"periodEnd"],
-                                       type = "l",
-                                       col = "darkcyan"
-    )
+    # Draw the points  
     
-    hire_points_params <- modifyList(default_hire_points_params, hire_points_params)
+    if("rate" %in% plotList && !("count" %in% plotList)  ) {
+      
+      # draw the hire points using Map
+      invisible(Map(function(df, col) {
+        do.call(points, modifyList(
+          list(
+            y = 100*df[,"hireRate"],
+            x = df[,"periodEnd"],
+            type = "l",
+            lty =3,
+            col = ifelse(length(data) == 1, "darkcyan",col)
+          ),
+          hire_points_params
+        ))
+      }, data, featureMap[names(data)]))  
+      
+      # draw the termination points using Map
+      invisible(Map(function(df, col) {
+        do.call(points, modifyList(
+          list(
+            y = 100*df[,"termRate"],
+            x = df[,"periodEnd"],
+            type = "l",
+            col = ifelse(length(data) == 1, "coral",col)
+          ),
+          term_points_params
+        ))
+      }, data, featureMap[names(data)]))  
+      
+    }
     
-    do.call(points, hire_points_params)
-    
-    # Draw the termination points  
-    default_term_points_params <- list(y= termVal, # 100*data[,"termRate"],
-                                       x= data[,"periodEnd"],
-                                       type = "l",
-                                       col = "coral"
-    )
-    
-    term_points_params <- modifyList(default_term_points_params, term_points_params)
-    
-    do.call(points, term_points_params)
+    if("count" %in% plotList && !("rate" %in% plotList) ) {
+      
+      # draw the hire lines using Map
+      invisible(Map(function(df, col) {
+        do.call(points, modifyList(
+          list(
+            y = df[,"hireCount"],
+            x = df[,"periodEnd"],
+            type = "l",
+            lty = 3,
+            col = ifelse(length(data) == 1, "darkcyan",col)
+          ),
+          hire_points_params
+        ))
+      }, data, featureMap[names(data)]))
+      
+      # draw the termination lines using Map
+      invisible(Map(function(df, col) {
+        do.call(points, modifyList(
+          list(
+            y = df[,"termCount"],
+            x = df[,"periodEnd"],
+            type = "l",
+            col = ifelse(length(data) == 1, "coral",col)
+          ),
+          term_points_params
+        ))
+      }, data, featureMap[names(data)]))
+      
+    }
     
     
     # Margin text
     
-    default_rate_mtext_params <- list(side = 2,
-                                      line = 4,
-                                      text = y_label #"rates (%)"
+    default_metric_mtext_params <- list(side = 2,
+                                        line = 4,
+                                        text = y_label 
     )
-    rate_mtext_params <- modifyList(default_rate_mtext_params, 
-                                    rate_mtext_params)
+    metric_mtext_params <- modifyList(default_metric_mtext_params, 
+                                      metric_mtext_params)
     
-    do.call(mtext, rate_mtext_params)
+    do.call(mtext, metric_mtext_params)
     
     # legend
     
-    default_rate_legend_params <- list(
-      x = "topleft",
-      legend = c("Hire rate", "Departure rate"),
-      col = c("darkcyan","coral"),
-      pch = 15, 
-      pt.cex = 2
-    )
+    if (length(data) == 1) {
+      default_metric_legend_params <- list(
+        x = "topleft",
+        legend = legendText, 
+        col = c("darkcyan","coral"),
+        lty = c(3,1),
+        lwd = c(1.5,3)
+      )
+    } else {
+      
+      default_metric_legend_params <- list(
+        x = "topleft",
+        legend = legendText, 
+        col = c("gray50","gray50"),
+        lty = c(3,1),
+        lwd = c(1.5,3)
+      ) 
+      
+    }
     
-    rate_legend_params <- modifyList(default_rate_legend_params, rate_legend_params)
+    metric_legend_params <- modifyList(default_metric_legend_params, metric_legend_params)
     
-    do.call(legend, rate_legend_params)
+    do.call(legend, metric_legend_params)
     
     
   }
@@ -1020,26 +1119,43 @@ plotMetrics <- function(data,
   ## DELTA PLOT ##
   ################
   
-  if(any(c("delta.count","all") %in% plotList) ) {yVal <- data[,"delta"]; y_label <- "delta count" }
-  if("delta.rate" %in% plotList ) {yVal <- 100*data[,"deltaRate"]; y_label <- "delta (%)" }
+  # browser()
   
-  if(any(c("all", "delta.count","delta.rate") %in% plotList)) {
+  if("delta.count" %in% plotList && !("delta.rate" %in% plotList) ) {
+    yVal <- data[[1]][,"delta"]; 
+    y_label <- "delta count"
+    yLim <- range(sapply(data, function(x){range(x[,"delta"])}))
     
-    default_delta_plot_params <- list(mar = c(4,6,0,1))
+  }
+  
+  if("delta.rate" %in% plotList && !("delta.count" %in% plotList) ) {
+    
+    yVal <- 100*data[[1]][,"deltaRate"]; 
+    y_label <- "delta (%)"
+    yLim <- 100*range(sapply(data, function(x){range(x[,"deltaRate"])}))
+    
+  }
+  
+  if(any(c("delta.count","delta.rate") %in% plotList)) {
+    
+    default_delta_plot_params <- list(mar = c(4,6,0,1),
+                                      #bg = "ivory",
+                                      fg = "grey30")
     
     delta_plot_params <- modifyList(default_delta_plot_params,
                                     delta_plot_params)
     
     do.call(par, delta_plot_params)
     
+    # Empty plot
     
-    plot(y= yVal, #data[,"delta"],
-         x= data[,"periodEnd"],
+    plot(y= yVal, 
+         x= data[[1]][,"periodEnd"],
          type = "n",
+         ylim = yLim,
          xlab = "",
-         # col = "seagreen3",
          las = 2,
-         ylab = "" # "delta"
+         ylab = "" 
     )
     
     # Rectangle (plot color) (Establish after plot is drawn)
@@ -1068,36 +1184,61 @@ plotMetrics <- function(data,
     
     
     # Grid (Establish after the plot is drawn)
-    
     default_delta_grid_args <- list(col = "lightgray", lwd = 1, lty = "dotted")
     delta_grid_args <- modifyList(default_delta_grid_args, delta_grid_args)
     
     # Draw rectangle and grid
     do.call("rect", delta_upper_rect_args)
     do.call("rect", delta_lower_rect_args)
-    # do.call("grid", delta_grid_args)
     
-    # experimenting with the grid
+    # Making grid work
     grid_y <- axTicks(2)
-    grid_x <- pretty(data[,"periodEnd"], n = 5)
+    grid_x <- pretty(data[[1]][,"periodEnd"], n = 5)
     
     do.call(abline, c(list(h=grid_y), delta_grid_args))
     do.call(abline, c(list(v=grid_x), delta_grid_args))
     
-    # Draw the points  
-    default_delta_points_params <- list(y= yVal, # data[,"delta"],
-                                        x= data[,"periodEnd"],
-                                        type = "l",
-                                        col = "seagreen"
-    )
     
-    delta_points_params <- modifyList(default_delta_points_params, delta_points_params)
+    # draw the delta lines using Map
     
-    do.call(points, delta_points_params)
+    if("delta.count" %in% plotList && !("delta.rate" %in% plotList) ) {
+      
+      invisible(Map(function(df, col) {
+        do.call(points, modifyList(
+          list(
+            y = df[,"delta"],
+            x = df[,"periodEnd"],
+            type = "l",
+            col = ifelse(length(data) == 1, "seagreen",col)
+          ),
+          term_points_params
+        ))
+      }, data, featureMap[names(data)]))
+      
+    }
+    
+    
+    if("delta.rate" %in% plotList && !("delta.count" %in% plotList) ) {
+      
+      invisible(Map(function(df, col) {
+        do.call(points, modifyList(
+          list(
+            y = 100*df[,"deltaRate"],
+            x = df[,"periodEnd"],
+            type = "l",
+            col = ifelse(length(data) == 1, "seagreen",col)
+          ),
+          delta_points_params
+        ))
+      }, data, featureMap[names(data)]))
+      
+    }
+    
+    # Margin text
     
     default_delta_mtext_params <- list(side = 2,
                                        line = 4,
-                                       text = y_label #"delta"
+                                       text = y_label
     )
     delta_mtext_params <- modifyList(default_delta_mtext_params, 
                                      delta_mtext_params)
@@ -1111,24 +1252,14 @@ plotMetrics <- function(data,
   ## OUTER TEXT ##
   ################
   
-  if(any(grepl("rate", tolower(colnames(data)))) &
-     any(c("all","headcount") %in% plotList )
-  ) {
-    default_title_mtext_params <- list(text = "PI Headcount", 
-                                       side = 3,
-                                       line = 0.3,
-                                       font =2, 
-                                       cex = 1.3, 
-                                       outer = TRUE)
-  } else {
-    default_title_mtext_params <- list(text = "Delta PI Headcount", 
-                                       side = 3,
-                                       line = 0.3,
-                                       font =2, 
-                                       cex = 1.3, 
-                                       outer = TRUE)
-    
-  }
+  titleText <- "Head count metrics"
+  
+  default_title_mtext_params <- list(text = titleText, 
+                                     side = 3,
+                                     line = 0.3,
+                                     font =2, 
+                                     cex = 1.3, 
+                                     outer = TRUE)
   
   
   title_mtext_params <- modifyList(default_title_mtext_params, title_mtext_params)
