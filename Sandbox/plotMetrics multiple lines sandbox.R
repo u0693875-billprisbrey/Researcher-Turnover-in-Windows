@@ -57,25 +57,19 @@ plotMetrics <- function(data,
   # and creates several graphics of different metrics over time.
   
   # NOTES FOR USING:
-  # If I don't want to show both hire and term rate lines, then I can set the argument "type="n""
+  # If I don't want to show both hire and term rate lines, then I can set the argument "type='n'"
   #  in the appropriate params list (but it would still show up in the legend.  Hmm.)
   
-  # Values for plotList are c("all", "headcount", "cumulative", "rate", "count", "delta", "delta.count", "delta.rate")
-  
-  # overall the default title doesn't describe the plot as well as I'd like
-  
+  # Values for plotList are c("all", "headcount", "cumulative", "rate", "count", "delta.count", "delta.rate")
   
   # POSSIBLE ADJUSTMENTS:
-  #  The biggest problem is that it has to have a delta plot, or there's no x-axis.
-  #      Plots for cumulative/headcount and the metrics have no x-axis, and no way to add them.
-  #      Only the delta count or delta rate graphic has the x-axis.
-  
-  #  I could explicitly label things like starting date and concluding headcount values 
+  # Only the "delta" plot has an x-axis.
+  #  The other two plots could have an adjustment to create an x-axis.
+  # Only the "cumulative" (or "headcount") plot has a color legend for multiple lines.
+  #  The other two plots could have an adjustment to create a legend.
+  # I could explicitly label points like starting date and concluding headcount values 
   #    with text on the graphic
   
-  # NEXT STEPS:
-  #  I'd like a plot that has multiple lines, for example per-cluster.
-  #  Maybe as a different graphic using "plotly" to un-tangle the lines.  
   
   ###############################
   ## MANAGE INCOMING ARGUMENTS ##
@@ -99,9 +93,9 @@ plotMetrics <- function(data,
   
   if(any(grepl("rate", tolower(colnames(data[[1]])))) # has the necessary columns
      & (
-        any(c("headcount", "cumulative") %in% plotList) &&
-        any(c("rate", "count") %in% plotList) &&
-        any(c("delta",  "delta.rate", "delta.count") %in% plotList)
+       any(c("headcount", "cumulative") %in% plotList) &&
+       any(c("rate", "count") %in% plotList) &&
+       any(c("delta",  "delta.rate", "delta.count") %in% plotList)
      )
   ) {
     
@@ -139,9 +133,8 @@ plotMetrics <- function(data,
          type = "n",
          xlab = "",
          xaxt = "n",
-         # col = "sienna",
          las = 1,
-         ylab = ""# "headcount\ncumulative"
+         ylab = ""
     )
     
     # Rectangle (plot color) (Establish after plot is drawn)
@@ -164,7 +157,6 @@ plotMetrics <- function(data,
     
     # Draw rectangle and grid
     do.call("rect", cumulative_rect_args)
-    #  do.call("grid", cumulative_grid_args)
     
     # experimenting with the grid
     grid_y <- axTicks(2)
@@ -186,42 +178,7 @@ plotMetrics <- function(data,
       ))
     }, data, featureMap[names(data)]))
     
-    # draw the lines using lapply
-    # I need to use the color mapping here
-    
-#    invisible(lapply(data, function(theLines){
-#      
-#      # Cumulative line
-#      default_cumulative_points_params <- list(
-#        y = theLines[,"delta.cum"],
-#        x = theLines[,"periodEnd"],
-#        type = "l",
-#        col = featureMap  #"red"
-#      )
-      
-
-#      cumulative_points_params <- modifyList(default_cumulative_points_params, cumulative_points_params)
-      
-#      do.call(points, cumulative_points_params)
-      
-            
-      
-#    }
-#    )
-#    )
-    
-    # Cumulative line
-#    default_cumulative_points_params <- list(
-#      y = data[,"delta.cum"],
-#      x = data[,"periodEnd"],
-#      type = "l",
-#      col = "sienna"
-#    )
-    
-#    cumulative_points_params <- modifyList(default_cumulative_points_params, cumulative_points_params)
-#    
-#    do.call(points, cumulative_points_params)
-    
+    # margin text
     
     if(any(grepl("rate", tolower(colnames(data[[1]]))))){ 
       
@@ -243,14 +200,13 @@ plotMetrics <- function(data,
                                           cumulative_mtext_params)
     
     do.call(mtext, cumulative_mtext_params)
-   
-  # legend
+    
+    # legend
     
     default_cumulative_legend_params <- list(
       x = "topleft",
       legend = names(data),
       col = featureMap[names(data)],
-      #col = ifelse(length(data) == 1, "sienna",featureMap[names(data)]),
       pch = 15, 
       pt.cex = 2
     )
@@ -258,13 +214,13 @@ plotMetrics <- function(data,
     cumulative_legend_params <- modifyList(default_cumulative_legend_params, cumulative_legend_params)
     
     if(length(data) >1 ) {
-    do.call(legend, cumulative_legend_params)
+      do.call(legend, cumulative_legend_params)
     }
     
-     
+    
   }
   
-
+  
   
   ##################
   ## METRICS PLOT ##
@@ -286,11 +242,6 @@ plotMetrics <- function(data,
         })
       ), na.rm = TRUE) * 100
       
-      
-#      yLim <- c(100*min(apply(data[[1]][,c("hireRate","termRate")],1,min, na.rm=TRUE)),
-#                100*max(apply(data[[1]][,c("hireRate","termRate")],1,max, na.rm=TRUE))
-#      )
-      
       y_label <- "rates (%)"
       legendText <- c("Hire", "Departure")
       
@@ -306,10 +257,6 @@ plotMetrics <- function(data,
         })
       ), na.rm = TRUE)    
       
-#      yLim <- c(min(apply(data[[1]][,c("hireCount","termCount")],1,min, na.rm=TRUE)),
-#                max(apply(data[[1]][,c("hireCount","termCount")],1,max, na.rm=TRUE))
-#      )
-      
       y_label <- "count"
       legendText <- c("Hire", "Departure")
     }
@@ -319,12 +266,11 @@ plotMetrics <- function(data,
                                        fg = "grey30")
     
     metric_plot_params <- modifyList(default_metric_plot_params,
-                                   metric_plot_params)
+                                     metric_plot_params)
     
     do.call(par, metric_plot_params)
     
     # empty plot
-    
     
     plot(y= hireVal, #100*data[,"hireRate"],
          x= data[[1]][,"periodEnd"],
@@ -368,7 +314,7 @@ plotMetrics <- function(data,
     # Draw the points  
     
     if("rate" %in% plotList && !("count" %in% plotList)  ) {
-    
+      
       # draw the hire points using Map
       invisible(Map(function(df, col) {
         do.call(points, modifyList(
@@ -383,39 +329,6 @@ plotMetrics <- function(data,
         ))
       }, data, featureMap[names(data)]))  
       
-      
-    # Draw the hire points  
-      
-#    invisible(
-#      lapply(data, function(hireLines){
-#        
-#        hireVal <- 100*hireLines[,"hireRate"]
-#
-#        default_hire_points_params <- list(y= hireVal, #100*data[,"hireRate"],
-#                                           x= data[[1]][,"periodEnd"],
-#                                           type = "l",
-#                                           col = "darkcyan"
-#        )        
-#        
-#        hire_points_params <- modifyList(default_hire_points_params, hire_points_params)
-#        
-#        do.call(points, hire_points_params)
-#         
-#      }
-#      )
-#    )
-    
-#    default_hire_points_params <- list(y= hireVal, #100*data[,"hireRate"],
-#                                       x= data[,"periodEnd"],
-#                                       type = "l",
-#                                       col = "darkcyan"
-#    )
-    
-#    hire_points_params <- modifyList(default_hire_points_params, hire_points_params)
-    
-#    do.call(points, hire_points_params)
-    
-    
       # draw the termination points using Map
       invisible(Map(function(df, col) {
         do.call(points, modifyList(
@@ -428,38 +341,7 @@ plotMetrics <- function(data,
           term_points_params
         ))
       }, data, featureMap[names(data)]))  
-    
-    # Draw the termination points  
-#    
-#    invisible(
-#      lapply(data, function(termLines){
-#        
-#        termVal <- 100*termLines[,"termRate"] 
-#        
-#        default_term_points_params <- list(y= termVal, # 100*data[,"termRate"],
-#                                           x= data[[1]][,"periodEnd"],
-#                                           type = "l",
-#                                           col = "coral"
-#        )
-        
-#        term_points_params <- modifyList(default_term_points_params, term_points_params)
-#        
-#        do.call(points, term_points_params)
-        
-#      }
-#      )
-#    )
-    
-#    default_term_points_params <- list(y= termVal, # 100*data[,"termRate"],
-#                                       x= data[,"periodEnd"],
-#                                       type = "l",
-#                                       col = "coral"
-#    )
-    
-#    term_points_params <- modifyList(default_term_points_params, term_points_params)
-    
-#    do.call(points, term_points_params)
-
+      
     }
     
     if("count" %in% plotList && !("rate" %in% plotList) ) {
@@ -478,38 +360,6 @@ plotMetrics <- function(data,
         ))
       }, data, featureMap[names(data)]))
       
-
-      # Draw the hire points  
-      
-#      invisible(
-#        lapply(data, function(hireLines){
-#          
-#          hireVal <- hireLines[,"hireCount"]
-#          
-#          default_hire_points_params <- list(y= hireVal, #100*data[,"hireRate"],
-#                                             x= data[[1]][,"periodEnd"],
-#                                             type = "l",
-#                                             col = "darkcyan"
-#          )        
-          
-#          hire_points_params <- modifyList(default_hire_points_params, hire_points_params)
-#          
-#          do.call(points, hire_points_params)
-          
-#        }
-#        )
-#      )
-      
-      #    default_hire_points_params <- list(y= hireVal, #100*data[,"hireRate"],
-      #                                       x= data[,"periodEnd"],
-      #                                       type = "l",
-      #                                       col = "darkcyan"
-      #    )
-      
-      #    hire_points_params <- modifyList(default_hire_points_params, hire_points_params)
-      
-      #    do.call(points, hire_points_params)
-      
       # draw the termination lines using Map
       invisible(Map(function(df, col) {
         do.call(points, modifyList(
@@ -523,73 +373,38 @@ plotMetrics <- function(data,
         ))
       }, data, featureMap[names(data)]))
       
-#      # Draw the termination points  
-#      
-#      invisible(
-#        lapply(data, function(termLines){
-#          
-#          termVal <- termLines[,"termCount"] 
-#          
-#          default_term_points_params <- list(y= termVal, # 100*data[,"termRate"],
-#                                             x= data[[1]][,"periodEnd"],
-#                                             type = "l",
-#                                             col = "coral"
-#          )
-#          
-#          term_points_params <- modifyList(default_term_points_params, term_points_params)
-#          
-#          do.call(points, term_points_params)
-#          
-#        }
-#        )
-#      )
-      
-      #    default_term_points_params <- list(y= termVal, # 100*data[,"termRate"],
-      #                                       x= data[,"periodEnd"],
-      #                                       type = "l",
-      #                                       col = "coral"
-      #    )
-      
-      #    term_points_params <- modifyList(default_term_points_params, term_points_params)
-      
-      #    do.call(points, term_points_params)
-      
     }
-        
+    
     
     # Margin text
     
     default_metric_mtext_params <- list(side = 2,
-                                      line = 4,
-                                      text = y_label #"rates (%)"
+                                        line = 4,
+                                        text = y_label 
     )
     metric_mtext_params <- modifyList(default_metric_mtext_params, 
-                                    metric_mtext_params)
+                                      metric_mtext_params)
     
     do.call(mtext, metric_mtext_params)
     
     # legend
-
+    
     if (length(data) == 1) {
-    default_metric_legend_params <- list(
-      x = "topleft",
-      legend = legendText, #c("Hire rate", "Departure rate"),
-      col = c("darkcyan","coral"),
-      lty = c(3,1),
-      lwd = c(1.5,3)
-    #  pch = 15, 
-    #  pt.cex = 2
-    )
-    } else {
-     
       default_metric_legend_params <- list(
         x = "topleft",
-        legend = legendText, #c("Hire rate", "Departure rate"),
+        legend = legendText, 
+        col = c("darkcyan","coral"),
+        lty = c(3,1),
+        lwd = c(1.5,3)
+      )
+    } else {
+      
+      default_metric_legend_params <- list(
+        x = "topleft",
+        legend = legendText, 
         col = c("gray50","gray50"),
         lty = c(3,1),
         lwd = c(1.5,3)
-        #  pch = 15, 
-        #  pt.cex = 2
       ) 
       
     }
@@ -621,7 +436,7 @@ plotMetrics <- function(data,
     y_label <- "delta (%)"
     yLim <- 100*range(sapply(data, function(x){range(x[,"deltaRate"])}))
     
-    }
+  }
   
   if(any(c("delta.count","delta.rate") %in% plotList)) {
     
@@ -636,14 +451,13 @@ plotMetrics <- function(data,
     
     # Empty plot
     
-    plot(y= yVal, #data[,"delta"],
+    plot(y= yVal, 
          x= data[[1]][,"periodEnd"],
          type = "n",
          ylim = yLim,
          xlab = "",
-         # col = "seagreen3",
          las = 2,
-         ylab = "" # "delta"
+         ylab = "" 
     )
     
     # Rectangle (plot color) (Establish after plot is drawn)
@@ -672,14 +486,12 @@ plotMetrics <- function(data,
     
     
     # Grid (Establish after the plot is drawn)
-    
     default_delta_grid_args <- list(col = "lightgray", lwd = 1, lty = "dotted")
     delta_grid_args <- modifyList(default_delta_grid_args, delta_grid_args)
     
     # Draw rectangle and grid
     do.call("rect", delta_upper_rect_args)
     do.call("rect", delta_lower_rect_args)
-    # do.call("grid", delta_grid_args)
     
     # Making grid work
     grid_y <- axTicks(2)
@@ -692,19 +504,19 @@ plotMetrics <- function(data,
     # draw the delta lines using Map
     
     if("delta.count" %in% plotList && !("delta.rate" %in% plotList) ) {
-    
-    invisible(Map(function(df, col) {
-      do.call(points, modifyList(
-        list(
-          y = df[,"delta"],
-          x = df[,"periodEnd"],
-          type = "l",
-          col = ifelse(length(data) == 1, "seagreen",col)
-        ),
-        term_points_params
-      ))
-    }, data, featureMap[names(data)]))
-    
+      
+      invisible(Map(function(df, col) {
+        do.call(points, modifyList(
+          list(
+            y = df[,"delta"],
+            x = df[,"periodEnd"],
+            type = "l",
+            col = ifelse(length(data) == 1, "seagreen",col)
+          ),
+          term_points_params
+        ))
+      }, data, featureMap[names(data)]))
+      
     }
     
     
@@ -724,24 +536,11 @@ plotMetrics <- function(data,
       
     }
     
-    
-#    # Draw the points  
-#    default_delta_points_params <- list(y= yVal, # data[,"delta"],
-#                                        x= data[,"periodEnd"],
-#                                        type = "l",
-#                                        col = "seagreen"
-#    )
-    
-#    delta_points_params <- modifyList(default_delta_points_params, delta_points_params)
-    
-#    do.call(points, delta_points_params)
-    
-    
     # Margin text
     
     default_delta_mtext_params <- list(side = 2,
                                        line = 4,
-                                       text = y_label #"delta"
+                                       text = y_label
     )
     delta_mtext_params <- modifyList(default_delta_mtext_params, 
                                      delta_mtext_params)
