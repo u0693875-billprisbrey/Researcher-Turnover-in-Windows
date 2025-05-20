@@ -87,7 +87,11 @@ plotMetrics <- function(data,
   
   if(all(c("rate","count") %in% plotList )) { 
     stop("Select 'rate' or 'count' in plotList argument.")
-    }
+  }
+  
+  if(all(c("delta.rate","delta.count") %in% plotList )) { 
+    stop("Select 'delta.rate' or 'delta.count' in plotList argument.")
+  }
   
   ############
   ## LAYOUT ##
@@ -600,10 +604,10 @@ plotMetrics <- function(data,
   ## DELTA PLOT ##
   ################
   
-  if(any(c("delta.count","all") %in% plotList) ) {yVal <- data[,"delta"]; y_label <- "delta count" }
-  if("delta.rate" %in% plotList ) {yVal <- 100*data[,"deltaRate"]; y_label <- "delta (%)" }
+  if("delta.count" %in% plotList && !("delta.rate" %in% plotList) ) {yVal <- data[[1]][,"delta"]; y_label <- "delta count" }
+  if("delta.rate" %in% plotList && !("delta.count" %in% plotList) ) {yVal <- 100*data[[1]][,"deltaRate"]; y_label <- "delta (%)" }
   
-  if(any(c("all", "delta.count","delta.rate") %in% plotList)) {
+  if(any(c("delta.count","delta.rate") %in% plotList)) {
     
     default_delta_plot_params <- list(mar = c(4,6,0,1))
     
@@ -612,9 +616,10 @@ plotMetrics <- function(data,
     
     do.call(par, delta_plot_params)
     
+    # Empty plot
     
     plot(y= yVal, #data[,"delta"],
-         x= data[,"periodEnd"],
+         x= data[[1]][,"periodEnd"],
          type = "n",
          xlab = "",
          # col = "seagreen3",
@@ -657,23 +662,63 @@ plotMetrics <- function(data,
     do.call("rect", delta_lower_rect_args)
     # do.call("grid", delta_grid_args)
     
-    # experimenting with the grid
+    # Making grid work
     grid_y <- axTicks(2)
-    grid_x <- pretty(data[,"periodEnd"], n = 5)
+    grid_x <- pretty(data[[1]][,"periodEnd"], n = 5)
     
     do.call(abline, c(list(h=grid_y), delta_grid_args))
     do.call(abline, c(list(v=grid_x), delta_grid_args))
     
-    # Draw the points  
-    default_delta_points_params <- list(y= yVal, # data[,"delta"],
-                                        x= data[,"periodEnd"],
-                                        type = "l",
-                                        col = "seagreen"
-    )
     
-    delta_points_params <- modifyList(default_delta_points_params, delta_points_params)
+    # draw the delta lines using Map
     
-    do.call(points, delta_points_params)
+    if("delta.count" %in% plotList && !("delta.rate" %in% plotList) ) {
+    
+    invisible(Map(function(df, col) {
+      do.call(points, modifyList(
+        list(
+          y = df[,"delta"],
+          x = df[,"periodEnd"],
+          type = "l",
+          col = ifelse(length(data) == 1, "seagreen",col)
+        ),
+        term_points_params
+      ))
+    }, data, featureMap[names(data)]))
+    
+    }
+    
+    
+    if("delta.rate" %in% plotList && !("delta.count" %in% plotList) ) {
+      
+      invisible(Map(function(df, col) {
+        do.call(points, modifyList(
+          list(
+            y = 100*df[,"deltaRate"],
+            x = df[,"periodEnd"],
+            type = "l",
+            col = ifelse(length(data) == 1, "seagreen",col)
+          ),
+          delta_points_params
+        ))
+      }, data, featureMap[names(data)]))
+      
+    }
+    
+    
+#    # Draw the points  
+#    default_delta_points_params <- list(y= yVal, # data[,"delta"],
+#                                        x= data[,"periodEnd"],
+#                                        type = "l",
+#                                        col = "seagreen"
+#    )
+    
+#    delta_points_params <- modifyList(default_delta_points_params, delta_points_params)
+    
+#    do.call(points, delta_points_params)
+    
+    
+    # Margin text
     
     default_delta_mtext_params <- list(side = 2,
                                        line = 4,
