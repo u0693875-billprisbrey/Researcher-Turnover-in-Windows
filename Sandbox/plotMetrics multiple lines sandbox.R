@@ -43,13 +43,13 @@ plotMetrics <- function(data,
                         delta_upper_rect_args = list(),
                         delta_lower_rect_args = list(),
                         delta_grid_args = list(),
-                        rate_plot_params = list(),
+                        metric_plot_params = list(),
                         hire_points_params = list(),
                         term_points_params = list(),
-                        rate_legend_params = list(),
-                        rate_mtext_params = list(),
-                        rate_rect_args = list(),
-                        rate_grid_args = list(),
+                        metric_legend_params = list(),
+                        metric_mtext_params = list(),
+                        metric_rect_args = list(),
+                        metric_grid_args = list(),
                         title_mtext_params = list()
 ){
   
@@ -67,7 +67,7 @@ plotMetrics <- function(data,
   
   # POSSIBLE ADJUSTMENTS:
   #  The biggest problem is that it has to have a delta plot, or there's no x-axis.
-  #      Plots for cumulative/headcount and the rates have no x-axis, and no way to add them.
+  #      Plots for cumulative/headcount and the metrics have no x-axis, and no way to add them.
   #      Only the delta count or delta rate graphic has the x-axis.
   
   #  I could explicitly label things like starting date and concluding headcount values 
@@ -310,12 +310,12 @@ plotMetrics <- function(data,
       legendText <- c("Hire", "Departure")
     }
     
-    default_rate_plot_params <- list(mar = c(0,6,0,1))
+    default_metric_plot_params <- list(mar = c(0,6,0,1))
     
-    rate_plot_params <- modifyList(default_rate_plot_params,
-                                   rate_plot_params)
+    metric_plot_params <- modifyList(default_metric_plot_params,
+                                   metric_plot_params)
     
-    do.call(par, rate_plot_params)
+    do.call(par, metric_plot_params)
     
     # empty plot
     
@@ -333,7 +333,7 @@ plotMetrics <- function(data,
     
     # Rectangle (plot color) (Establish after plot is drawn)
     
-    default_rate_rect_args <- list(
+    default_metric_rect_args <- list(
       xleft = par("usr")[1], 
       ybottom = par("usr")[3], 
       xright = par("usr")[2], 
@@ -342,22 +342,22 @@ plotMetrics <- function(data,
       border = NA
     )
     
-    rate_rect_args <- modifyList(default_rate_rect_args, rate_rect_args)
+    metric_rect_args <- modifyList(default_metric_rect_args, metric_rect_args)
     
     # Grid (Establish after the plot is drawn)
     
-    default_rate_grid_args <- list(col = "gray100", lwd = 2, lty = "dotted")
-    rate_grid_args <- modifyList(default_rate_grid_args, rate_grid_args)
+    default_metric_grid_args <- list(col = "gray100", lwd = 2, lty = "dotted")
+    metric_grid_args <- modifyList(default_metric_grid_args, metric_grid_args)
     
     # Draw rectangle
-    do.call("rect", rate_rect_args)
+    do.call("rect", metric_rect_args)
     
     # Draw the grid
     grid_y <- axTicks(2)
     grid_x <- pretty(data[[1]][,"periodEnd"], n = 5)
     
-    do.call(abline, c(list(h=grid_y), rate_grid_args))
-    do.call(abline, c(list(v=grid_x), rate_grid_args))
+    do.call(abline, c(list(h=grid_y), metric_grid_args))
+    do.call(abline, c(list(v=grid_x), metric_grid_args))
     
     # Draw the points  
     
@@ -553,23 +553,19 @@ plotMetrics <- function(data,
     
     # Margin text
     
-    default_rate_mtext_params <- list(side = 2,
+    default_metric_mtext_params <- list(side = 2,
                                       line = 4,
                                       text = y_label #"rates (%)"
     )
-    rate_mtext_params <- modifyList(default_rate_mtext_params, 
-                                    rate_mtext_params)
+    metric_mtext_params <- modifyList(default_metric_mtext_params, 
+                                    metric_mtext_params)
     
-    do.call(mtext, rate_mtext_params)
+    do.call(mtext, metric_mtext_params)
     
     # legend
-    
-    # several problems here
-    # The legend says "rate" even if it's "count"
-    # I've got labels, colors, and dashes mixed up 
-    
+
     if (length(data) == 1) {
-    default_rate_legend_params <- list(
+    default_metric_legend_params <- list(
       x = "topleft",
       legend = legendText, #c("Hire rate", "Departure rate"),
       col = c("darkcyan","coral"),
@@ -580,7 +576,7 @@ plotMetrics <- function(data,
     )
     } else {
      
-      default_rate_legend_params <- list(
+      default_metric_legend_params <- list(
         x = "topleft",
         legend = legendText, #c("Hire rate", "Departure rate"),
         col = c("gray50","gray50"),
@@ -592,9 +588,9 @@ plotMetrics <- function(data,
       
     }
     
-    rate_legend_params <- modifyList(default_rate_legend_params, rate_legend_params)
+    metric_legend_params <- modifyList(default_metric_legend_params, metric_legend_params)
     
-    do.call(legend, rate_legend_params)
+    do.call(legend, metric_legend_params)
     
     
   }
