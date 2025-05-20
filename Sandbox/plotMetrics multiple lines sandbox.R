@@ -24,6 +24,8 @@
 #ok, this is working great
 # I need to do "delta"
 # and have default colors if featureMap (colorMap?) is NA
+# I need legends, then delta
+# and I hate that I lost my beautiful color scheme for just one
 
 
 plotMetrics <- function(data,
@@ -31,6 +33,7 @@ plotMetrics <- function(data,
                         featureMap = NA,
                         cumulative_plot_params = list(),
                         cumulative_points_params = list(),
+                        cumulative_legend_params = list(),
                         cumulative_mtext_params = list(),
                         cumulative_rect_args = list(),
                         cumulative_grid_args = list(),
@@ -167,7 +170,7 @@ plotMetrics <- function(data,
           y = df[,"delta.cum"],
           x = df[,"periodEnd"],
           type = "l",
-          col = col
+          col = ifelse(length(data) == 1, "sienna",col)
         ),
         cumulative_points_params
       ))
@@ -230,11 +233,26 @@ plotMetrics <- function(data,
                                           cumulative_mtext_params)
     
     do.call(mtext, cumulative_mtext_params)
+   
+  # legend
     
+    default_cumulative_legend_params <- list(
+      x = "topleft",
+      legend = names(data),
+      col = ifelse(length(data) == 1, "sienna",featureMap[names(data)]),
+      pch = 15, 
+      pt.cex = 2
+    )
+    
+    cumulative_legend_params <- modifyList(default_cumulative_legend_params, cumulative_legend_params)
+    
+    do.call(legend, cumulative_legend_params)
+    
+    
+     
   }
   
-  # Add the legend
-  
+
   
   ##################
   ## METRICS PLOT ##
@@ -344,7 +362,7 @@ plotMetrics <- function(data,
             x = df[,"periodEnd"],
             type = "l",
             lty =3,
-            col = col
+            col = ifelse(length(data) == 1, "darkcyan",col)
           ),
           hire_points_params
         ))
@@ -390,7 +408,7 @@ plotMetrics <- function(data,
             y = 100*df[,"termRate"],
             x = df[,"periodEnd"],
             type = "l",
-            col = col
+            col = ifelse(length(data) == 1, "coral",col)
           ),
           term_points_params
         ))
@@ -439,7 +457,7 @@ plotMetrics <- function(data,
             x = df[,"periodEnd"],
             type = "l",
             lty = 3,
-            col = col
+            col = ifelse(length(data) == 1, "darkcyan",col)
           ),
           hire_points_params
         ))
@@ -484,7 +502,7 @@ plotMetrics <- function(data,
             y = df[,"termCount"],
             x = df[,"periodEnd"],
             type = "l",
-            col = col
+            col = ifelse(length(data) == 1, "coral",col)
           ),
           term_points_params
         ))
@@ -541,8 +559,10 @@ plotMetrics <- function(data,
       x = "topleft",
       legend = c("Hire rate", "Departure rate"),
       col = c("darkcyan","coral"),
-      pch = 15, 
-      pt.cex = 2
+      lty = c(1,3),
+      lwd = 2
+    #  pch = 15, 
+    #  pt.cex = 2
     )
     
     rate_legend_params <- modifyList(default_rate_legend_params, rate_legend_params)
