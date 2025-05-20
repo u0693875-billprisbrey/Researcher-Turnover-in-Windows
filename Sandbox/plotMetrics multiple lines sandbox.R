@@ -83,7 +83,7 @@ plotMetrics <- function(data,
   
   if(is.data.frame(data)) {data <- list(data)}
   
-  if("all" %in% plotList){ plotList <- c("cumulative", "rate", "delta.count")  }
+  if("all" %in% plotList){ plotList <- c("cumulative", "rate", "delta.rate")  }
   
   if(all(c("rate","count") %in% plotList )) { 
     stop("Select 'rate' or 'count' in plotList argument.")
@@ -116,7 +116,7 @@ plotMetrics <- function(data,
   default_cumulative_plot_params <- list(oma = c(0,0,2,0),
                                          mar = c(0,6,0,1),
                                          bg="ivory",
-                                         fg = "grey10")
+                                         fg = "grey30")
   
   cumulative_plot_params <- modifyList(default_cumulative_plot_params,
                                        cumulative_plot_params)
@@ -314,7 +314,9 @@ plotMetrics <- function(data,
       legendText <- c("Hire", "Departure")
     }
     
-    default_metric_plot_params <- list(mar = c(0,6,0,1))
+    default_metric_plot_params <- list(mar = c(0,6,0,1),
+                                       bg = "ivory",
+                                       fg = "grey30")
     
     metric_plot_params <- modifyList(default_metric_plot_params,
                                    metric_plot_params)
@@ -623,7 +625,9 @@ plotMetrics <- function(data,
   
   if(any(c("delta.count","delta.rate") %in% plotList)) {
     
-    default_delta_plot_params <- list(mar = c(4,6,0,1))
+    default_delta_plot_params <- list(mar = c(4,6,0,1),
+                                      #bg = "ivory",
+                                      fg = "grey30")
     
     delta_plot_params <- modifyList(default_delta_plot_params,
                                     delta_plot_params)
