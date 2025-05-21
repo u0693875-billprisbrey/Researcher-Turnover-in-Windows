@@ -27,6 +27,18 @@
 # I need legends, then delta
 # and I hate that I lost my beautiful color scheme for just one
 
+# So many things are working great, but not the legends.
+# I am trying to make the default of this flawlessly manage
+# many different configurations and one the one hand it's not working
+# and on the other hand it's getting very complicated.
+
+# What do I do if there is no feature map?  What colors then?
+# What do I do if I feed in a single data frame?
+# Do I still use the feature map and show those colors?
+# What if it's a single data frame and no feature map?
+#  Can I default to my nice colors of "sienna" and "darkcyan" and "seagreen" ?
+
+# I'm slowly stepping in the right direction but it's a bit of a mess right now.
 
 plotMetrics <- function(data,
                         plotList = "all",
