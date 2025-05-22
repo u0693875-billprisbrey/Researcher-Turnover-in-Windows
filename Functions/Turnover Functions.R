@@ -741,10 +741,12 @@ plotMetrics <- function(data,
                         delta_upper_rect_args = list(),
                         delta_lower_rect_args = list(),
                         delta_grid_args = list(),
+                        delta_legend_params = list(),
                         metric_plot_params = list(),
                         hire_points_params = list(),
                         term_points_params = list(),
                         metric_legend_params = list(),
+                        metric2_legend_params = list(),
                         metric_mtext_params = list(),
                         metric_rect_args = list(),
                         metric_grid_args = list(),
@@ -755,25 +757,78 @@ plotMetrics <- function(data,
   # and creates several graphics of different metrics over time.
   
   # NOTES FOR USING:
-  # If I don't want to show both hire and term rate lines, then I can set the argument "type='n'"
+  # If you don't want to show both hire and term rate lines, then set the argument "type='n'"
   #  in the appropriate params list (but it would still show up in the legend.  Hmm.)
+  # If you don't want to show a particular legend, then set the argument "plot = FALSE"
+  #  in the appropriate params list.
+  
+  # If you don't want to show the headcount or cumulative graphic, you may need to
+  # set oma = c(0,0,2,0) in metric_plot_params or delta_plot_params to provide space
+  # for the title.
   
   # Values for plotList are c("all", "headcount", "cumulative", "rate", "count", "delta.count", "delta.rate")
   
+  # Here are some example calls:
+  # plotMetrics(complexMetrics[c("unassigned")], 
+  #             plotList = c("count", "delta.count"), 
+  #             delta_legend_params = list(plot = FALSE), 
+  #             term_points_params = list(type = "b", lty = 2), 
+  #             featureMap = complexClusterColors, 
+  #             metric_plot_params = list(oma=c(0,0,2,0)), 
+  #             metric_legend_params = list(x="bottom", pch = c(NA,1),  lty = c(3,3), pt.cex = 1.2))
+  # plotMetrics(complexMetrics[c(2,4)], 
+  #              plotList = c("headcount", "rate", "delta.rate"), 
+  #              delta_legend_params = list(plot = FALSE), 
+  #              term_points_params = list(type = "b", lty = 2), 
+  #              featureMap = complexClusterColors, 
+  #              metric_legend_params = list(x="top", pch = c(NA,1),  lty = c(3,3), pt.cex = 1.2))
+  
+  #  plotMetrics(collegeMetrics[c("Med", "Engr", "Hunt","Science")], 
+  #                             plotList = c("rate", "delta.rate"), 
+  #                             metric_plot_params = list(oma = c(0,0,2,0)),
+  #                             delta_legend_params = list(plot = FALSE), 
+  #                             term_points_params = list(type = "b", lty = 2), 
+  #                             featureMap = NA, 
+  #                             metric_legend_params = list(x="top", pch = c(NA,1),  lty = c(3,3), pt.cex = 1.2))
+  
+  #  plotMetrics(collegeMetrics[2:11], 
+  #                             plotList = c("count", "delta.count"), 
+  #                             metric_plot_params = list(oma = c(0,0,2,0)),
+  #                             delta_legend_params = list(plot = FALSE), 
+  #                             term_points_params = list(type = "b", lty = 2),
+  #                             hire_points_params = list(type = "n"),
+  #                             featureMap = NA, 
+  #                             metric_legend_params = list(x="top", pch = c(NA,1),  lty = c(3,3), pt.cex = 1.2), 
+  #                             metric2_legend_params = list(x="topleft"))
+  
   # POSSIBLE ADJUSTMENTS:
-  # Only the "delta" plot has an x-axis.
-  #  The other two plots could have an adjustment to create an x-axis.
-  # Only the "cumulative" (or "headcount") plot has a color legend for multiple lines.
-  #  The other two plots could have an adjustment to create a legend.
   # I could explicitly label points like starting date and concluding headcount values 
   #    with text on the graphic
   
-
+  
   ###############################
   ## MANAGE INCOMING ARGUMENTS ##
   ###############################
   
   if(is.data.frame(data)) {data <- list(data)}
+  
+  if(all(is.na(featureMap))) {
+    featureMap <- c("sienna",
+                    "forestgreen",
+                    "deepskyblue",
+                    "goldenrod",
+                    "firebrick",
+                    "darkslategray",
+                    "chartreuse",
+                    "slateblue",
+                    "darkkhaki",
+                    "coral")
+    
+    if(all(!is.na(names(data)))){
+      names(featureMap) <- names(data)
+    }
+    
+  }
   
   if("all" %in% plotList){ plotList <- c("cumulative", "rate", "delta.rate")  }
   
@@ -793,34 +848,56 @@ plotMetrics <- function(data,
      & (
        any(c("headcount", "cumulative") %in% plotList) &&
        any(c("rate", "count") %in% plotList) &&
-       any(c("delta",  "delta.rate", "delta.count") %in% plotList)
+       any(c("delta.rate", "delta.count") %in% plotList)
      )
   ) {
     
     layout(matrix(1:3, nrow = 3), heights = c(0.456, 0.281, 0.263))
     
-  } else {
+  } else if( 
+    length(plotList) > 1  # if there's more than one plot
+  ) {
     
     layout(matrix(1:2, nrow = 2), heights = c(0.618, 0.382))
     
+  } else {
+    
+    layout(matrix(1:1, nrow = 1), heights = c(1))
+    
   }
   
-  default_cumulative_plot_params <- list(oma = c(0,0,2,0),
-                                         mar = c(0,6,0,1),
-                                         bg="ivory",
-                                         fg = "grey30")
-  
-  cumulative_plot_params <- modifyList(default_cumulative_plot_params,
-                                       cumulative_plot_params)
-  
-  incoming.par <- do.call(par, cumulative_plot_params)
-  on.exit(par(incoming.par))
   
   #####################
   ## CUMULATIVE PLOT ##
   #####################
   
   if( any(c("cumulative", "headcount") %in% plotList)  ){
+    
+    
+    if(any(c("rate", "count", "delta.rate","delta.count") %in% plotList)){ # include the x axis if there's no metrics or delta plot
+      
+      xAxt <- "n"
+      default_cumulative_plot_params <- list(
+        oma = c(0,0,2,0),
+        mar = c(0,6,0,1),
+        bg = "ivory",
+        fg = "grey30")
+      
+    } else { 
+      
+      xAxt <- "s" 
+      default_cumulative_plot_params <- list(
+        oma = c(0,0,2,0),
+        mar = c(4,6,0,1),
+        bg = "ivory",
+        fg = "grey30")
+    } 
+    
+    cumulative_plot_params <- modifyList(default_cumulative_plot_params,
+                                         cumulative_plot_params)
+    
+    incoming.par <- do.call(par, cumulative_plot_params)
+    on.exit(par(incoming.par))
     
     # set yLim
     yLim <- range(sapply(data, function(x){range(x[,"delta.cum"])}))
@@ -830,7 +907,7 @@ plotMetrics <- function(data,
          ylim = yLim,
          type = "n",
          xlab = "",
-         xaxt = "n",
+         xaxt = xAxt, #"n",
          las = 1,
          ylab = ""
     )
@@ -855,7 +932,7 @@ plotMetrics <- function(data,
     
     # Draw rectangle and grid
     do.call("rect", cumulative_rect_args)
-
+    
     # experimenting with the grid
     grid_y <- axTicks(2)
     grid_x <- pretty(data[[1]][,"periodEnd"], n = 5)
@@ -870,7 +947,8 @@ plotMetrics <- function(data,
           y = df[,"delta.cum"],
           x = df[,"periodEnd"],
           type = "l",
-          col = ifelse(length(data) == 1, "sienna",col)
+          col =col
+          #col = ifelse(length(data) == 1, "sienna",col)
         ),
         cumulative_points_params
       ))
@@ -911,9 +989,7 @@ plotMetrics <- function(data,
     
     cumulative_legend_params <- modifyList(default_cumulative_legend_params, cumulative_legend_params)
     
-    if(length(data) >1 ) {
-      do.call(legend, cumulative_legend_params)
-    }
+    do.call(legend, cumulative_legend_params)
     
     
   }
@@ -959,9 +1035,26 @@ plotMetrics <- function(data,
       legendText <- c("Hire", "Departure")
     }
     
-    default_metric_plot_params <- list(mar = c(0,6,0,1),
-                                       bg = "ivory",
-                                       fg = "grey30")
+    if(any(c("delta.rate","delta.count") %in% plotList)){ # include the x axis if there's no delta plot
+      
+      xAxt <- "n"
+      default_metric_plot_params <- list(
+        # oma = c(0,0,2,0),
+        mar = c(0,6,0,1),
+        bg = "ivory",
+        fg = "grey30")
+      
+    } else { 
+      
+      xAxt <- "s" 
+      default_metric_plot_params <- list(
+        # oma = c(0,0,2,0),
+        mar = c(4,6,0,1),
+        bg = "ivory",
+        fg = "grey30")
+    } 
+    
+    
     
     metric_plot_params <- modifyList(default_metric_plot_params,
                                      metric_plot_params)
@@ -969,13 +1062,13 @@ plotMetrics <- function(data,
     do.call(par, metric_plot_params)
     
     # empty plot
-  
+    
     plot(y= hireVal, #100*data[,"hireRate"],
          x= data[[1]][,"periodEnd"],
          ylim = yLim,
          type = "n",
          xlab = "",
-         xaxt = "n",
+         xaxt = xAxt, # "n",
          # col = "seagreen3",
          las = 2,
          ylab = "" # "delta"
@@ -1112,14 +1205,42 @@ plotMetrics <- function(data,
     do.call(legend, metric_legend_params)
     
     
+    # Display legend of colors per featuremap on the right
+    
+    if(length(data) == 1 ) {
+      
+      default_metric2_legend_params <- list(
+        x = "topright",
+        legend = names(data),
+        #  col = featureMap[names(data)],
+        #  pch = 15, 
+        #  pt.cex = 2,
+        plot = FALSE
+      )
+      
+    } else {
+      
+      default_metric2_legend_params <- list(
+        x = "topright",
+        legend = names(data), 
+        col = featureMap[names(data)],
+        pch = 15, 
+        pt.cex = 2
+      ) 
+    }
+    
+    
+    metric2_legend_params <- modifyList(default_metric2_legend_params, metric2_legend_params)
+    
+    do.call(legend, metric2_legend_params)
+    
+    
   }
   
   
   ################
   ## DELTA PLOT ##
   ################
-  
-  # browser()
   
   if("delta.count" %in% plotList && !("delta.rate" %in% plotList) ) {
     yVal <- data[[1]][,"delta"]; 
@@ -1209,9 +1330,9 @@ plotMetrics <- function(data,
             y = df[,"delta"],
             x = df[,"periodEnd"],
             type = "l",
-            col = ifelse(length(data) == 1, "seagreen",col)
+            col = col
           ),
-          term_points_params
+          delta_points_params
         ))
       }, data, featureMap[names(data)]))
       
@@ -1226,7 +1347,7 @@ plotMetrics <- function(data,
             y = 100*df[,"deltaRate"],
             x = df[,"periodEnd"],
             type = "l",
-            col = ifelse(length(data) == 1, "seagreen",col)
+            col = col
           ),
           delta_points_params
         ))
@@ -1247,6 +1368,18 @@ plotMetrics <- function(data,
     
   }
   
+  
+  default_delta_legend_params <- list(
+    x = "topleft",
+    legend = names(data),
+    col = featureMap[names(data)],
+    pch = 15, 
+    pt.cex = 2
+  )
+  
+  delta_legend_params <- modifyList(default_delta_legend_params, delta_legend_params)
+  
+  do.call(legend, delta_legend_params)
   
   ################
   ## OUTER TEXT ##
