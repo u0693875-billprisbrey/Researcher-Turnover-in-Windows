@@ -276,10 +276,71 @@ percentileMapping[,"pch"] <- rep(19, nrow(percentileMapping))
 
 percentileMapping[,"color"] <- percentileColors[as.numeric(cut(piEmplid$win.sum_percentile, breaks = seq(0.2,1,by=0.1)))]
 
+#############
+## COLLEGE ##
+#############
 
-# I need the college colors map
+collegeAbbrv <- cbind(
+  college = c(sweet16, bigInst, "other"),
+  abbrv = c("Arch",
+            "Educ",
+            "FinArt",
+            "Health",
+            "Hum",
+            "Nurs",
+            "Pharm",
+            "Science",
+            "SocBeh",
+            "SocWrk",
+            "Bus",
+            "Law",
+            "Tran",
+            "Dent",
+            "Med",
+            "Engr",
+            "EGI",
+            "Hunt",
+            "SCI",
+            "CVRTI",
+            "ICSE",
+            "CTSI",
+            "other"
+  ),
+  color = c(
+    "lightslategray",
+    "orange",
+    "cyan", 
+    "hotpink", 
+    "brown", 
+    "darkgoldenrod", 
+    "gold", 
+    "green",
+    "navy", 
+    "magenta", 
+    "olivedrab4", 
+    "salmon", 
+    "darkgreen",
+    "yellowgreen", 
+    "red",
+    "blue",
+    "chocolate", 
+    "purple",
+    "violet", 
+    "khaki",
+    "deepskyblue3",
+    "chartreuse",
+    "darkmagenta"
+  ),
+  pch = c(
+    1,14,15,2,3,4,17,6,5,8,9,10,11,12,13,0,16,7,18, 23, 24, 25, 20  
+    
+    
+  ),
+  
+  cex = rep(NA, length(c(sweet16, bigInst, "other")) )
+)
 
-
+collegeColors <- setNames(collegeAbbrv[,"color"], collegeAbbrv[,"abbrv"])
 
 ```
 
@@ -1248,7 +1309,54 @@ for(x in complexMetrics){
 
 ```
 
+```{r}
 
+#########################
+##        PLOT OF      ##
+## METRICS PER COLLEGE ##
+#########################
+
+# Medicine
+
+plotMetrics(data = collegeMetrics[c("Med")],
+            plotList = "all",
+            term_points_params = list(type = "l", lwd=2),
+            hire_points_params = list(type = "l"),
+            metric_legend_params = list(x="left"),
+            delta_legend_params = list(x="left"),
+            featureMap = collegeColors,
+            title_mtext_params = list(text = "Head count metrics (Medicine)")
+            )
+
+# Next three
+
+plotMetrics(data = collegeMetrics[c("Hunt","Engr","Science")],
+            plotList = "all",
+            term_points_params = list(type = "l", lwd=2),
+            hire_points_params = list(type = "l"),
+            metric_legend_params = list(x="left"),
+            delta_legend_params = list(x="bottomleft"),
+            featureMap = collegeColors,
+            title_mtext_params = list(text = "Head count metrics (three large organizations)")
+            )
+
+# Everyone else
+
+plotMetrics(data = collegeMetrics[!names(collegeMetrics) %in% c("Med", "Hunt","Engr","Science")],
+            plotList = "all",
+            term_points_params = list(type = "l", lwd=2),
+            hire_points_params = list(type = "l"),
+            metric_legend_params = list(x = "top"),
+            metric_legend2_params = list(plot = FALSE),
+            delta_legend_params = list(plot = FALSE),
+            featureMap = collegeColors,
+            title_mtext_params = list(text = "Head count metrics (remaining organizations)")
+            )
+
+# DOES TERMINATION ALWAYS START AT ZERO? COUNT AND RATE?
+# OR JUST FOR THIS DATA SELECTION?
+
+```
 
 
 Discussion points:    
