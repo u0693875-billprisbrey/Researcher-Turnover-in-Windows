@@ -135,7 +135,14 @@ plotMetrics <- function(data,
   ## MANAGE INCOMING ARGUMENTS ##
   ###############################
   
-  if(is.data.frame(data)) {data <- list(data)}
+  if(is.data.frame(data)) {data <- list(data)} # convert to a data frame
+  
+  if(is.null(names(data))) {  # assign default names
+  
+    names(data) <- paste("data", 1:length(data), sep = " ")
+    
+  }
+  
   
   if(all(is.na(featureMap))) {
     featureMap <- c("sienna",
