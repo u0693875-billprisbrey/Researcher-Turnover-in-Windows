@@ -1313,6 +1313,89 @@ for(x in complexMetrics){
 
 #########################
 ##        PLOT OF      ##
+## METRICS PER CLUSTER ##
+#########################
+
+plotMetrics(data = complexMetrics,
+            plotList = "all",
+            term_points_params = list(type = "l", lwd=2),
+            hire_points_params = list(type = "l"),
+            metric_legend_params = list(x="topleft"),
+            delta_legend_params = list(plot=FALSE),
+            featureMap = complexClusterColors,
+            title_mtext_params = list(text = "Head count metrics per cluster")
+            )
+
+
+#########################
+##        PLOT OF      ##
+## METRICS PER UNASSIGNED CLUSTER ##
+#########################
+
+plotMetrics(data = complexMetrics["unassigned"],
+            plotList = "all",
+            term_points_params = list(type = "l", lwd=2),
+            hire_points_params = list(type = "l"),
+            metric_legend_params = list(x="topleft"),
+            delta_legend_params = list(plot=FALSE),
+            featureMap = complexClusterColors,
+            title_mtext_params = list(text = "Head count metrics per cluster")
+            )
+
+#########################
+##        PLOT OF      ##
+## METRICS PER 2 and 4 CLUSTER ##
+#########################
+
+plotMetrics(data = complexMetrics[c(2,4)],
+            plotList = "all",
+            term_points_params = list(type = "l", lwd=2),
+            hire_points_params = list(type = "l"),
+            metric_legend_params = list(x="topleft"),
+            delta_legend_params = list(plot=FALSE),
+            featureMap = complexClusterColors,
+            title_mtext_params = list(text = "Head count metrics per clusters 2 and 4")
+            )
+
+
+#########################
+##        PLOT OF      ##
+## METRICS PER 1 and 3 CLUSTER ##
+#########################
+
+plotMetrics(data = complexMetrics[c(1,3)],
+            plotList = "all",
+            term_points_params = list(type = "l", lwd=2),
+            hire_points_params = list(type = "l"),
+            metric_legend_params = list(x="topleft"),
+            delta_legend_params = list(plot=FALSE),
+            featureMap = complexClusterColors,
+            title_mtext_params = list(text = "Head count metrics per clusters 1 and 3")
+            )
+
+
+#########################
+##        PLOT OF      ##
+## METRICS PER 5 CLUSTER ##
+#########################
+
+plotMetrics(data = complexMetrics[5],
+            plotList = "all",
+            term_points_params = list(type = "l", lwd=2),
+            hire_points_params = list(type = "l"),
+            metric_legend_params = list(x="topleft"),
+            delta_legend_params = list(plot=FALSE),
+            featureMap = complexClusterColors,
+            title_mtext_params = list(text = "Head count metrics per cluster 5")
+            )
+
+```
+
+
+```{r}
+
+#########################
+##        PLOT OF      ##
 ## METRICS PER COLLEGE ##
 #########################
 
