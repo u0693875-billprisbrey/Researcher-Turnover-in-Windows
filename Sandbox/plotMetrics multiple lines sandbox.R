@@ -93,6 +93,39 @@ plotMetrics <- function(data,
   
   # Values for plotList are c("all", "headcount", "cumulative", "rate", "count", "delta.count", "delta.rate")
   
+  # Here are some example calls:
+  # plotMetrics(complexMetrics[c("unassigned")], 
+  #             plotList = c("count", "delta.count"), 
+  #             delta_legend_params = list(plot = FALSE), 
+  #             term_points_params = list(type = "b", lty = 2), 
+  #             featureMap = complexClusterColors, 
+  #             metric_plot_params = list(oma=c(0,0,2,0)), 
+  #             metric_legend_params = list(x="bottom", pch = c(NA,1),  lty = c(3,3), pt.cex = 1.2))
+  # plotMetrics(complexMetrics[c(2,4)], 
+  #              plotList = c("headcount", "rate", "delta.rate"), 
+  #              delta_legend_params = list(plot = FALSE), 
+  #              term_points_params = list(type = "b", lty = 2), 
+  #              featureMap = complexClusterColors, 
+  #              metric_legend_params = list(x="top", pch = c(NA,1),  lty = c(3,3), pt.cex = 1.2))
+  
+  #  plotMetrics(collegeMetrics[c("Med", "Engr", "Hunt","Science")], 
+  #                             plotList = c("rate", "delta.rate"), 
+  #                             metric_plot_params = list(oma = c(0,0,2,0)),
+  #                             delta_legend_params = list(plot = FALSE), 
+  #                             term_points_params = list(type = "b", lty = 2), 
+  #                             featureMap = NA, 
+  #                             metric_legend_params = list(x="top", pch = c(NA,1),  lty = c(3,3), pt.cex = 1.2))
+  
+  #  plotMetrics(collegeMetrics[2:11], 
+  #                             plotList = c("count", "delta.count"), 
+  #                             metric_plot_params = list(oma = c(0,0,2,0)),
+  #                             delta_legend_params = list(plot = FALSE), 
+  #                             term_points_params = list(type = "b", lty = 2),
+  #                             hire_points_params = list(type = "n"),
+  #                             featureMap = NA, 
+  #                             metric_legend_params = list(x="top", pch = c(NA,1),  lty = c(3,3), pt.cex = 1.2), 
+  #                             metric2_legend_params = list(x="topleft"))
+  
   # POSSIBLE ADJUSTMENTS:
   # I could explicitly label points like starting date and concluding headcount values 
   #    with text on the graphic
