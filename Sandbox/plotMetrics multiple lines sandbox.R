@@ -156,7 +156,10 @@ plotMetrics <- function(data,
     names(data) <- paste("data", 1:length(data), sep = " ")
     
   }
-  
+
+  if(length(data) > 10 && is.na(featureMap)  ) { 
+    stop("Add featureMap or reduce list length to <=10")
+  }  
   
   if(all(is.na(featureMap))) {
     featureMap <- c("sienna",
@@ -186,6 +189,7 @@ plotMetrics <- function(data,
     stop("Select 'delta.rate' or 'delta.count' in plotList argument.")
   }
   
+
   ############
   ## LAYOUT ##
   ############
