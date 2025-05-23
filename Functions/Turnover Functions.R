@@ -768,6 +768,10 @@ plotMetrics <- function(data,
   
   # Values for plotList are c("all", "headcount", "cumulative", "rate", "count", "delta.count", "delta.rate")
   
+  # Don't forget you can change the name displayed in the legends, which is especially useful
+  # if you are entering a single data frame that doesn't have a name:
+  # cumulative_legend_params = list(legend = "Frankfurt")
+  
   # Here are some example calls:
   # plotMetrics(complexMetrics[c("unassigned")], 
   #             plotList = c("count", "delta.count"), 
@@ -805,12 +809,30 @@ plotMetrics <- function(data,
   # I could explicitly label points like starting date and concluding headcount values 
   #    with text on the graphic
   
+  ################################
+  ## MANAGE INCOMING PARAMETERS ##
+  ################################
+  
+  incoming.par <- par(fg="red") # dummy adjustment for ease of coding because par() likes adjustments
+  on.exit(layout(matrix(1,1,1)))
+  on.exit(par(incoming.par), add = TRUE)
+  
   
   ###############################
   ## MANAGE INCOMING ARGUMENTS ##
   ###############################
   
-  if(is.data.frame(data)) {data <- list(data)}
+  if(is.data.frame(data)) {data <- list(data)} # convert to a data frame
+  
+  if(is.null(names(data))) {  # assign default names
+    
+    names(data) <- paste("data", 1:length(data), sep = " ")
+    
+  }
+  
+  if(length(data) > 10 && is.na(featureMap)  ) { 
+    stop("Add featureMap or reduce list length to <=10")
+  }  
   
   if(all(is.na(featureMap))) {
     featureMap <- c("sienna",
@@ -839,6 +861,7 @@ plotMetrics <- function(data,
   if(all(c("delta.rate","delta.count") %in% plotList )) { 
     stop("Select 'delta.rate' or 'delta.count' in plotList argument.")
   }
+  
   
   ############
   ## LAYOUT ##
@@ -896,8 +919,7 @@ plotMetrics <- function(data,
     cumulative_plot_params <- modifyList(default_cumulative_plot_params,
                                          cumulative_plot_params)
     
-    incoming.par <- do.call(par, cumulative_plot_params)
-    on.exit(par(incoming.par))
+    do.call(par, cumulative_plot_params)
     
     # set yLim
     yLim <- range(sapply(data, function(x){range(x[,"delta.cum"])}))
