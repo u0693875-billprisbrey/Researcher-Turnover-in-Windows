@@ -65,5 +65,71 @@ plotMetrics(earlySpan["year"])
 # other time spans,
 # and plotMetrics for multiple groups -- esp for PERCENTILES.
 
+# here is how college lines were calculated
+
+colleges <- unique(prepData$college)
+collegePIs <- lapply(colleges, function(x) unique(prepData$PROPOSAL_PI_EMPLID[prepData$college == x]))
+names(collegePIs) <- colleges
+
+collegeMetrics <- lapply(collegePIs, function(x){
+  
+  calculateMetrics(data=retData[retData$PI_EMPLID %in% x,],
+                   minDate = ymd("2013-01-01"),
+                   maxDate = today(), 
+                   calendar = "year")
+  
+})
+
+plotMetrics(collegeMetrics[1:10])
 
 
+complex_clusters <- levels(prepData$complex_cluster)
+
+complexPIs <- lapply(complex_clusters, function(x) unique(prepData$PROPOSAL_PI_EMPLID[prepData$complex_cluster == x & !is.na(prepData$complex_cluster)]))
+names(complexPIs) <- complex_clusters
+
+# add the unassigned PI's, or NA values for prepData$complex_cluster
+
+complexPIs[["unassigned"]] <- unique(prepData$PROPOSAL_PI_EMPLID[is.na(prepData$complex_cluster)])
+
+complexMetrics <- lapply(complexPIs, function(x){
+  
+  calculateMetrics(data=retData[retData$PI_EMPLID %in% x,],
+                   minDate = ymd("2013-01-01"),
+                   maxDate = today(), 
+                   calendar = "year")
+  
+})
+
+plotMetrics(complexMetrics, hire_points_params = list(type = "n"))
+
+lapply(complexMetrics, head)
+# lots of zero term rates
+# let's see if it holds with a different selection
+
+
+complexMetrics5 <- lapply(complexPIs, function(x){
+  
+  calculateMetrics(data=retData[retData$PI_EMPLID %in% x,],
+                   minDate = ymd("2010-01-01"),
+                   maxDate = ymd("2015-01-01"), 
+                   calendar = "year")
+  
+})
+
+
+lapply(complexMetrics5, head)
+
+compareMetrics <- Map(function(x, y) merge(x, y, by = "adjDate", all = TRUE), complexMetrics, complexMetrics5)
+
+lapply(compareMetrics, function(x){
+  
+  filter <- x[,"adjDate"] %in% c(2013:2015)
+  x[filter,c("termRate.x","termRate.y")]
+  
+})
+
+# so there's a very tiny difference in a couple of clusters in 2015
+# that's interesting.
+
+# I gotta get to the bottom of that.
