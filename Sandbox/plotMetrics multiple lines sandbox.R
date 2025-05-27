@@ -73,7 +73,7 @@ plotMetrics <- function(data,
                         hire_points_params = list(),
                         term_points_params = list(),
                         metric_legend_params = list(),
-                        metric2_legend_params = list(),
+                        metric_legend2_params = list(),
                         metric_mtext_params = list(),
                         metric_rect_args = list(),
                         metric_grid_args = list(),
@@ -130,7 +130,7 @@ plotMetrics <- function(data,
   #                             hire_points_params = list(type = "n"),
   #                             featureMap = NA, 
   #                             metric_legend_params = list(x="top", pch = c(NA,1),  lty = c(3,3), pt.cex = 1.2), 
-  #                             metric2_legend_params = list(x="topleft"))
+  #                             metric_legend2_params = list(x="topleft"))
   
   # POSSIBLE ADJUSTMENTS:
   # I could explicitly label points like starting date and concluding headcount values 
@@ -565,7 +565,7 @@ plotMetrics <- function(data,
     
     if(length(data) == 1 ) {
     
-    default_metric2_legend_params <- list(
+    default_metric_legend2_params <- list(
       x = "topright",
       legend = names(data),
     #  col = featureMap[names(data)],
@@ -576,7 +576,7 @@ plotMetrics <- function(data,
     
     } else {
      
-      default_metric2_legend_params <- list(
+      default_metric_legend2_params <- list(
         x = "topright",
         legend = names(data), 
         col = featureMap[names(data)],
@@ -586,9 +586,9 @@ plotMetrics <- function(data,
     }
     
     
-    metric2_legend_params <- modifyList(default_metric2_legend_params, metric2_legend_params)
+    metric_legend2_params <- modifyList(default_metric_legend2_params, metric_legend2_params)
     
-    do.call(legend, metric2_legend_params)
+    do.call(legend, metric_legend2_params)
 
     
   }
