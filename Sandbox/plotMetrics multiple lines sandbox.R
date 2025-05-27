@@ -179,6 +179,10 @@ plotMetrics <- function(data,
   
   }
   
+  # Filter out unknown metrics
+  plotList <- plotList[plotList %in% c("all", "headcount", "cumulative", "rate", "count", "delta.count", "delta.rate")]
+  if(length(plotList) == 0) { plotList <- "all"}
+  
   if("all" %in% plotList){ plotList <- c("cumulative", "rate", "delta.rate")  }
   
   if(all(c("rate","count") %in% plotList )) { 
@@ -189,6 +193,9 @@ plotMetrics <- function(data,
     stop("Select 'delta.rate' or 'delta.count' in plotList argument.")
   }
   
+  if(!any(c("all", "headcount", "cumulative", "rate", "count", "delta.count", "delta.rate") %in% plotList )) { 
+    stop("Select some of c('all', 'headcount', 'cumulative', 'rate', 'count', 'delta.count', 'delta.rate') in plotList argument.")
+  }
 
   ############
   ## LAYOUT ##

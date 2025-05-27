@@ -862,6 +862,9 @@ plotMetrics <- function(data,
     stop("Select 'delta.rate' or 'delta.count' in plotList argument.")
   }
   
+  if(!any(c("all", "headcount", "cumulative", "rate", "count", "delta.count", "delta.rate") %in% plotList )) { 
+    stop("Select some of c('all', 'headcount', 'cumulative', 'rate', 'count', 'delta.count', 'delta.rate') in plotList argument.")
+  }
   
   ############
   ## LAYOUT ##
