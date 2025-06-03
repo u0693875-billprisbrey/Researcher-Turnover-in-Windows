@@ -1450,6 +1450,73 @@ Discussion points:
     * It isn't taking the time series into account
   - I'd like to add the cluster colors
 
+# TURNOVER BY PERCENTILES
+
+```{r}
+
+###########################
+## CALCLUATE PERCENTILES ##
+###########################
+
+# I'm writing over my method for the complex_cluster.
+# So you may be looking at a mix of new and old code here
+
+piEmplid$win.sum_tile <- cut(piEmplid$win.sum_percentile, breaks = c(0,seq(0.2,1,by=0.1)), include.lowest = TRUE )
+
+piPercentiles <- levels(piEmplid$win.sum_tile)
+
+pisPerTile <- lapply(piPercentiles, function(x) unique(piEmplid$emplid[piEmplid$win.sum_tile == x]))
+names(pisPerTile) <- piPercentiles
+
+# add the unassigned PI's, or NA values for prepData$complex_cluster
+
+pisPerTile[["unassigned"]] <- unique(prepData$PROPOSAL_PI_EMPLID[!(prepData$PROPOSAL_PI_EMPLID %in% unlist(pisPerTile))])
+
+tileMetrics <- lapply(pisPerTile, function(x){
+  
+  calculateMetrics(data=retData[retData$PI_EMPLID %in% x,],
+                    minDate = ymd("2013-01-01"),
+                    maxDate = today(), 
+                    calendar = "year")
+  
+})
+
+```
+
+
+```{r}
+
+######################
+## PLOT PERCENTILES ##
+######################
+
+tileColors <- c("burlywood1", percentileColors, "firebrick")
+names(tileColors) <- names(tileMetrics)
+
+plotMetrics(tileMetrics,
+            plotList = "all",
+            featureMap = tileColors
+            )
+
+plotMetrics(tileMetrics[!(names(tileMetrics) %in% "unassigned")],
+            plotList = "all",
+            featureMap = tileColors
+            )
+
+
+plotMetrics(
+  data = fullSpan[["year"]],
+  plotList = "all",
+  title_mtext_params = list(text = "Approximate PI Headcount\nrehire dates ignored", line = -1.618),
+  cumulative_plot_params = list(mar = c(0,6,3,1))
+)
+
+
+```
+
+I am not understanding in the slightest how I have the largest headcount in the 90th percentile and then going down from there.
+
+This needs some looking into.
 
 
 # DATA DESCRIPTION
@@ -1546,6 +1613,37 @@ time_length(interval(activeProposing$effective_hire[hire2013], activeProposing$P
 
 
 ```
+
+Before I compare turnover by cluster, I need to add this descriptive bit:
+
+all(prepData$PROPOSAL_PI_EMPLID %in% retData$PI_EMPLID) # TRUE (good)
+
+table(retData$PI_EMPLID %in% prepData$PROPOSAL_PI_EMPLID)
+FALSE  TRUE 
+1538  2937 
+
+And discuss how there are more PI's in the retData than are in my proposal data set, and that talking about clusters introduces a filter.
+
+Presumably these 1,538 "FALSE" ones haven't proposed after 2013.    
+
+It's probably a good time to disect that query a little more.
+.... and here's what I'm seeing:
+
+a "left join" onto osp.d_pi_vw.
+
+So now I want to know how osp.d_pi_vw was created (how is it defined?) and how did it get 1,538 PI's that aren't in my proposal data?
+
+Let's check that out --
+
+My "prepData" had some cleaning on it.
+
+
+...and how worth is my time to chase this down when I'm likely to get new information and better data after talking to HR?  I think I'll leave this one down.
+
+It does raise the question.  From my complexMetrics, what's the first hire date?
+
+
+
 
          
          
