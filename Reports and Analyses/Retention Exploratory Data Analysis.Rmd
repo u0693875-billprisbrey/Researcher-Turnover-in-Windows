@@ -9,6 +9,13 @@ output: html_document
 
 ```{r include=FALSE}
 
+# What I'm thinking on 6-04-2025
+# Since I'm about to get a ton of data from HR, then I'll basically need to write myself a whole 'nuther EDA.
+# So while the first EDA was called "Quick'n'Dirty", I'm going to call this one "Intermediate" or something.  "Partial data" ?
+# The idea is that I'll wrap this up as a relatively stand-alone report, where it is, however truncated it is, and explain that it's incomplete because HR is making a much more complete data store available.
+
+
+# ===
 # It's hard to re-write the flow of an existing report.
 # I think it's easier to copy to a new place and start over.
 # But I'll keep working on adapting this current one (with lots of frequent commits.)
@@ -1461,16 +1468,24 @@ Discussion points:
 # I'm writing over my method for the complex_cluster.
 # So you may be looking at a mix of new and old code here
 
-piEmplid$win.sum_tile <- cut(piEmplid$win.sum_percentile, breaks = c(0,seq(0.2,1,by=0.1)), include.lowest = TRUE )
+# now I am using piClusters[[2]] instead of piEmplid, as it has -all- PI's without the filtering based on count
 
-piPercentiles <- levels(piEmplid$win.sum_tile)
+piClusters[[2]][,"win.sum_tile"] <- cut(piClusters[[2]][,"win.sum_percentile"], breaks = c(0,seq(0.2,1,by=0.1)), include.lowest = TRUE )
 
-pisPerTile <- lapply(piPercentiles, function(x) unique(piEmplid$emplid[piEmplid$win.sum_tile == x]))
+piPercentiles <- levels(piClusters[[2]][,"win.sum_tile"])
+
+pisPerTile <- lapply(piPercentiles, function(x) {
+  filter <- piClusters[[2]][,"win.sum_tile"] == x
+  unique(piClusters[[2]][filter,"emplid"])
+  
+  })
+
 names(pisPerTile) <- piPercentiles
 
+# Not needed as I am using -all- PI's to calcualte the percentile
 # add the unassigned PI's, or NA values for prepData$complex_cluster
 
-pisPerTile[["unassigned"]] <- unique(prepData$PROPOSAL_PI_EMPLID[!(prepData$PROPOSAL_PI_EMPLID %in% unlist(pisPerTile))])
+# pisPerTile[["unassigned"]] <- unique(prepData$PROPOSAL_PI_EMPLID[!(prepData$PROPOSAL_PI_EMPLID %in% unlist(pisPerTile))])
 
 tileMetrics <- lapply(pisPerTile, function(x){
   
@@ -1490,7 +1505,7 @@ tileMetrics <- lapply(pisPerTile, function(x){
 ## PLOT PERCENTILES ##
 ######################
 
-tileColors <- c("burlywood1", percentileColors, "firebrick")
+tileColors <- c("burlywood1", percentileColors)
 names(tileColors) <- names(tileMetrics)
 
 plotMetrics(tileMetrics,
@@ -1498,25 +1513,500 @@ plotMetrics(tileMetrics,
             featureMap = tileColors
             )
 
-plotMetrics(tileMetrics[!(names(tileMetrics) %in% "unassigned")],
+plotMetrics(tileMetrics[(names(tileMetrics) %in% c("(0.7,0.8]", "(0.8,0.9]", "(0.9,1]"))],
+            plotList = "all",
+            featureMap = tileColors
+            )
+
+plotMetrics(tileMetrics[(names(tileMetrics) %in% c("(0.4,0.5]", "(0.5,0.6]", "(0.6,0.7]"))],
+            plotList = "all",
+            featureMap = tileColors
+            )
+
+plotMetrics(tileMetrics[(names(tileMetrics) %in% c("[0,0.2]",   "(0.2,0.3]", "(0.3,0.4]"))],
+            plotList = "all",
+            featureMap = tileColors
+            )
+
+plotMetrics(tileMetrics[(names(tileMetrics) %in% c("(0.2,0.3]", "(0.3,0.4]"))],
             plotList = "all",
             featureMap = tileColors
             )
 
 
-plotMetrics(
-  data = fullSpan[["year"]],
-  plotList = "all",
-  title_mtext_params = list(text = "Approximate PI Headcount\nrehire dates ignored", line = -1.618),
-  cumulative_plot_params = list(mar = c(0,6,3,1))
-)
+plotMetrics(tileMetrics[(names(tileMetrics) %in% c("[0,0.2]"))],
+            plotList = "all",
+            featureMap = tileColors,
+            cumulative_points_params = list(lwd = 4, col = tileColors["[0,0.2]"]),
+            delta_points_params = list(lwd = 4, col = tileColors["[0,0.2]"])
+            )
+
+# cumulative_plot_params = list(mar = c(0,6,3,1))
+
+
 
 
 ```
 
+By visual inspection, here's a few things I'm noticing:
+First of all, the headcount is completely unexpected.
+At least the smallest bucket -- 0 to 0.2 -- has roughly double the headcount as the others.  And the steepest decline (interesting!)
+
+However, how does the top 90th percentile have the largest headcount?  Clearly?  Maybe they have the most stable population?  I mean, that's what this graph is showing, isn't it?  So the people who are in this elite group tend to stick around.  That's positive.  (But don't forget this is 'incomplete' data with a broad assumption.)
+
+
+
+The headcount for the other lines really start to diverge at about 2020.
+
+As far as the decline, could this mean that new PI's simply haven't had the time to enter into the 90th percentile?  After all, these percentiles are calculated over a ten year time.
+
+Which makes me wonder how much of this is circular reasoning.  That is, I have a very large drop-off in PI's at the bottom.   And, are they at the bottom because they left?  Are the PI's at the top because they stayed?  If a PI currently at the top left -- then wouldn't their lifetime  total drop, and their lifetime percentile drop, and they wouldn't be at the top?  
+
+Is it that they are stable, and that puts them in the top?  Or is it that they are at the top, and that makes them stable?
+
+A twin graphic to this is the amount won per year by percentile.
+That would make a reasonably nice line graph.
+
+
+```{r}
+
+###############################
+## ANNUAL AMOUNT WON BY TILE ##
+###############################
+
+popper <- merge(prepData, piClusters[[2]][,c("emplid", "win.sum_percentile", "win.sum_tile")], by.x = "PROPOSAL_PI_EMPLID", by.y = "emplid" )
+
+# I've probably already created this graphic in my library
+# I could use the "trends" one
+
+# looks like I want 
+
+# calculateWinRates |> extractColumn |> createFrame |> extractTrendClusters |> plotTrends
+
+tileRates <- calculateWinRates(data = popper,
+                  targetColumn = "PROPOSAL_TOTAL_SPONSOR_BUDGET",
+                  categoryColumn = "win.sum_tile")
+
+plotWinRates(tileRates[[1]], agg = "sum") 
+
+tile_by_year <- lapply(levels(popper$win.sum_tile), function(tile){
+  
+  theCut <- popper[popper$win.sum_tile == tile,]
+  theAgg <- calculateWinRates(data = theCut, categoryColumn = "upload_fiscal_year", functionList = list(mean = mean, median = median)) |>
+    (\(x){ return(x$summary[order(as.numeric(row.names(x$summary)), decreasing = FALSE),]) })()
+  
+  return(theAgg)  
+  
+})
+names(tile_by_year) <- levels(popper$win.sum_tile)
+
+
+tileMap <- cbind(college = levels(popper$win.sum_tile),
+                 abbrv = levels(popper$win.sum_tile),
+                 color = tileColors,
+                 pch = 0:8,
+                 cex = NA
+                 )
+
+
+extractColumn(tile_by_year, "win.sum", drop = FALSE) |>
+  (\(x){ 
+  suppressWarnings(createFrame(x)) })() |>
+#    (\(x){data.frame(x[,1], scale(x[,-1]))})() |> # scale
+#  (\(x){x[x == 0] <- NA; # log
+#  data.frame(x[,1], log(x[,-1]));
+#  })() |>
+  extractTrendClusters(k=3, type = "slope", dist_params = list(method = "maximum") ,hclust_params =list(method = "ward.D2")) |>
+  plotTrends(
+             detailMapping = tileMap,
+             plot_order = "slope.increasing",
+             bottom_axis_params = list(outer = FALSE, line = -3.5, tick = FALSE), 
+             right_axis_params = list(line = -3, tick = FALSE),
+             plot_params = list(oma = c(1,0,3,1), mar = c(0,7,0,0)),
+             mtext_params = list(text = ""),
+             legend_params = list(cex=1.5, inset = c(-0.09,0), text.font = 2),
+             main_params=list(text = "Funds requested won per tile", cex = 1.5))
+
+# oh, I get it 
+# o.k.
+
+# really close to what I want
+# It's just not quite what I want
+# but it's really close
+
+
+extractColumn(tile_by_year, "win.sum", drop = FALSE) |>
+  (\(x){ 
+  suppressWarnings(createFrame(x)) })() |>
+    (\(x){
+      keepNames <- names(x)
+      scaled <- data.frame(x[,1], scale(x[,-1]))
+      names(scaled) <- keepNames
+      return(scaled)
+      
+      })() |> # scale
+#  (\(x){x[x == 0] <- NA; # log
+#  data.frame(x[,1], log(x[,-1]));
+#  })() |>
+  extractTrendClusters(k=3, type = "slope", dist_params = list(method = "maximum") ,hclust_params =list(method = "ward.D2")) |>
+  plotTrends(
+             detailMapping = tileMap,
+             plot_order = "slope.increasing",
+             bottom_axis_params = list(outer = FALSE, line = -3.5, tick = FALSE), 
+             right_axis_params = list(line = -3, tick = FALSE),
+             plot_params = list(oma = c(1,0,3,1), mar = c(0,7,0,0)),
+             mtext_params = list(text = ""),
+             legend_params = list(cex=1.5, inset = c(-0.09,0), text.font = 2),
+             main_params=list(text = "Funds requested won per tile", cex = 1.5))
+
+# also very interesting
+# but not quite what I want
+
+# I want one graphic and one line per tile
+
+
+tile_by_year_win.sum <- extractColumn(tile_by_year, "win.sum", drop = FALSE) |>
+  (\(x){ 
+  suppressWarnings(createFrame(x)) })()
+
+
+plot(x = max(tile_by_year_win.sum[,-1]),
+     type = "n",
+     ylim = range(tile_by_year_win.sum[,-1]),
+     xlim = c(1,nrow(tile_by_year_win.sum)),
+     xaxt = "n"
+     )
+
+invisible(
+lapply(colnames(tile_by_year_win.sum[,-1]), function(tile){
+  points(tile_by_year_win.sum[,tile],
+         type = "l",
+         col = tileColors[tile]
+         )
+  
+})
+)
+
+# wow, they are really pulling it in at the top!
+
+# I should do a second graph that is the bottom two for scaling purpose
+
+# I think I'm getting close to completing this as it is, including my add'l questions
+
+# That is, something like, I'll re-name this as "Retention Exploratory Data Analysis 'Partial'" or something like that.
+
+# So I want to graphically clean this up a bit
+# Do two graphs, following my golden ratio rule
+# bottom plot excludes the top two lines
+
+# I should probably still calculate a year-by-year percentile
+# and see how often a PI changes categories
+
+
+```
+
+
+```{r}
+
+######################################
+## PERCENTILE BY YEAR PLOT FUNCTION ##
+######################################
+
+plotAnnualPercentiles <- function(data, sequence = NA, lineColor = NA, rangeSpan = NA){
+  
+  # Create an empty plot
+  
+  plot(x= 1,
+       type = "n",
+       ylim = c(0.3,1),
+       xlim = c(1,10),
+       las = 1,
+       ylab = "",
+       xlab = "",
+       xaxt = "n"
+  )
+  
+  if(is.na(sequence[1])){
+  theSequence <- seq(0,0.7, by = 0.05)
+  } else {theSequence <- sequence}
+  
+  if(is.na(lineColor[1])){
+  lineColor <- viridis::inferno(length(theSequence), direction = -1) 
+  }
+  
+  if(is.na(rangeSpan)){
+    rangeSpan <- 0.05 
+  }
+  
+  # Plot the lines
+  
+  invisible(
+    lapply(theSequence, function(range_value){ 
+      
+      filter <- data$range > range_value &  data$range <= range_value + rangeSpan
+      
+      invisible(
+        lapply(data[filter,"emplid"], function(pi){
+          
+          points(as.numeric(data[data$emplid == pi,as.character(2014:2023)]),
+                 type = "l",
+                 lwd = 0.2,
+                 col = lineColor[which(theSequence == range_value)]
+          )
+          
+        })
+      )
+      
+    })
+  )
+    
+  # Axis and texts
+  
+  axis(side = 1, at = 1:10, labels = 2014:2023)
+  mtext(side = 2, "percentile per PI", line = 3)
+  mtext(side = 3, text = "Annual percentile per PI", font = 2, cex = 1.619, line = 2)
+  
+}
+
+
+
+```
+
+```{r}
+
+######################## 
+## PERCENTILE BY YEAR ##
+########################
+
+# This will take a little bit of logic
+
+# first I filter by year
+# then I aggregate by pi
+# then I calculate percentile
+
+pi_by_year <- lapply(unique(prepData$upload_fiscal_year)[order(unique(prepData$upload_fiscal_year))], function(fyear){
+  
+  theCut <- prepData[prepData$upload_fiscal_year == fyear,]
+  theAgg <- calculateWinRates(data = theCut,
+                              categoryColumn = "PROPOSAL_PI_EMPLID",
+                              functionList = list(mean = mean, median = median)) |>
+    (\(x){ return(x$summary[order(as.numeric(row.names(x$summary)), decreasing = FALSE),]) })()
+  
+  return(theAgg)
+})
+names(pi_by_year) <- unique(prepData$upload_fiscal_year)[order(unique(prepData$upload_fiscal_year))]
+
+
+# Functions
+# piEmplid$win.sum_prop <- proportions(piEmplid$win.sum)
+# piEmplid$win.sum_rank <- rank(-piEmplid$win.sum,na.last = "keep", ties.method = "min")
+# ecdf_fun <- ecdf(piEmplid$win.sum)
+# piEmplid$win.sum_percentile <- ecdf_fun(piEmplid$win.sum)
+
+
+pi_by_year <- lapply(pi_by_year, function(fyear){
+  
+  fyear[,"win.sum_prop"] <- proportions(fyear[,"win.sum"])
+  fyear[,"win.sum_rank"] <- rank(-fyear[,"win.sum"], na.last = "keep", ties.method = "min")
+  ecdf_fun <- ecdf(fyear[,"win.sum"])
+  fyear[,"win.sum_percentile"] <- ecdf_fun(fyear[,"win.sum"])
+  
+  return(fyear)
+  
+}) 
+
+# now I want to see the PI's that change percentiles from year to year
+
+pi_annual_percentile <- extractColumn(pi_by_year, "win.sum_percentile", drop = FALSE) |>
+  (\(x){ 
+  suppressWarnings(createFrame(x)) })()
+names(pi_annual_percentile)[names(pi_annual_percentile) %in% "year"] <- "emplid"
+
+pi_annual_percentile$range <- apply(pi_annual_percentile[,-1], 1, function(x){diff(range(x, na.rm = TRUE))})        
+
+# let's plot this
+
+hPlot <- hist(pi_annual_percentile$range, plot = FALSE)
+
+theBar <- barplot(hPlot$counts/sum(hPlot$counts),
+        las = 2,
+        names.arg = hPlot$breaks[-1])
+
+rect(xleft = par("usr")[1],
+     ybottom = par("usr")[3],
+     xright = par("usr")[2],
+     ytop = par("usr")[4],
+     col = "grey95"
+     )
+
+grid(ny = NULL, nx = NA, lwd =3, col = "grey80")
+
+#barplot(theBar, ann = FALSE, add = TRUE)
+
+barplot(hPlot$counts/sum(hPlot$counts),
+        las = 2,
+        col = "plum3",
+        # names.arg = hPlot$breaks[-1],
+        plot = TRUE,
+        ann = FALSE,
+        add = TRUE)
+
+mtext(side = 3, text = "Span between min and max percentile", font = 2, cex = 1.619, line = 2)
+
+mtext(side = 3, text = "per PI over ten years", font = 3, cex = 1.33, line = 0.8)
+
+mtext(side = 1, text = "Span between min and max percentile", line = 3)
+
+mtext(side = 2, text = "Proportion of PI's", line = 3)
+
+```
+
+
+```{r eval = FALSE}
+
+# Developing year by year plots
+
+# now let's see some of these dramatic ones
+# and then let's compare to the ten yr categories
+
+plot(x= 1,
+     type = "n",
+     ylim = c(0,1),
+     xlim = c(1,10))
+
+filter <- pi_annual_percentile$range > 0.6 &  pi_annual_percentile$range <= 0.7
+invisible(
+lapply(pi_annual_percentile[filter,"emplid"], function(pi){
+  
+  points(as.numeric(pi_annual_percentile[pi_annual_percentile$emplid == pi,as.character(2014:2023)]),
+         type = "l",
+         lwd = 0.2,
+         col = "red")
+  
+})
+)
+
+# since this is exploratory data analysis, let's show it.
+  
+plot(x= 1,
+     type = "n",
+     ylim = c(0.3,1),
+     xlim = c(1,10),
+     las = 1,
+     ylab = "",
+     xlab = "",
+     xaxt = "n"
+     )
+
+theSequence <- seq(0,0.7, by = 0.05)
+
+invisible(
+lapply(theSequence, function(range_value){ 
+
+filter <- pi_annual_percentile$range > range_value &  pi_annual_percentile$range <= range_value + 0.05
+
+invisible(
+lapply(pi_annual_percentile[filter,"emplid"], function(pi){
+  
+  points(as.numeric(pi_annual_percentile[pi_annual_percentile$emplid == pi,as.character(2014:2023)]),
+         type = "l",
+         lwd = 0.2,
+         col = viridis::inferno(length(theSequence), direction = -1)[which(theSequence == range_value)]
+         )
+  
+})
+)
+
+})
+)
+
+axis(side = 1, at = 1:10, labels = 2014:2023)
+
+mtext(side = 2, "percentile per PI", line = 3)
+mtext(side = 3, text = "Annual percentile per PI", font = 2, cex = 1.619, line = 2)
+
+
+# Let's show low variation, mid-variation, and hi-variation
+# which means I'm creating a function.
+
+
+```
+
+```{r}
+
+
+plotAnnualPercentiles(data = pi_annual_percentile)
+mtext(side = 3, text = "All PI's", line = 1)
+
+
+plotAnnualPercentiles(data = pi_annual_percentile, sequence = c(0.0,0.05),
+                      lineColor = c("plum4"))
+mtext(side = 3, text = "Low variation", line = 1)
+
+plotAnnualPercentiles(data = pi_annual_percentile, sequence = c(0.25,0.35), lineColor = viridis::inferno(length(theSequence), direction = -1)[vapply(seq(from = 0.25, to = 0.35, by = 0.05), function(val) which.min(abs(seq(0, 0.7, 0.05) - val)), integer(1))]
+                 )
+mtext(side = 3, text = "Medium variation", line = 1)
+
+plotAnnualPercentiles(data = pi_annual_percentile, sequence = c(0.4,0.6),
+                      lineColor = viridis::inferno(length(theSequence), direction = -1)[vapply(seq(from = 0.4, to = 0.6, by = 0.05), function(val) which.min(abs(seq(0, 0.7, 0.05) - val)), integer(1))])
+mtext(side = 3, text = "High variation", line = 1)
+
+# Now, it would be nice to see a plot of these per cluster
+# And, to see not just the percentile but whatever y-axis I want
+# More work on this function would be nice
+
+
+```
+
+
+```{r eval=FALSE}
+
+# Copying and pasting from other places
+
+# FISCAL YEAR -- BY COLLEGE (loaded in prepScript)
+
+college_by_year <- lapply(unique(prepData$college), function(college){
+  
+  theCut <- prepData[prepData$college == college,]
+  theAgg <- calculateWinRates(data = theCut, categoryColumn = "upload_fiscal_year", functionList = list(mean = mean, median = median)) |>
+    (\(x){ return(x$summary[order(as.numeric(row.names(x$summary)), decreasing = FALSE),]) })()
+  
+  return(theAgg)  
+  
+})
+names(college_by_year) <- unique(prepData$college)
+
+extractColumn(college_by_year, "win.sum", drop = FALSE) |>
+  createFrame() |>
+    (\(x){data.frame(x[,1], scale(x[,-1]))})() |> # scale
+#  (\(x){x[x == 0] <- NA; # log
+#  data.frame(x[,1], log(x[,-1]));
+#  })() |>
+  extractTrendClusters(k=3, type = "slope", dist_params = list(method = "maximum") ,hclust_params =list(method = "ward.D2")) |>
+  plotTrends(detailMapping = collegeAbbrv,
+             plot_order = "slope.increasing",
+             bottom_axis_params = list(outer = FALSE, line = -3.5, tick = FALSE), 
+             right_axis_params = list(line = -3, tick = FALSE),
+             plot_params = list(oma = c(1,0,3,1), mar = c(0,7,0,0)),
+             mtext_params = list(text = ""),
+             legend_params = list(cex=1.5, inset = c(-0.09,0), text.font = 2),
+             main_params=list(text = "Funds requested won per college", cex = 1.5))
+
+```
+
+
+
+This portion is now fixed:
 I am not understanding in the slightest how I have the largest headcount in the 90th percentile and then going down from there.
 
 This needs some looking into.
+
+Fixed -- by using piCluster[[2]] instead of piEmplid, where piCluster[[2]] uses the full population.
+
+so now I am understanding it --- I calculated the percentile based on the full population, but then filtered to just PI's with at least three or four proposals, so my population is heavier at the higher percentiles.
+using piCluster[[2]] should correct that.
+
+
 
 
 # DATA DESCRIPTION
