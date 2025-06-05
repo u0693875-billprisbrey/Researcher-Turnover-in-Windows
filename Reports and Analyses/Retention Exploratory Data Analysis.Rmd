@@ -1221,7 +1221,8 @@ plotMetrics(data = collegeMetrics[c("Med")],
             metric_legend_params = list(x="left"),
             delta_legend_params = list(x="left"),
             featureMap = collegeColors,
-            title_mtext_params = list(text = "Head count metrics (Medicine)")
+            title_mtext_params = list(text = c("Approximate PI population (School of Medicine)", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  cumulative_plot_params = list(mar = c(0,6,3,1))
             )
 
 # Next three
@@ -1233,7 +1234,8 @@ plotMetrics(data = collegeMetrics[c("Hunt","Engr","Science")],
             metric_legend_params = list(x="left"),
             delta_legend_params = list(x="bottomleft"),
             featureMap = collegeColors,
-            title_mtext_params = list(text = "Head count metrics (three large organizations)")
+            title_mtext_params = list(text = c("Approximate PI population (Huntsman, Engr, and Science)", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  cumulative_plot_params = list(mar = c(0,6,3,1))
             )
 
 # Everyone else
@@ -1246,7 +1248,8 @@ plotMetrics(data = collegeMetrics[!names(collegeMetrics) %in% c("Med", "Hunt","E
             metric_legend2_params = list(plot = FALSE),
             delta_legend_params = list(plot = FALSE),
             featureMap = collegeColors,
-            title_mtext_params = list(text = "Head count metrics (remaining organizations)")
+            title_mtext_params = list(text = c("Approximate PI population (remaining organizations)", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  cumulative_plot_params = list(mar = c(0,6,3,1))
             )
 
 # DOES TERMINATION ALWAYS START AT ZERO? COUNT AND RATE?
@@ -1258,6 +1261,15 @@ plotMetrics(data = collegeMetrics[!names(collegeMetrics) %in% c("Med", "Hunt","E
 
 ### Approximate tabulations of the principal investigator population by cluster
 
+Please see the report [[NAME]] for a lengthier description of the clusters. 
+
+The cluster nicknames and percent of total funds requested won (over ten years) are as follows:
+
+  * "Perfect" (Cluster 1) (2% of funds requested won)
+  * "Precise" (Cluster 2) (13% of funds requested won)
+  * "Pipe dreams" (Cluster 3) (0% of funds requested won)
+  * "Plucky" (Cluster 4) (14% of funds requested won)
+  * "Prolific" (Cluster 5) (71% of funds requested won)
 
 ```{r}
 
@@ -1377,7 +1389,8 @@ plotMetrics(data = complexMetrics,
             metric_legend_params = list(x="topleft"),
             delta_legend_params = list(plot=FALSE),
             featureMap = complexClusterColors,
-            title_mtext_params = list(text = "Head count metrics per cluster")
+            title_mtext_params = list(text = c("Approximate PI population by cluster", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  cumulative_plot_params = list(mar = c(0,6,3,1))
             )
 
 
@@ -1388,12 +1401,14 @@ plotMetrics(data = complexMetrics,
 
 plotMetrics(data = complexMetrics["unassigned"],
             plotList = c("cumulative","count","delta.count"),
-            term_points_params = list(type = "l", lwd=2),
-            hire_points_params = list(type = "l"),
+            cumulative_points_params = list(lwd=3),
+            term_points_params = list(type = "l", lwd=3),
+            delta_points_params = list(lwd=3),
             metric_legend_params = list(x="topleft"),
             delta_legend_params = list(plot=FALSE),
             featureMap = complexClusterColors,
-            title_mtext_params = list(text = "Head count metrics per cluster")
+            title_mtext_params = list(text = c("Approximate PI population (unassigned cluster)", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  cumulative_plot_params = list(mar = c(0,6,3,1))
             )
 
 #########################
@@ -1402,13 +1417,16 @@ plotMetrics(data = complexMetrics["unassigned"],
 #########################
 
 plotMetrics(data = complexMetrics[c(2,4)],
-            plotList = c("cumulative","count","delta.count"),
-            term_points_params = list(type = "l", lwd=2),
-            hire_points_params = list(type = "l"),
-            metric_legend_params = list(x="topleft"),
-            delta_legend_params = list(plot=FALSE),
+            plotList = c("cumulative","count","delta.count"),            
+            metric_legend_params = list(x="topright"),
+            metric_legend2_params = list(x="topleft"),
+            delta_legend_params = list(x="topleft"),
             featureMap = complexClusterColors,
-            title_mtext_params = list(text = "Head count metrics per clusters 2 and 4")
+            title_mtext_params = list(text = c("Approximate PI population (clusters 2 and 4)", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  cumulative_plot_params = list(mar = c(0,6,3,1)),
+  cumulative_points_params = list(lwd=3),
+            term_points_params = list(type = "l", lwd=3),
+            delta_points_params = list(lwd=3)
             )
 
 
@@ -1418,13 +1436,16 @@ plotMetrics(data = complexMetrics[c(2,4)],
 #########################
 
 plotMetrics(data = complexMetrics[c(1,3)],
-            plotList = c("cumulative","count","delta.count"),
-            term_points_params = list(type = "l", lwd=2),
-            hire_points_params = list(type = "l"),
-            metric_legend_params = list(x="topleft"),
-            delta_legend_params = list(plot=FALSE),
+            plotList = c("cumulative","count","delta.count"),            
+            metric_legend_params = list(x="topright"),
+            metric_legend2_params = list(x="topleft"),
+            delta_legend_params = list(x="topleft"),
             featureMap = complexClusterColors,
-            title_mtext_params = list(text = "Head count metrics per clusters 1 and 3")
+            title_mtext_params = list(text = c("Approximate PI population (clusters 1 and 3)", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  cumulative_plot_params = list(mar = c(0,6,3,1)),
+  cumulative_points_params = list(lwd=3),
+            term_points_params = list(type = "l", lwd=3),
+            delta_points_params = list(lwd=3)
             )
 
 
@@ -1434,27 +1455,26 @@ plotMetrics(data = complexMetrics[c(1,3)],
 #########################
 
 plotMetrics(data = complexMetrics[5],
-            plotList = c("cumulative","count","delta.count"),
-            term_points_params = list(type = "l", lwd=2),
-            hire_points_params = list(type = "l"),
-            metric_legend_params = list(x="topleft"),
-            delta_legend_params = list(plot=FALSE),
+            plotList = c("cumulative","count","delta.count"),            
+            metric_legend_params = list(x="topright"),
+            metric_legend2_params = list(x="topleft"),
+            delta_legend_params = list(x="topleft"),
             featureMap = complexClusterColors,
-            title_mtext_params = list(text = "Head count metrics per cluster 5")
+            title_mtext_params = list(text = c("Approximate PI population (cluster 5)", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  cumulative_plot_params = list(mar = c(0,6,3,1)),
+  cumulative_points_params = list(lwd=3),
+            term_points_params = list(type = "l", lwd=3),
+            delta_points_params = list(lwd=3)
             )
 
 ```
 
 
-Discussion points:    
+### Approximate tabulations of the principal investigator population by percentiles.
 
-  - Why do these lines end at different points?
-  - This is a good graphic for plotly (enables hover-over)
-  - Kruskal-Wallis test is a pretty rough check
-    * It isn't taking the time series into account
-  - I'd like to add the cluster colors
+Percentiles are calculated based on the ten year sum of funds requested won per PI.  Please see the report [[NAME]] for a lengthier description.
 
-# TURNOVER BY PERCENTILES
+
 
 ```{r}
 
@@ -1505,10 +1525,41 @@ tileMetrics <- lapply(pisPerTile, function(x){
 tileColors <- c("burlywood1", percentileColors)
 names(tileColors) <- names(tileMetrics)
 
-plotMetrics(tileMetrics,
-            plotList = c("cumulative","count","delta.count"),
-            featureMap = tileColors
+
+plotMetrics(data = tileMetrics,
+            plotList = c("cumulative","count","delta.count"),            
+            metric_legend_params = list(x="topright"),
+            metric_legend2_params = list(x="topleft"),
+            delta_legend_params = list(x="topleft"),
+            featureMap = tileColors,
+            title_mtext_params = list(text = c("Approximate PI population by percentiles", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  cumulative_plot_params = list(mar = c(0,6,3,1)),
+  cumulative_points_params = list(lwd=3),
+            term_points_params = list(type = "l", lwd=3),
+            delta_points_params = list(lwd=3)
             )
+
+```
+
+
+```{r eval=FALSE}
+
+# I decided not to do a deep dive and show these variations
+
+plotMetrics(data = tileMetrics[(names(tileMetrics) %in% c("(0.7,0.8]", "(0.8,0.9]", "(0.9,1]"))],
+            plotList = c("cumulative","count","delta.count"),            
+            metric_legend_params = list(x="topright"),
+            metric_legend2_params = list(x="topleft"),
+            delta_legend_params = list(x="topleft"),
+            featureMap = tileColors,
+            title_mtext_params = list(text = c("Approximate PI population (greater than 70th percentile)", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  cumulative_plot_params = list(mar = c(0,6,3,1)),
+  cumulative_points_params = list(lwd=3),
+            term_points_params = list(type = "l", lwd=3),
+            delta_points_params = list(lwd=3)
+            )
+
+
 
 plotMetrics(tileMetrics[(names(tileMetrics) %in% c("(0.7,0.8]", "(0.8,0.9]", "(0.9,1]"))],
             plotList = c("cumulative","count","delta.count"),
@@ -1545,24 +1596,7 @@ plotMetrics(tileMetrics[(names(tileMetrics) %in% c("[0,0.2]"))],
 
 ```
 
-By visual inspection, here's a few things I'm noticing:
-First of all, the headcount is completely unexpected.
-At least the smallest bucket -- 0 to 0.2 -- has roughly double the headcount as the others.  And the steepest decline (interesting!)
 
-However, how does the top 90th percentile have the largest headcount?  Clearly?  Maybe they have the most stable population?  I mean, that's what this graph is showing, isn't it?  So the people who are in this elite group tend to stick around.  That's positive.  (But don't forget this is 'incomplete' data with a broad assumption.)
-
-
-
-The headcount for the other lines really start to diverge at about 2020.
-
-As far as the decline, could this mean that new PI's simply haven't had the time to enter into the 90th percentile?  After all, these percentiles are calculated over a ten year time.
-
-Which makes me wonder how much of this is circular reasoning.  That is, I have a very large drop-off in PI's at the bottom.   And, are they at the bottom because they left?  Are the PI's at the top because they stayed?  If a PI currently at the top left -- then wouldn't their lifetime  total drop, and their lifetime percentile drop, and they wouldn't be at the top?  
-
-Is it that they are stable, and that puts them in the top?  Or is it that they are at the top, and that makes them stable?
-
-A twin graphic to this is the amount won per year by percentile.
-That would make a reasonably nice line graph.
 
 
 ```{r}
@@ -1584,7 +1618,7 @@ tileRates <- calculateWinRates(data = popper,
                   targetColumn = "PROPOSAL_TOTAL_SPONSOR_BUDGET",
                   categoryColumn = "win.sum_tile")
 
-plotWinRates(tileRates[[1]], agg = "sum") 
+
 
 tile_by_year <- lapply(levels(popper$win.sum_tile), function(tile){
   
@@ -1605,6 +1639,16 @@ tileMap <- cbind(college = levels(popper$win.sum_tile),
                  cex = NA
                  )
 
+```
+
+
+```{r eval = FALSE}
+
+############################################
+## PUT IN REPORT DEDICATED TO PERCENTILES ##
+############################################
+
+plotWinRates(tileRates[[1]], agg = "sum")  # SHOW THIS GRAPH IN A REPORT DEDICATED TO PERCENTILES
 
 extractColumn(tile_by_year, "win.sum", drop = FALSE) |>
   (\(x){ 
@@ -1993,31 +2037,14 @@ extractColumn(college_by_year, "win.sum", drop = FALSE) |>
 ```
 
 
-
-This portion is now fixed:
-I am not understanding in the slightest how I have the largest headcount in the 90th percentile and then going down from there.
-
-This needs some looking into.
-
-Fixed -- by using piCluster[[2]] instead of piEmplid, where piCluster[[2]] uses the full population.
-
-so now I am understanding it --- I calculated the percentile based on the full population, but then filtered to just PI's with at least three or four proposals, so my population is heavier at the higher percentiles.
-using piCluster[[2]] should correct that.
+# BACK-UP TEXT TO DELETE
 
 
+```{r eval=FALSE}
 
-
- 
-#3) COMBINE RETENTION AND PROPOSAL DATA
-
-  3.  Describe the combination of the retention data and the proposal data.
- 
-
-```{r}
-
-###############
-## DURATIONS ##
-###############
+###################################
+## DURATIONS USING COMBINED DATA ##
+###################################
 
 
 histPar <- par(mfrow = c(3,1),
@@ -2188,4 +2215,34 @@ It might be a good time to walk through the SQL logic, too.
 I should pull up a specific example of where I think they were a student, and where they were re-hired after their career.
 
 
+By visual inspection, here's a few things I'm noticing:
+First of all, the headcount is completely unexpected.
+At least the smallest bucket -- 0 to 0.2 -- has roughly double the headcount as the others.  And the steepest decline (interesting!)
+
+However, how does the top 90th percentile have the largest headcount?  Clearly?  Maybe they have the most stable population?  I mean, that's what this graph is showing, isn't it?  So the people who are in this elite group tend to stick around.  That's positive.  (But don't forget this is 'incomplete' data with a broad assumption.)
+
+
+
+The headcount for the other lines really start to diverge at about 2020.
+
+As far as the decline, could this mean that new PI's simply haven't had the time to enter into the 90th percentile?  After all, these percentiles are calculated over a ten year time.
+
+Which makes me wonder how much of this is circular reasoning.  That is, I have a very large drop-off in PI's at the bottom.   And, are they at the bottom because they left?  Are the PI's at the top because they stayed?  If a PI currently at the top left -- then wouldn't their lifetime  total drop, and their lifetime percentile drop, and they wouldn't be at the top?  
+
+Is it that they are stable, and that puts them in the top?  Or is it that they are at the top, and that makes them stable?
+
+A twin graphic to this is the amount won per year by percentile.
+That would make a reasonably nice line graph.
+
+
+
+This portion is now fixed:
+I am not understanding in the slightest how I have the largest headcount in the 90th percentile and then going down from there.
+
+This needs some looking into.
+
+Fixed -- by using piCluster[[2]] instead of piEmplid, where piCluster[[2]] uses the full population.
+
+so now I am understanding it --- I calculated the percentile based on the full population, but then filtered to just PI's with at least three or four proposals, so my population is heavier at the higher percentiles.
+using piCluster[[2]] should correct that.
          
