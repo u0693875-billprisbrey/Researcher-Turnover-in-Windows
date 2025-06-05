@@ -830,7 +830,7 @@ plotMetrics <- function(data,
     
   }
   
-  if(length(data) > 10 && is.na(featureMap)  ) { 
+  if(length(data) > 10 && all(is.na(featureMap))  ) { 
     stop("Add featureMap or reduce list length to <=10")
   }  
   
