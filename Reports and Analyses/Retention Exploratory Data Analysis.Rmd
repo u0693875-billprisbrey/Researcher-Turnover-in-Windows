@@ -818,7 +818,7 @@ names(lateSpan) <- calendar
 plotMetrics(
   data = fullSpan[["year"]],
   plotList = c("cumulative","count","delta.count"),
-  title_mtext_params = list(text = c("AVailable data used to approximate the PI population", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  title_mtext_params = list(text = c("Available data used to approximate the PI population", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
   cumulative_plot_params = list(mar = c(0,6,3,1)),
   cumulative_legend_params = list(legend = "full data"),
   delta_legend_params = list(legend = "full data")
@@ -929,17 +929,6 @@ axis(side = 1,
 
 
 ```
-
-
-[FIXED discussion points]
-  - Some aspects of this graph appear to be mis-aligned due to how counts per interval were aggregated:
-    - Axis labels  
-    - Points not along the main curve   
-    - This needs to be investigated   
-    
-[RELEVANT discussion points]    
-  - The general pattern of an increasing count of PI's that peaked around the year 2020 and declined since needs to be confirmed    
-  - Because the total money requested won has increased, this would mean the average per PI has increased.  This could be one double-check. 
 
 
 ```{r eval=FALSE}
@@ -1120,17 +1109,8 @@ axis(side = 1,
 
 ```
 
-Discussion points:    
 
-  - Turnover is calculated as the number of exits divided by the average head count of active researchers per period.
-  - This calculation and graphic needs the same due diligence as noted previously (axis labels shifted and double-check of interval aggregations.)    
-  - The general trend of increasing turnover, spiking last year, is somewhat alarming.  It may be worthwhile to compare PI turnover to turnover by all faculty.   
-
-# TURNOVER BY COLLEGE
-
-I'm struggling if there's a point to do this.
-
-Maybe just to develop the mechanics?
+### Approximate tabulations of the principal investigator population by college
 
 ```{r}
 
@@ -1225,12 +1205,58 @@ mtext(side = 3,
 ```
 
 
-Discussion points:    
+```{r}
 
-  - Why do these lines end at different points?
-  - This is a good graphic for plotly (enables hover-over)
-  - Kruskal-Wallis test is a pretty rough check   
-# TURNOVER BY COMPLEX CLUSTER
+#########################
+##        PLOT OF      ##
+## METRICS PER COLLEGE ##
+#########################
+
+# Medicine
+
+plotMetrics(data = collegeMetrics[c("Med")],
+            plotList = c("cumulative","count","delta.count"),
+            term_points_params = list(type = "l", lwd=2),
+            hire_points_params = list(type = "l"),
+            metric_legend_params = list(x="left"),
+            delta_legend_params = list(x="left"),
+            featureMap = collegeColors,
+            title_mtext_params = list(text = "Head count metrics (Medicine)")
+            )
+
+# Next three
+
+plotMetrics(data = collegeMetrics[c("Hunt","Engr","Science")],
+            plotList = c("cumulative","count","delta.count"),
+            term_points_params = list(type = "l", lwd=2),
+            hire_points_params = list(type = "l"),
+            metric_legend_params = list(x="left"),
+            delta_legend_params = list(x="bottomleft"),
+            featureMap = collegeColors,
+            title_mtext_params = list(text = "Head count metrics (three large organizations)")
+            )
+
+# Everyone else
+
+plotMetrics(data = collegeMetrics[!names(collegeMetrics) %in% c("Med", "Hunt","Engr","Science")],
+            plotList = c("cumulative","count","delta.count"),
+            term_points_params = list(type = "l", lwd=2),
+            hire_points_params = list(type = "l"),
+            metric_legend_params = list(x = "top"),
+            metric_legend2_params = list(plot = FALSE),
+            delta_legend_params = list(plot = FALSE),
+            featureMap = collegeColors,
+            title_mtext_params = list(text = "Head count metrics (remaining organizations)")
+            )
+
+# DOES TERMINATION ALWAYS START AT ZERO? COUNT AND RATE?
+# OR JUST FOR THIS DATA SELECTION?
+
+```
+
+
+
+### Approximate tabulations of the principal investigator population by cluster
 
 
 ```{r}
@@ -1416,56 +1442,6 @@ plotMetrics(data = complexMetrics[5],
             featureMap = complexClusterColors,
             title_mtext_params = list(text = "Head count metrics per cluster 5")
             )
-
-```
-
-
-```{r}
-
-#########################
-##        PLOT OF      ##
-## METRICS PER COLLEGE ##
-#########################
-
-# Medicine
-
-plotMetrics(data = collegeMetrics[c("Med")],
-            plotList = c("cumulative","count","delta.count"),
-            term_points_params = list(type = "l", lwd=2),
-            hire_points_params = list(type = "l"),
-            metric_legend_params = list(x="left"),
-            delta_legend_params = list(x="left"),
-            featureMap = collegeColors,
-            title_mtext_params = list(text = "Head count metrics (Medicine)")
-            )
-
-# Next three
-
-plotMetrics(data = collegeMetrics[c("Hunt","Engr","Science")],
-            plotList = c("cumulative","count","delta.count"),
-            term_points_params = list(type = "l", lwd=2),
-            hire_points_params = list(type = "l"),
-            metric_legend_params = list(x="left"),
-            delta_legend_params = list(x="bottomleft"),
-            featureMap = collegeColors,
-            title_mtext_params = list(text = "Head count metrics (three large organizations)")
-            )
-
-# Everyone else
-
-plotMetrics(data = collegeMetrics[!names(collegeMetrics) %in% c("Med", "Hunt","Engr","Science")],
-            plotList = c("cumulative","count","delta.count"),
-            term_points_params = list(type = "l", lwd=2),
-            hire_points_params = list(type = "l"),
-            metric_legend_params = list(x = "top"),
-            metric_legend2_params = list(plot = FALSE),
-            delta_legend_params = list(plot = FALSE),
-            featureMap = collegeColors,
-            title_mtext_params = list(text = "Head count metrics (remaining organizations)")
-            )
-
-# DOES TERMINATION ALWAYS START AT ZERO? COUNT AND RATE?
-# OR JUST FOR THIS DATA SELECTION?
 
 ```
 
