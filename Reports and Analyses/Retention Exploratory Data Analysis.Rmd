@@ -486,7 +486,7 @@ activeProposing$effective_hire[rehire_condition] <- activeProposing$REHIRE_DT[re
 
 All graphics produced in this report used incomplete data, and no conclusions should be drawn.
 
-This data shows a decline in the estimated headcount of principal investigators starting in about 2020 due to reduced hires and increased departures.  
+This data shows a decline in the estimated headcount of principal investigators starting in about 2020 due to reduced hires and increased departures.  No investigation or explanation is attempted in this report.
 
 It also shows that the population above the 90th percentile for funds won are more stable with fewer departures than the rest.
 
@@ -496,18 +496,35 @@ Upon re-analyzing with complete data, valid conclusions can be drawn.
 
 # SUMMARY
 
-The retention data contains records for `r nrow(retData) |> format(big.mark = ",")` principal investigators, where principal investigators are extracted from the table "osp.d_pi_vw" and are presumably identified according to the definitions and designations found in (Rule R7-200B)[https://regulations.utah.edu/research/rules_7/r7-200b.php#a.II].  The definition of a principal investigator and inclusion in this data set is being reviewed.
+The retention data contains records for `r nrow(retData) |> format(big.mark = ",")` principal investigators, where principal investigators are extracted from the table "osp.d_pi_vw" and are presumably identified according to the definitions and designations found in [Rule R7-200B](https://regulations.utah.edu/research/rules_7/r7-200b.php#a.II).  The definition of a principal investigator and inclusion in this data set is being reviewed.
 
 This data set includes all `r table(retData$PI_EMPLID %in% prepData$PROPOSAL_PI_EMPLID)[2] |> format(big.mark = ",") ` principal investigators who submitted proposals after FY2013 as described in the Grants Exploratory project, and contains an additional `r table(retData$PI_EMPLID %in% prepData$PROPOSAL_PI_EMPLID)[1] |> format(big.mark = ",") ` principal investigators who presumably submitted proposals before 2013.  Although additional information from HR is forthcoming, and the designation of "principal investigator" in OSP data is being reviewed, it may be prudent to exclude the additional PI's from future projects due to incomplete data on their proposal submissions.
 
-The data contains up to three dates per PI:  initial hire date, one re-hire date, and the most recent termination date.  Because not all termination and re-hire dates are included, it is impossible to accurately tabulate head count.  This prevents accurate calculation of metrics that use the headcount as a denominator, such as the turnover rate.  As well,action reasons, such as an explanation for termination, are not included, making it is impossible to distinguish "voluntary" and "involuntary" separation.
+The data contains up to three dates per PI:  initial hire date, one re-hire date, and the most recent termination date.  Because not all termination and re-hire dates are included, it is impossible to accurately tabulate head count.  This prevents accurate calculation of metrics that use the headcount as a denominator, such as the turnover rate.  Instead, re-hire dates are ignored and headcount is estimated using the initial hire date.
 
+As well, action reasons (such as an explanation for termination) are not included, making it is impossible to distinguish "voluntary" and "involuntary" separation.
 
 The earliest hire date reaches back to  `r year(min(retData$HIRE_DT, na.rm = TRUE))`, and the earliest termination date is in `r year(min(retData$HIRE_DT, na.rm = TRUE))`.  The largest interval between initial hire and rehire date is `r round(max(retData$initial, na.rm = TRUE))` years, and the largest interval between hire date and termination date is `r round(max(retData$hire, na.rm = TRUE))` years.
 
-The data shows strong seasonality, with most hire or termination activity happening around July 1st.
+The data shows most hire or termination activity happening around July 1st.
 
-Head count gradually 
+Population head count appears to decline from 2020 onwards due to an increase in terminations and a decrease in hiring.  Because re-hires are ignored, head count is roughly estimated.
+
+Among the colleges, the count of departures increased dramatically in 2024 at Engineering and Science, and remained stable (though elevated) at the School of Medicine and at the Huntsman Cancer Institute. 
+
+The description of the clusters and percentiles is located at [NAME DOCUMENT].
+
+Among the clusters, departure counts among PI's not assigned to a cluster (due to too few proposals) are highest, and lowest in Cluster 5 (NAME THE CLUSTER.)   
+
+By percentiles, the 90th percentile or higher population has the lowest departure counts and what appears to be the most stable population.  Errors introduced by this estimation aside, it introduces a chicken-or-egg question:  is this population successful because they are stable, or stable because they are successful?  
+
+[Do I want to say something about the lower percentiles?]
+
+Percentiles are re-calculated on an annual basis.  About 40% of the PI's consistently win funds within a five percentile range of themselves in any given year.  However, a very strong alternating pattern was discovered where a PI wins at a high percentile in one year followed by a low percentile in the next year.
+
+
+
+[how is that possible?]
 
 
 
