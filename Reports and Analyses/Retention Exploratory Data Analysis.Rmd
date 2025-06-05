@@ -68,50 +68,8 @@ output: html_document
 
 
 
-**NOTES FROM REVIEW MEETING:**
 
-This report was reviewed on 4.30.2025 with the following action item and summary.
-
-Action Items:
-- Dave to investigate negative and zero values for rehire-to-termination intervals (after Bill sends a list.)
-- Dave to investigate:
-	- Obtaining information that could describe voluntary and involuntary separation (who was fired vs who quit)
-	- Obtaining birthdates from HR (so we can see if the declining number of PI's correlates with old age and retirement.)
-- Bill to investigate: 
-	- Proposal submission dates against the hire/rehire/termination intervals
-	- Number of PI's submitting each year
-	- Tighten up interval definitions and aggregations
-	- Fix x-axis graph labeling
-	- "Tendrils" on the per-week graph of active PI's
-	- Compare the mean proposal award and see if it is climbing (to verify the declining number of PI's since COVID.)
-	- Compare counts of hire/rehire/termination dates on the same graphic
-	- Compare PI's submitting proposals against this view for completion's sake
-
-Summary: 
-- Bill asks how the view with the HR data is defined; what defines a PI for inclusion in this view?
-- Rehire date is after the termination date in one case, and on the same day for a few others.  Dave will investigate. 	
-- The lack of an initial termination date to pair with the initial hire date causes some confusion and guess-work as to when people are actually actively researching.  For example, if someone worked for a semester as a janitor as an undergrad, and then came back 15 years later as a researcher, the data will count her in the denominator of the turnover calculation for those 15 years.  This means the turnover calculation is incorrect.
-- Bill wonders:  Can we identify voluntary vs involuntary separation?  --> Dave thinks there might be a "reason for update" field with a code attached to it in PS_JOB.
-- The number of active PI's has declined since COVID.  Dave thinks this may be age and retirement.  Dave will try and get the birthday so we can include.
-- The turnover has increased every year, dramatically increasing in 2024.
-- This is a quick'n'dirty report with some problems:
-	- The definition of "active researchers" has problematic assumptions as described above. 
-	- The headcount of active researchers (between hire and termination date) by week has "tendrils" that need to be explained.
-	- X-axis labels are shifted and interval aggregations need to be double-checked.
-	- Kruskal-Wallis is not a very sensitive test nor the most appropriate for a time series
-- A visual inspection of the "per cluster" trends shows two clusters moving together, one cluster consistently below the others, and two clusters with volatile and large turn-over.
-
-**CONCLUSIONS AND NEXT STEPS:**
-
-Several aspects of this report were intriguing:   
-
-  - The increasing turnover, especially the spike in 2024       
-  - The decline in PI headcount since COVID   
-  - The visual inspection of turnover by cluster showing two clusters moving together and one cluster with a consistently lower turnover 
-  
-As well, many aspects of this report deserve a better treatment, including attempting to eliminate the guess-work introduced by the hire/rehire dates.
-
-Due to these reasons, it was decided to continue investigating turnover by principal investigators.    
+    
 
   
 ```{r include = FALSE}
@@ -486,11 +444,9 @@ activeProposing$effective_hire[rehire_condition] <- activeProposing$REHIRE_DT[re
 
 All graphics produced in this report used incomplete data, and no conclusions should be drawn.
 
-This data shows a decline in the estimated headcount of principal investigators starting in about 2020 due to reduced hires and increased departures.  No investigation or explanation is attempted in this report.
+This (incomplete) data shows a decline in the estimated headcount of principal investigators starting in about 2020 due to reduced hires and increased departures.  No investigation or explanation is attempted in this report.
 
-It also shows that the population above the 90th percentile for funds won are more stable with fewer departures than the rest.
-
-I need to conclude about the clusters
+It also shows that Cluster 5 "Prolific" PI's (the workhorses of U research), and the population above the 90th percentile for funds won, are more stable with fewer departure counts than other clusters or percentiles.
 
 Upon re-analyzing with complete data, valid conclusions can be drawn.
 
@@ -559,20 +515,36 @@ Population definition -- who got in here and why?
 It consisted of a an intial hire date and re-hire or final termination dates as applicable.  Because there was no initial termination date paired with the re-hire date, the re-hire date was ignored.  This means that the headcount was calculated only using the initial hire date.  Because the head count was wrong, metrics like turnover rate that rely on the head count are wrong.
 
 
+# 1) DESCRIBE THE RETENTION DATA   
 
-# HIGHLIGHTS, AVENUES FOR FURTHER EXPLORATION, AND NEXT STEPS
+### QUERY
 
+VPR.D_PI_EMP_DT_VW as
+  SELECT pi."PI_DIM_KEY",    
+         pi."PI_EMPLID",    
+         pi."PI_FIRST_NAME",    
+         pi."PI_MIDDLE_NAME",    
+         pi."PI_LAST_NAME",    
+         pi."PI_NAME",    
+         pi."PI_EMAIL_ADDRESS",    
+         pi."PI_PHONE",    
+         pi."PI_INDICATOR",    
+         pi."IS_PI",    
+         pi."PI_LOAD_DATE_TIME",    
+         pi."PI_UPDATE_DATE_TIME",    
+         emp.hire_dt,    
+         emp.rehire_dt,    
+         emp.termination_dt
+         FROM osp.d_pi_vw pi
+         LEFT JOIN uuetl_hr.PS_UU_EMPLOYMENT_VW emp ON pi.pi_emplid = emp.emplid
 
+### DATA SUMMARY
 
+```{r include=TRUE}
 
+skim(retData)
 
-#1) DESCRIBE THE RETENTION DATA   
-
-Put a few words here describing the query.
-
-Put a few words here describing "skimr" results -- number of rows, PI's, hires, re-hires, and terminations.
-
-Then explain the handful of graphics that I want to show here.  Show the graphics under their own headings.
+```
 
 ### Retention dates
 
@@ -626,8 +598,6 @@ par(plotPar)
 # maybe scaled lines on the same graphic? (Gotta do this one!)
 
 ```
-
-
 
 ### Retention intervals
 
@@ -688,13 +658,7 @@ par(histPar)
 
 ```
 
-Duration thoughts:    
 
-  - The lack of a termination date before the re-hire date introduces guess-work.   
-  - Some researchers are apparently hired as students and re-hired later in their career.    
-  - Some researchers are apparently hired in retirement after their career. 
-  - These durations need to be aligned with proposal submission dates.    
-  - This shows that we currently have 2,994 active principal investigators.   
 
 ### Seasonality
 
@@ -732,7 +696,7 @@ points(weeklyTerms,
        col = "firebrick")
 
 mtext(side = 3,
-      "Workforce flow has strong seasonality\nwith most activity happening in Week 26",
+      "Most workforce activity happens in Week 26",
       font =2,
       cex = 1.384,
       line = 1)
@@ -745,16 +709,8 @@ legend("topleft",
 
 par(plotPar)
 
-
-
-table(week(retData$TERMINATION_DT)) |>
-  plot(xlab = "week of year",
-       ylab = "Count of terminations per week",
-       main = "PIs are mostly terminated around June 30th")
-
-
-
 ```
+
 
 ```{r eval=FALSE}
 
@@ -802,13 +758,10 @@ par(plotPar)
 
 
 
-#2) CALCULATE AND COMPARE TURNOVER
+# 2) CALCULATE AND COMPARE TURNOVER
 
-### Active principal investigators
+### Approximate tabulations of the principal investigator population
 
-Except this is the date between "hire" and "rehire", so it's not accurate. 
-
-"Active" is not a good term.
 
 ```{r}
 
@@ -865,46 +818,26 @@ names(lateSpan) <- calendar
 plotMetrics(
   data = fullSpan[["year"]],
   plotList = c("cumulative","count","delta.count"),
-  title_mtext_params = list(text = "Approximate PI Headcount\nrehire dates ignored", line = -1.618),
-  cumulative_plot_params = list(mar = c(0,6,3,1))
+  title_mtext_params = list(text = c("AVailable data used to approximate the PI population", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  cumulative_plot_params = list(mar = c(0,6,3,1)),
+  cumulative_legend_params = list(legend = "full data"),
+  delta_legend_params = list(legend = "full data")
 )
 
 
 plotMetrics(
   data = midSpan[["year"]],
   plotList = c("cumulative","count","delta.count"),
-    title_mtext_params = list(text = "Approximate PI Headcount\nrehire dates ignored", line = -1.618),
-  cumulative_plot_params = list(mar = c(0,6,3,1))
+      title_mtext_params = list(text = c("Approximate PI population from 2013 onwards", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  cumulative_plot_params = list(mar = c(0,6,3,1)),
+    cumulative_legend_params = list(legend = "full data"),
+  delta_legend_params = list(legend = "full data")
 )
 
 ```
 
 
-I need some words like
 
-[x] number of PI's have hire and rehire dates.  This creates uncertainty in the data as there is only one termination date.
-
-Therefore, only the hire date is used.  And the re-hire date is completely ignored.
-
-This means that individuals are counted after their hire date.  "Headcount" includes individuals who are after their hire date and before their termination date.
-
-It means I am including someone who might have worked as a janitor during their undergraduate years, quit upon graduation, and have been elsewhere.
-
-It also means that I am including someone who 
-
-(room with hallway graphic (?))
-
-Let's show a graphic with the re-hires removed completely.
-
-I really need to emphasize my uncertainty with this data and graphic.  There's a strong guess here, or this reflects an assumption that is wrong.
-
-Probably a discussion on how my hire and departure rates are calculated on an avg headcount basis.
-
-And, what if this is COMPLETELY wrong?  Like, laughably and insanely wrong?
-
-It might be a good time to walk through the SQL logic, too.
-
-I should pull up a specific example of where I think they were a student, and where they were re-hired after their career.
 
 ```{r eval = FALSE}
 
@@ -2098,34 +2031,6 @@ using piCluster[[2]] should correct that.
 
 
 
-# DATA DESCRIPTION
-
-```{r include=TRUE}
-
-skim(retData)
-
-```
-
-# QUERY
-
-VPR.D_PI_EMP_DT_VW as
-  SELECT pi."PI_DIM_KEY",    
-         pi."PI_EMPLID",    
-         pi."PI_FIRST_NAME",    
-         pi."PI_MIDDLE_NAME",    
-         pi."PI_LAST_NAME",    
-         pi."PI_NAME",    
-         pi."PI_EMAIL_ADDRESS",    
-         pi."PI_PHONE",    
-         pi."PI_INDICATOR",    
-         pi."IS_PI",    
-         pi."PI_LOAD_DATE_TIME",    
-         pi."PI_UPDATE_DATE_TIME",    
-         emp.hire_dt,    
-         emp.rehire_dt,    
-         emp.termination_dt
-         FROM osp.d_pi_vw pi
-         LEFT JOIN uuetl_hr.PS_UU_EMPLOYMENT_VW emp ON pi.pi_emplid = emp.emplid
  
 #3) COMBINE RETENTION AND PROPOSAL DATA
 
@@ -2222,7 +2127,89 @@ My "prepData" had some cleaning on it.
 It does raise the question.  From my complexMetrics, what's the first hire date?
 
 
+**NOTES FROM REVIEW MEETING:**
+
+This report was reviewed on 4.30.2025 with the following action item and summary.
+
+Action Items:
+- Dave to investigate negative and zero values for rehire-to-termination intervals (after Bill sends a list.)
+- Dave to investigate:
+	- Obtaining information that could describe voluntary and involuntary separation (who was fired vs who quit)
+	- Obtaining birthdates from HR (so we can see if the declining number of PI's correlates with old age and retirement.)
+- Bill to investigate: 
+	- Proposal submission dates against the hire/rehire/termination intervals
+	- Number of PI's submitting each year
+	- Tighten up interval definitions and aggregations
+	- Fix x-axis graph labeling
+	- "Tendrils" on the per-week graph of active PI's
+	- Compare the mean proposal award and see if it is climbing (to verify the declining number of PI's since COVID.)
+	- Compare counts of hire/rehire/termination dates on the same graphic
+	- Compare PI's submitting proposals against this view for completion's sake
+
+Summary: 
+- Bill asks how the view with the HR data is defined; what defines a PI for inclusion in this view?
+- Rehire date is after the termination date in one case, and on the same day for a few others.  Dave will investigate. 	
+- The lack of an initial termination date to pair with the initial hire date causes some confusion and guess-work as to when people are actually actively researching.  For example, if someone worked for a semester as a janitor as an undergrad, and then came back 15 years later as a researcher, the data will count her in the denominator of the turnover calculation for those 15 years.  This means the turnover calculation is incorrect.
+- Bill wonders:  Can we identify voluntary vs involuntary separation?  --> Dave thinks there might be a "reason for update" field with a code attached to it in PS_JOB.
+- The number of active PI's has declined since COVID.  Dave thinks this may be age and retirement.  Dave will try and get the birthday so we can include.
+- The turnover has increased every year, dramatically increasing in 2024.
+- This is a quick'n'dirty report with some problems:
+	- The definition of "active researchers" has problematic assumptions as described above. 
+	- The headcount of active researchers (between hire and termination date) by week has "tendrils" that need to be explained.
+	- X-axis labels are shifted and interval aggregations need to be double-checked.
+	- Kruskal-Wallis is not a very sensitive test nor the most appropriate for a time series
+- A visual inspection of the "per cluster" trends shows two clusters moving together, one cluster consistently below the others, and two clusters with volatile and large turn-over.
 
 
+**CONCLUSIONS AND NEXT STEPS:**
+
+Several aspects of this report were intriguing:   
+
+  - The increasing turnover, especially the spike in 2024       
+  - The decline in PI headcount since COVID   
+  - The visual inspection of turnover by cluster showing two clusters moving together and one cluster with a consistently lower turnover 
+  
+As well, many aspects of this report deserve a better treatment, including attempting to eliminate the guess-work introduced by the hire/rehire dates.
+
+Due to these reasons, it was decided to continue investigating turnover by principal investigators.
+
+
+Duration thoughts:    
+
+  - The lack of a termination date before the re-hire date introduces guess-work.   
+  - Some researchers are apparently hired as students and re-hired later in their career.    
+  - Some researchers are apparently hired in retirement after their career. 
+  - These durations need to be aligned with proposal submission dates.    
+  - This shows that we currently have 2,994 active principal investigators.   
          
+
+Notes after the initial over-all headcount metrics
+
+I need some words like
+
+[x] number of PI's have hire and rehire dates.  This creates uncertainty in the data as there is only one termination date.
+
+Therefore, only the hire date is used.  And the re-hire date is completely ignored.
+
+This means that individuals are counted after their hire date.  "Headcount" includes individuals who are after their hire date and before their termination date.
+
+It means I am including someone who might have worked as a janitor during their undergraduate years, quit upon graduation, and have been elsewhere.
+
+It also means that I am including someone who 
+
+(room with hallway graphic (?))
+
+Let's show a graphic with the re-hires removed completely.
+
+I really need to emphasize my uncertainty with this data and graphic.  There's a strong guess here, or this reflects an assumption that is wrong.
+
+Probably a discussion on how my hire and departure rates are calculated on an avg headcount basis.
+
+And, what if this is COMPLETELY wrong?  Like, laughably and insanely wrong?
+
+It might be a good time to walk through the SQL logic, too.
+
+I should pull up a specific example of where I think they were a student, and where they were re-hired after their career.
+
+
          
