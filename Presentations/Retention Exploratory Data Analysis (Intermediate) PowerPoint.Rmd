@@ -1,0 +1,1155 @@
+---
+title: "Retention Exploratory Data Analysis PowerPoint"
+author: "Bill Prisbrey"
+date: "2025-05-29"
+output: 
+  powerpoint_presentation:
+    reference_doc: Reference_Template_vB0.pptx
+---
+
+
+```{r programmers.notes, include = FALSE}
+
+# The initial purpose of this is to create some slides of my graphics for sharing in meetings.
+
+# It may become a stand-alone presentation or it may just be a place to create ppt slides as needed.
+
+```
+
+
+```{r settings, include = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE, fig.height=6.75, fig.width=12)
+
+# adjust graphic parameters
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+# par(oldPar) #restore old parameters # restore old parameters after the plot
+
+library(lubridate)
+
+```
+
+
+```{r}
+
+# Copy and paste from Retention EDA document
+# as I don't have this currently set up in a "prep" script
+
+```
+
+
+
+```{r}
+
+###########
+## QUERY ##
+###########
+
+# Obtain retention data
+
+keyring::keyring_unlock(keyring = "BIPR", password = "Excelsior!")
+
+library(DBI)
+con.ds <- DBI::dbConnect(odbc::odbc(), Driver = "oracle", Host = "ocm-campus01.it.utah.edu", 
+                         SVC = keyring::key_list(keyring = "BIPR")[1, 1], UID = keyring::key_list(keyring = "BIPR")[1, 
+                                                                                                                    2], PWD = keyring::key_get(keyring = "BIPR", service = keyring::key_list(keyring = "BIPR")[1, 
+                                                                                                                                                                                                               1]), Port = 2080)
+retentionQuery <- "
+SELECT *
+FROM VPR.D_PI_EMP_DT_VW EMP_DATES
+"
+
+retData <- dbGetQuery(con.ds,
+                      retentionQuery)
+
+
+DBI::dbDisconnect(con.ds)
+
+
+
+
+```
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+# PREP SCRIPT
+
+source(here::here("Prep scripts","Adjusting prepData and loading things.R"))
+
+
+# PER PI
+
+piClusters <- lapply(list.files(here::here("Robjects", "Clustering PIs"), full.names = TRUE), readRDS)
+
+###########
+## MERGE ## 
+###########
+
+piEmplid <- Reduce(function(x, y) {
+  merged <- merge(x, y, by = "emplid", all = FALSE)
+  merged <- merged[, !duplicated(sub("\\.x$|\\.y$", "", names(merged)))]  # Remove duplicate columns
+  
+  # Rename columns to remove ".x"
+  names(merged) <- sub("\\.x$", "", names(merged))
+  
+  merged
+}, piClusters)
+# piEmplid <- Reduce(function(x, y) merge(x, y, by = "emplid", all = FALSE), piClusters)
+# piEmplid <- do.call(merge, piClusters)
+
+
+
+prepData <- merge(prepData, piEmplid[,c("emplid","complex_cluster","rate_cluster")], by.x =  "PROPOSAL_PI_EMPLID", by.y = "emplid", all.x = TRUE)
+
+##########
+## PREP ##
+##########
+
+piEmplid$combined_cluster <-  factor(paste(piEmplid$complex_cluster, piEmplid$rate_cluster, sep = ", "))
+
+prepData$combined_cluster <- factor(paste(prepData$complex_cluster, prepData$rate_cluster, sep = ", "))
+
+###############
+## LIBRARIES ##
+###############
+
+library(viridis)
+library(pheatmap)
+
+#########
+## MAP ##
+#########
+
+piMap <- data.frame(college = row.names(piEmplid), abbrv = row.names(piEmplid), color = NA, pch = 19, cex = 0.7 )
+
+# I need the college map of colors
+
+fullEmplid <- calculateWinRates(data = cleanData, categoryColumn = "PROPOSAL_PI_EMPLID") |>
+  (\(x){x[[1]]})()
+
+fullEmplid$count.total <- apply(fullEmplid[,c("win.count","loss.count")],1,sum)
+
+filterTwoCount <- fullEmplid$count.total >= 2
+# filterThreeCount <- piEmplid$count.total > 3
+
+
+```
+
+
+```{r}
+             
+# Manage colors
+
+#############
+## COMPLEX ##
+#############
+
+complexClusterColors <- c("forestgreen", "deepskyblue", "goldenrod",  
+                            "firebrick", "darkslategray", "chartreuse",  
+                            "slateblue", "darkkhaki", "coral")
+
+names(complexClusterColors) <- c(as.character(1:5),"unassigned") # I'll surely regret this
+
+clusterComplexMapping <- piMap
+clusterComplexMapping[,"pch"] <- rep(19, nrow(clusterComplexMapping))
+
+clusterComplexMapping[,"color"] <- complexClusterColors [piEmplid$complex_cluster]
+
+# clusterComplexMapping[,"color"] <- complexClusterColors[complexHCPC$data.clust$clust[match(clusterComplexMapping[,"college"], row.names(complexHCPC$data.clust))] ]
+
+##############
+## COMBINED ##
+##############
+
+combinedClusterColors <- c("forestgreen", "deepskyblue", "goldenrod",  
+  "firebrick", "darkslategray", "chartreuse",  
+  "slateblue", "darkkhaki", "coral",  
+  "mediumorchid", "dodgerblue", "tomato",  
+  "orchid", "darkseagreen", "sienna",  
+  "royalblue", "indianred", "seagreen",  
+  "peru", "cadetblue", "plum",  
+  "midnightblue", "lawngreen", "darkorange",  
+  "lightsteelblue")
+
+clusterCombinedMapping <- piMap
+clusterCombinedMapping[,"pch"] <- rep(19, nrow(clusterCombinedMapping))
+
+clusterCombinedMapping[,"color"] <- combinedClusterColors [piEmplid$combined_cluster]
+
+
+
+################
+## PERCENTILE ##
+################
+
+percentileColors <- viridis(10,direction = -1)[c(1:7,10)]
+percentileMapping <- piMap
+
+percentileMapping[,"pch"] <- rep(19, nrow(percentileMapping))
+
+percentileMapping[,"color"] <- percentileColors[as.numeric(cut(piEmplid$win.sum_percentile, breaks = seq(0.2,1,by=0.1)))]
+
+#############
+## COLLEGE ##
+#############
+
+collegeAbbrv <- cbind(
+  college = c(sweet16, bigInst, "other"),
+  abbrv = c("Arch",
+            "Educ",
+            "FinArt",
+            "Health",
+            "Hum",
+            "Nurs",
+            "Pharm",
+            "Science",
+            "SocBeh",
+            "SocWrk",
+            "Bus",
+            "Law",
+            "Tran",
+            "Dent",
+            "Med",
+            "Engr",
+            "EGI",
+            "Hunt",
+            "SCI",
+            "CVRTI",
+            "ICSE",
+            "CTSI",
+            "other"
+  ),
+  color = c(
+    "lightslategray",
+    "orange",
+    "cyan", 
+    "hotpink", 
+    "brown", 
+    "darkgoldenrod", 
+    "gold", 
+    "green",
+    "navy", 
+    "magenta", 
+    "olivedrab4", 
+    "salmon", 
+    "darkgreen",
+    "yellowgreen", 
+    "red",
+    "blue",
+    "chocolate", 
+    "purple",
+    "violet", 
+    "khaki",
+    "deepskyblue3",
+    "chartreuse",
+    "darkmagenta"
+  ),
+  pch = c(
+    1,14,15,2,3,4,17,6,5,8,9,10,11,12,13,0,16,7,18, 23, 24, 25, 20  
+    
+    
+  ),
+  
+  cex = rep(NA, length(c(sweet16, bigInst, "other")) )
+)
+
+collegeColors <- setNames(collegeAbbrv[,"color"], collegeAbbrv[,"abbrv"])
+
+```
+
+```{r}
+
+##############################
+## ACTIVE PROPOSING PERIODS ##
+##############################
+
+minDate <- aggregate(PROPOSAL_UPLOAD_DATE ~ PROPOSAL_PI_EMPLID, data = prepData, FUN =  function(x) {as.Date(min(x))})
+
+maxDate <- aggregate(PROPOSAL_UPLOAD_DATE ~ PROPOSAL_PI_EMPLID, data = prepData, FUN = function(x) {as.Date(max(x))})
+
+activeProposing <- merge(minDate, maxDate, by = "PROPOSAL_PI_EMPLID")
+names(activeProposing) <- c("PROPOSAL_PI_EMPLID", "PROPOSAL_UPLOAD_DATE.min", "PROPOSAL_UPLOAD_DATE.max")
+
+activeProposing <- merge(activeProposing, retData[,c("PI_EMPLID", "HIRE_DT", "REHIRE_DT", "TERMINATION_DT")],
+               by.x = "PROPOSAL_PI_EMPLID",
+               by.y = "PI_EMPLID",
+               all.x = TRUE)
+
+```
+
+
+```{r}
+
+###################################
+## CALCULATE RETENTION INTERVALS ##
+###################################
+
+# library(lubridate)
+
+# This is the initial time between "hire date" and "re-hire date"
+retData$initial <- time_length(interval(retData$HIRE_DT, retData$REHIRE_DT), unit = "year")
+
+# This is the time between "re-hire date" and "termination date"
+retData$rehire <- time_length(interval(retData$REHIRE_DT, retData$TERMINATION_DT), unit = "year")
+
+# This is the time from initial hire to termination date
+retData$hire <- time_length(interval(retData$HIRE_DT, retData$TERMINATION_DT), unit = "year")
+
+
+```
+
+
+
+# EXECUTIVE SUMMARY
+
+All graphics produced in this report used incomplete data, and no conclusions should be drawn.
+
+This incomplete data set shows a decline in the estimated headcount of principal investigators starting in about 2020 due to reduced hires and increased departures.  No investigation or explanation is attempted in this report.
+
+It also shows that Cluster 5 PI's (nick-named "Prolific" for being the workhorses of U research), and the population above the 90th percentile for funds won during a ten year period, are more stable with fewer departure counts than other clusters or percentiles.  This creates a "chicken-or-the-egg" question as to whether their proclivity led to their stability or vice versa.
+
+Upon re-analyzing with complete data, valid conclusions can be drawn.
+
+# SUMMARY
+
+The retention data contains records for `r nrow(retData) |> format(big.mark = ",")` principal investigators, where principal investigators are extracted from the table "osp.d_pi_vw" and are presumably identified according to the definitions and designations found in [Rule R7-200B](https://regulations.utah.edu/research/rules_7/r7-200b.php#a.II).  The definition of a principal investigator and inclusion in this data set is being reviewed.
+
+This data set includes all `r table(retData$PI_EMPLID %in% prepData$PROPOSAL_PI_EMPLID)[2] |> format(big.mark = ",") ` principal investigators who submitted proposals after FY2013 as described in the Grants Exploratory project, and contains an additional `r table(retData$PI_EMPLID %in% prepData$PROPOSAL_PI_EMPLID)[1] |> format(big.mark = ",") ` principal investigators who presumably submitted proposals before 2013.  Although additional information from HR is forthcoming, and the designation of "principal investigator" in OSP data is being reviewed, it may be prudent to exclude the additional PI's from future projects due to incomplete data on their proposal submissions.
+
+The data contains up to three dates per PI:  initial hire date, one re-hire date, and the most recent termination date (if it exists.)  Because not all termination and re-hire dates are included, it is impossible to accurately tabulate head count.  This prevents accurate calculation of metrics that use the headcount as a denominator, such as the turnover rate.  Instead, re-hire dates are ignored and headcount is estimated using the initial hire date.
+
+As well, action reasons (such as an explanation for termination) are not included, making it impossible to distinguish "voluntary" and "involuntary" separation.
+
+# ***Dates and intervals:***    
+The earliest hire date reaches back to  `r year(min(retData$HIRE_DT, na.rm = TRUE))`, and the earliest termination date is in `r year(min(retData$TERMINATION_DT, na.rm = TRUE))`.  The largest interval between initial hire and rehire date is `r round(max(retData$initial, na.rm = TRUE))` years, and the largest interval between hire date and termination date is `r round(max(retData$hire, na.rm = TRUE))` years.
+
+# ***Seasonality:***    
+The data shows most hire or termination activity happening in the middle of the year around July 1st.
+
+# ***Apparent population decline overall:***   
+Population head count appears to decline from 2020 onwards due to an increase in terminations and a decrease in hiring.  Because re-hires are ignored, head count is roughly estimated.
+
+# ***Estimated population by college:***    
+Among the colleges, the count of departures increased dramatically in 2024 at Engineering and Science, and remained stable (though elevated) at the School of Medicine and at the Huntsman Cancer Institute. 
+
+# ***Estimated population by cluster:***    
+The description of the clusters is contained in a report titled "Clustering principal investigators without time variables." 
+
+Among the clusters, departure counts among PI's not assigned to a cluster (due to too few proposals) are highest, and lowest in Cluster 5 "Prolific" (the workhorses of research at the U.)   
+
+# ***Estimated population by percentile:***   
+A description of the percentiles is yet to be written. Percentiles were originally calculated based on ten years' of performance.  The 90th percentile or higher population has the lowest departure counts and what appears to be the most stable population.  Because the percentiles were calculated based on ten years' of performance, it introduces a chicken-or-egg question:  is this population considered successful because they have been stable, or are they made stable because they are successful?  In other words, are highly successful researchers not part of the ten-year 90th percentile because they left after only three years?
+
+To answer this question, percentiles were then re-calculated on an annual basis.  About 40% of the PI's consistently win funds within a five percentile range of themselves in any given year.  However, a very strong alternating pattern was discovered where a PI wins at a high percentile in one year followed by a low percentile in the next year.  This pattern is noted in this report and deferred to examine in a yet-to-be-written report examining annual performance.    
+
+
+# Retention dates
+
+```{r}
+
+## Tabulation of raw dates in the view
+## Annual with individual graphics for 
+##  - hires over time
+##  - Re-hires over time
+##  - terminations over time
+
+
+# Raw numbers, yearly, individual graphics
+
+plotPar <- par(mfrow = c(3,1), 
+               bg = "ivory", 
+               fg = "gray20",
+               mar = c(2, 4.1, 2, 0.3)
+               )
+
+#mar = c(2, 4.1, 1.1, 0.1)) # c(5.1,4.1,4.1,2.1)
+
+table(year(retData$HIRE_DT)) |>
+  (\(x){ 
+    x[names(x) != "NA-NA"]
+    })() |>
+  plot(ylab = "Count of hires",
+       main = "Hires over time",
+       type = "l",
+       col = "chocolate4")
+
+
+table(year(retData$REHIRE_DT)) |>
+  (\(x){ 
+    x[names(x) != "NA-NA"]
+    })() |>
+  plot(ylab = "Count of re-hires",
+       main = "Re-hires over time",
+       type = "b",
+       col = "chocolate4")
+
+
+
+table(year(retData$TERMINATION_DT)) |>
+  (\(x){ 
+    x[names(x) != "NA-NA"]
+    })() |>
+  plot(ylab = "Count of terminations",
+       main = "Terminations over time",
+       type = "b",
+       col = "chocolate4")
+
+
+
+par(plotPar)
+
+
+```
+
+# Retention intervals
+
+```{r}
+
+#######################
+## DISPLAY INTERVALS ##
+#######################
+
+histPar <- par(mfrow = c(3,1), mar = c(2.5, 4.1, 2.6, 0.1)) # c(5.1,4.1,4.1,2.1)
+
+hist(retData$initial,
+     main = "Interval in years after hire until rehire",
+     cex.main = 1.382,
+     ylab = "Count",
+     xlab = "", # "Duration in years",
+     col = "lightseagreen")
+legend("topright", legend = paste( format(sum(is.na(retData$initial)), big.mark = ","), "NA values"), bty = "n", text.col = "red", cex = 1.618)
+
+hist(retData$rehire,
+     main = "Interval in years after rehire until termination",
+     cex.main = 1.382,
+     ylab = "Count",
+     xlab = "", # "Duration in years",
+     col = "lightgreen")
+legend("topright", legend = paste(format( sum(is.na(retData$rehire)), big.mark=",") , "NA values"), bty = "n", text.col = "red", cex = 1.618)
+
+
+hist(retData$hire,
+     main = "Interval in years after hire until termination",
+     cex.main = 1.382,
+     ylab = "Count",
+     xlab = "", # "Duration in years",
+     col = "aquamarine")
+legend("topright", legend = paste(format( sum(is.na(retData$hire)), big.mark= ","), "NA values"), bty = "n", text.col = "red", cex = 1.618)
+
+par(histPar)
+
+```
+
+# Seasonality
+
+```{r}
+
+# I like this graphic.
+# Convert it to three lines for my three date columns.
+# Maybe move this after "dates" and before "intervals."
+
+weeklyTerms <- table(week(retData$TERMINATION_DT))
+weeklyHires <- table(week(retData$HIRE_DT))
+weeklyRehires <- table(week(retData$REHIRE_DT))
+
+yLim <- c(min(c(weeklyTerms, weeklyHires,weeklyRehires), na.rm = TRUE), max(c(weeklyTerms, weeklyHires,weeklyRehires), na.rm = TRUE) )
+
+plotPar <- par(bg = "ivory", fg = "gray20")
+
+plot(weeklyTerms,
+     ylim = yLim,
+     type = "n",
+     ylab = "",
+     las = 1,
+     xlab = "week of year")
+
+points(weeklyHires,
+       type = "l",
+       col = "purple")
+
+points(weeklyRehires,
+       type = "l",
+       col = "orange")
+
+points(weeklyTerms,
+       type = "l",
+       col = "firebrick")
+
+mtext(side = 3,
+      "Most workforce activity happens in Week 26",
+      font =2,
+      cex = 1.384,
+      line = 1)
+
+legend("topleft",
+       legend = c("hire","rehire","termination"),
+       col = c("purple","orange", "firebrick"),
+       pch = 15,
+       pt.cex = 2)
+
+par(plotPar)
+
+```
+
+### Approximate tabulations of the principal investigator population
+
+
+```{r}
+
+########################
+## CALCULATE TURNOVER ##
+########################
+
+calendar <- c("day","week", "month", "quarter", "year")
+
+fullSpan <- lapply(calendar, function(x){
+  
+  calculateMetrics(calendar = x,
+                   minDate = ymd("1960-01-01"),
+                   maxDate = today(),
+                   data = retData)
+  
+})
+names(fullSpan) <- calendar
+
+midSpan <- lapply(calendar, function(x){
+  
+  calculateMetrics(calendar = x,
+                   minDate = ymd("2013-01-01"),
+                   maxDate = today(),
+                   data = retData)
+  
+})
+names(midSpan) <- calendar
+
+earlySpan <- lapply(calendar, function(x){
+  
+  calculateMetrics(calendar = x,
+                   minDate = ymd("2000-01-01"),
+                   maxDate = ymd("2020-12-31"),
+                   data = retData)
+  
+})
+names(earlySpan) <- calendar
+
+lateSpan <- lapply(calendar, function(x){
+  
+  calculateMetrics(calendar = x,
+                   minDate = ymd("2020-01-01"),
+                   maxDate = today(),
+                   data = retData)
+  
+})
+names(lateSpan) <- calendar
+
+```
+
+# FULL SPAN
+
+```{r}
+
+###############
+## FULL SPAN ##
+###############
+
+plotMetrics(
+  data = fullSpan[["year"]],
+  plotList = c("cumulative","count","delta.count"),
+  title_mtext_params = list(text = c("Available data used to approximate the PI population", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  cumulative_plot_params = list(mar = c(0,6,3,1)),
+  cumulative_legend_params = list(legend = "full data"),
+  delta_legend_params = list(legend = "full data")
+)
+
+
+```
+
+# MID SPAN
+
+```{r}
+
+##############
+## MID SPAN ##
+##############
+
+plotMetrics(
+  data = midSpan[["year"]],
+  plotList = c("cumulative","count","delta.count"),
+      title_mtext_params = list(text = c("Approximate PI population from 2013 onwards", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  cumulative_plot_params = list(mar = c(0,6,3,1)),
+    cumulative_legend_params = list(legend = "full data"),
+  delta_legend_params = list(legend = "full data")
+)
+
+
+```
+
+
+```{r}
+
+#########################
+## TURNOVER BY COLLEGE ##
+#########################
+
+colleges <- unique(prepData$college)
+collegePIs <- lapply(colleges, function(x) unique(prepData$PROPOSAL_PI_EMPLID[prepData$college == x]))
+names(collegePIs) <- colleges
+
+collegeMetrics <- lapply(collegePIs, function(x){
+  
+  calculateMetrics(data=retData[retData$PI_EMPLID %in% x,],
+                   minDate = ymd("2013-01-01"),
+                   maxDate = today(), 
+                     calendar = "year")
+  
+})
+
+
+```
+
+
+# MEDICINE
+
+```{r}
+
+#########################
+##        PLOT OF      ##
+## METRICS PER MEDICINE ##
+#########################
+
+# Medicine
+
+plotMetrics(data = collegeMetrics[c("Med")],
+            plotList = c("cumulative","count","delta.count"),
+            term_points_params = list(type = "l", lwd=2),
+            hire_points_params = list(type = "l"),
+            metric_legend_params = list(x="left"),
+            delta_legend_params = list(x="left"),
+            featureMap = collegeColors,
+            title_mtext_params = list(text = c("Approximate PI population (School of Medicine)", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  cumulative_plot_params = list(mar = c(0,6,3,1))
+            )
+
+
+
+```
+
+# Engr, Sci, and Hunt
+
+```{r}
+
+plotMetrics(data = collegeMetrics[c("Hunt","Engr","Science")],
+            plotList = c("cumulative","count","delta.count"),
+            term_points_params = list(type = "l", lwd=2),
+            hire_points_params = list(type = "l"),
+            metric_legend_params = list(x="left"),
+            delta_legend_params = list(x="bottomleft"),
+            featureMap = collegeColors,
+            title_mtext_params = list(text = c("Approximate PI population (Huntsman, Engr, and Science)", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  cumulative_plot_params = list(mar = c(0,6,3,1))
+            )
+
+
+```
+
+# The rest
+
+```{r}
+
+plotMetrics(data = collegeMetrics[!names(collegeMetrics) %in% c("Med", "Hunt","Engr","Science")],
+            plotList = c("cumulative","count","delta.count"),
+            term_points_params = list(type = "l", lwd=2),
+            hire_points_params = list(type = "l"),
+            metric_legend_params = list(x = "top"),
+            metric_legend2_params = list(plot = FALSE),
+            delta_legend_params = list(plot = FALSE),
+            featureMap = collegeColors,
+            title_mtext_params = list(text = c("Approximate PI population (remaining organizations)", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  cumulative_plot_params = list(mar = c(0,6,3,1))
+            )
+
+```
+
+# Approximate tabulations of the principal investigator population by cluster
+
+Please see the report "Clustering principal investigators without time variables" for a lengthier description of the clusters. 
+The cluster nicknames and percent of total funds requested won (over ten years) are as follows:
+
+  * "Perfect" (Cluster 1) (2% of funds requested won)
+  * "Precise" (Cluster 2) (13% of funds requested won)
+  * "Pipe dreams" (Cluster 3) (0% of funds requested won)
+  * "Plucky" (Cluster 4) (14% of funds requested won)
+  * "Prolific" (Cluster 5) (71% of funds requested won)
+
+```{r}
+
+#########################
+## TURNOVER BY CLUSTER ##
+#########################
+
+complex_clusters <- levels(prepData$complex_cluster)
+
+complexPIs <- lapply(complex_clusters, function(x) unique(prepData$PROPOSAL_PI_EMPLID[prepData$complex_cluster == x & !is.na(prepData$complex_cluster)]))
+names(complexPIs) <- complex_clusters
+
+# add the unassigned PI's, or NA values for prepData$complex_cluster
+
+complexPIs[["unassigned"]] <- unique(prepData$PROPOSAL_PI_EMPLID[is.na(prepData$complex_cluster)])
+
+complexMetrics <- lapply(complexPIs, function(x){
+  
+  calculateMetrics(data=retData[retData$PI_EMPLID %in% x,],
+                    minDate = ymd("2013-01-01"),
+                    maxDate = today(), 
+                    calendar = "year")
+  
+})
+
+```
+
+# BY CLUSTER
+
+```{r}
+
+#########################
+##        PLOT OF      ##
+## METRICS PER CLUSTER ##
+#########################
+
+plotMetrics(data = complexMetrics,
+            plotList = c("cumulative","count","delta.count"),
+            term_points_params = list(type = "l", lwd=2),
+            hire_points_params = list(type = "l"),
+            metric_legend_params = list(x="topleft"),
+            delta_legend_params = list(plot=FALSE),
+            featureMap = complexClusterColors,
+            title_mtext_params = list(text = c("Approximate PI population by cluster", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  cumulative_plot_params = list(mar = c(0,6,3,1))
+            )
+
+```
+
+# UNASSIGNED CLUSTER
+
+```{r}
+
+#########################
+##        PLOT OF      ##
+## METRICS PER UNASSIGNED CLUSTER ##
+#########################
+
+plotMetrics(data = complexMetrics["unassigned"],
+            plotList = c("cumulative","count","delta.count"),
+            cumulative_points_params = list(lwd=3),
+            term_points_params = list(type = "l", lwd=3),
+            delta_points_params = list(lwd=3),
+            metric_legend_params = list(x="topleft"),
+            delta_legend_params = list(plot=FALSE),
+            featureMap = complexClusterColors,
+            title_mtext_params = list(text = c("Approximate PI population (unassigned cluster)", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  cumulative_plot_params = list(mar = c(0,6,3,1))
+            )
+
+```
+
+# CLUSTER 2 AND 4
+
+```{r}
+
+#########################
+##        PLOT OF      ##
+## METRICS PER 2 and 4 CLUSTER ##
+#########################
+
+plotMetrics(data = complexMetrics[c(2,4)],
+            plotList = c("cumulative","count","delta.count"),            
+            metric_legend_params = list(x="topright"),
+            metric_legend2_params = list(x="topleft"),
+            delta_legend_params = list(x="topleft"),
+            featureMap = complexClusterColors,
+            title_mtext_params = list(text = c("Approximate PI population (clusters 2 and 4)", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  cumulative_plot_params = list(mar = c(0,6,3,1)),
+  cumulative_points_params = list(lwd=3),
+            term_points_params = list(type = "l", lwd=3),
+            delta_points_params = list(lwd=3)
+            )
+
+```
+
+# CLUSTER 1 AND 3
+
+```{r}
+
+#########################
+##        PLOT OF      ##
+## METRICS PER 1 and 3 CLUSTER ##
+#########################
+
+plotMetrics(data = complexMetrics[c(1,3)],
+            plotList = c("cumulative","count","delta.count"),            
+            metric_legend_params = list(x="topright"),
+            metric_legend2_params = list(x="topleft"),
+            delta_legend_params = list(x="topleft"),
+            featureMap = complexClusterColors,
+            title_mtext_params = list(text = c("Approximate PI population (clusters 1 and 3)", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  cumulative_plot_params = list(mar = c(0,6,3,1)),
+  cumulative_points_params = list(lwd=3),
+            term_points_params = list(type = "l", lwd=3),
+            delta_points_params = list(lwd=3)
+            )
+
+```
+
+# CLUSTER 5
+
+```{r}
+
+#########################
+##        PLOT OF      ##
+## METRICS PER 5 CLUSTER ##
+#########################
+
+plotMetrics(data = complexMetrics[5],
+            plotList = c("cumulative","count","delta.count"),            
+            metric_legend_params = list(x="topright"),
+            metric_legend2_params = list(x="topleft"),
+            delta_legend_params = list(x="topleft"),
+            featureMap = complexClusterColors,
+            title_mtext_params = list(text = c("Approximate PI population (cluster 5)", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  cumulative_plot_params = list(mar = c(0,6,3,1)),
+  cumulative_points_params = list(lwd=3),
+            term_points_params = list(type = "l", lwd=3),
+            delta_points_params = list(lwd=3)
+            )
+
+```
+
+# Approximate tabulations of the principal investigator population by percentiles.
+
+Percentiles are calculated based on the ten year sum of funds requested won per PI.  A lengthier description is yet to be written.
+
+
+```{r}
+
+###########################
+## CALCLUATE PERCENTILES ##
+###########################
+
+# I'm writing over my method for the complex_cluster.
+# So you may be looking at a mix of new and old code here
+
+# now I am using piClusters[[2]] instead of piEmplid, as it has -all- PI's without the filtering based on count
+
+piClusters[[2]][,"win.sum_tile"] <- cut(piClusters[[2]][,"win.sum_percentile"], breaks = c(0,seq(0.2,1,by=0.1)), include.lowest = TRUE )
+
+piPercentiles <- levels(piClusters[[2]][,"win.sum_tile"])
+
+pisPerTile <- lapply(piPercentiles, function(x) {
+  filter <- piClusters[[2]][,"win.sum_tile"] == x
+  unique(piClusters[[2]][filter,"emplid"])
+  
+  })
+
+names(pisPerTile) <- piPercentiles
+
+# Not needed as I am using -all- PI's to calcualte the percentile
+# add the unassigned PI's, or NA values for prepData$complex_cluster
+
+# pisPerTile[["unassigned"]] <- unique(prepData$PROPOSAL_PI_EMPLID[!(prepData$PROPOSAL_PI_EMPLID %in% unlist(pisPerTile))])
+
+tileMetrics <- lapply(pisPerTile, function(x){
+  
+  calculateMetrics(data=retData[retData$PI_EMPLID %in% x,],
+                    minDate = ymd("2013-01-01"),
+                    maxDate = today(), 
+                    calendar = "year")
+  
+})
+
+```
+
+# PERCENTILES
+
+```{r}
+
+######################
+## PLOT PERCENTILES ##
+######################
+
+tileColors <- c("burlywood1", percentileColors)
+names(tileColors) <- names(tileMetrics)
+
+
+plotMetrics(data = tileMetrics,
+            plotList = c("cumulative","count","delta.count"),            
+            metric_legend_params = list(x="topright"),
+            metric_legend2_params = list(x="topleft"),
+            delta_legend_params = list(x="topleft"),
+            featureMap = tileColors,
+            title_mtext_params = list(text = c("Approximate PI population by percentiles", "rehire dates ignored"), line = c(-0.8, -2.5), cex = c(1.618,1.3), font = c(2,3), side = c(3,3) ),
+  cumulative_plot_params = list(mar = c(0,6,3,1)),
+  cumulative_points_params = list(lwd=3),
+            term_points_params = list(type = "l", lwd=3),
+            delta_points_params = list(lwd=3)
+            )
+
+```
+
+
+```{r}
+
+###############################
+## ANNUAL AMOUNT WON BY TILE ##
+###############################
+
+popper <- merge(prepData, piClusters[[2]][,c("emplid", "win.sum_percentile", "win.sum_tile")], by.x = "PROPOSAL_PI_EMPLID", by.y = "emplid" )
+
+# I've probably already created this graphic in my library
+# I could use the "trends" one
+
+# looks like I want 
+
+# calculateWinRates |> extractColumn |> createFrame |> extractTrendClusters |> plotTrends
+
+tileRates <- calculateWinRates(data = popper,
+                  targetColumn = "PROPOSAL_TOTAL_SPONSOR_BUDGET",
+                  categoryColumn = "win.sum_tile")
+
+
+
+tile_by_year <- lapply(levels(popper$win.sum_tile), function(tile){
+  
+  theCut <- popper[popper$win.sum_tile == tile,]
+  theAgg <- calculateWinRates(data = theCut, categoryColumn = "upload_fiscal_year", functionList = list(mean = mean, median = median)) |>
+    (\(x){ return(x$summary[order(as.numeric(row.names(x$summary)), decreasing = FALSE),]) })()
+  
+  return(theAgg)  
+  
+})
+names(tile_by_year) <- levels(popper$win.sum_tile)
+
+
+tileMap <- cbind(college = levels(popper$win.sum_tile),
+                 abbrv = levels(popper$win.sum_tile),
+                 color = tileColors,
+                 pch = 0:8,
+                 cex = NA
+                 )
+
+```
+
+
+```{r}
+
+######################################
+## PERCENTILE BY YEAR PLOT FUNCTION ##
+######################################
+
+plotAnnualPercentiles <- function(data, sequence = NA, lineColor = NA, rangeSpan = NA){
+  
+  # Create an empty plot
+  
+  plot(x= 1,
+       type = "n",
+       ylim = c(0.3,1),
+       xlim = c(1,10),
+       las = 1,
+       ylab = "",
+       xlab = "",
+       xaxt = "n"
+  )
+  
+  if(is.na(sequence[1])){
+  theSequence <- seq(0,0.7, by = 0.05)
+  } else {theSequence <- sequence}
+  
+  if(is.na(lineColor[1])){
+  lineColor <- viridis::inferno(length(theSequence), direction = -1) 
+  }
+  
+  if(is.na(rangeSpan)){
+    rangeSpan <- 0.05 
+  }
+  
+  # Plot the lines
+  
+  invisible(
+    lapply(theSequence, function(range_value){ 
+      
+      filter <- data$range > range_value &  data$range <= range_value + rangeSpan
+      
+      invisible(
+        lapply(data[filter,"emplid"], function(pi){
+          
+          points(as.numeric(data[data$emplid == pi,as.character(2014:2023)]),
+                 type = "l",
+                 lwd = 0.2,
+                 col = lineColor[which(theSequence == range_value)]
+          )
+          
+        })
+      )
+      
+    })
+  )
+    
+  # Axis and texts
+  
+  axis(side = 1, at = 1:10, labels = 2014:2023)
+  mtext(side = 2, "percentile per PI", line = 3)
+  mtext(side = 3, text = "Annual percentile per PI", font = 2, cex = 1.619, line = 2)
+  
+}
+
+
+
+```
+
+```{r}
+
+######################## 
+## PERCENTILE BY YEAR ##
+########################
+
+# This will take a little bit of logic
+
+# first I filter by year
+# then I aggregate by pi
+# then I calculate percentile
+
+pi_by_year <- lapply(unique(prepData$upload_fiscal_year)[order(unique(prepData$upload_fiscal_year))], function(fyear){
+  
+  theCut <- prepData[prepData$upload_fiscal_year == fyear,]
+  theAgg <- calculateWinRates(data = theCut,
+                              categoryColumn = "PROPOSAL_PI_EMPLID",
+                              functionList = list(mean = mean, median = median)) |>
+    (\(x){ return(x$summary[order(as.numeric(row.names(x$summary)), decreasing = FALSE),]) })()
+  
+  return(theAgg)
+})
+names(pi_by_year) <- unique(prepData$upload_fiscal_year)[order(unique(prepData$upload_fiscal_year))]
+
+
+# Functions
+# piEmplid$win.sum_prop <- proportions(piEmplid$win.sum)
+# piEmplid$win.sum_rank <- rank(-piEmplid$win.sum,na.last = "keep", ties.method = "min")
+# ecdf_fun <- ecdf(piEmplid$win.sum)
+# piEmplid$win.sum_percentile <- ecdf_fun(piEmplid$win.sum)
+
+
+pi_by_year <- lapply(pi_by_year, function(fyear){
+  
+  fyear[,"win.sum_prop"] <- proportions(fyear[,"win.sum"])
+  fyear[,"win.sum_rank"] <- rank(-fyear[,"win.sum"], na.last = "keep", ties.method = "min")
+  ecdf_fun <- ecdf(fyear[,"win.sum"])
+  fyear[,"win.sum_percentile"] <- ecdf_fun(fyear[,"win.sum"])
+  
+  return(fyear)
+  
+}) 
+
+# now I want to see the PI's that change percentiles from year to year
+
+pi_annual_percentile <- extractColumn(pi_by_year, "win.sum_percentile", drop = FALSE) |>
+  (\(x){ 
+  suppressWarnings(createFrame(x)) })()
+names(pi_annual_percentile)[names(pi_annual_percentile) %in% "year"] <- "emplid"
+
+pi_annual_percentile$range <- apply(pi_annual_percentile[,-1], 1, function(x){diff(range(x, na.rm = TRUE))})        
+
+```
+
+# CONSISTENCY
+
+```{r}
+
+# let's plot this
+
+hPlot <- hist(pi_annual_percentile$range, plot = FALSE)
+
+theBar <- barplot(hPlot$counts/sum(hPlot$counts),
+        las = 2,
+        names.arg = hPlot$breaks[-1])
+
+rect(xleft = par("usr")[1],
+     ybottom = par("usr")[3],
+     xright = par("usr")[2],
+     ytop = par("usr")[4],
+     col = "grey95"
+     )
+
+grid(ny = NULL, nx = NA, lwd =3, col = "grey80")
+
+#barplot(theBar, ann = FALSE, add = TRUE)
+
+barplot(hPlot$counts/sum(hPlot$counts),
+        las = 2,
+        col = "plum3",
+        # names.arg = hPlot$breaks[-1],
+        plot = TRUE,
+        ann = FALSE,
+        add = TRUE)
+
+mtext(side = 3, text = "Span between min and max percentile", font = 2, cex = 1.619, line = 2)
+
+mtext(side = 3, text = "per PI over ten years", font = 3, cex = 1.33, line = 0.8)
+
+mtext(side = 1, text = "Span between min and max percentile", line = 3)
+
+mtext(side = 2, text = "Proportion of PI's", line = 3)
+
+```
+
+# ANNUAL PERCENTILE
+
+```{r}
+
+theSequence <- seq(0, 0.7, 0.05)
+
+plotAnnualPercentiles(data = pi_annual_percentile)
+mtext(side = 3, text = "All PI's", line = 1)
+
+```
+
+# LOW VARIATION
+
+```{r}
+
+plotAnnualPercentiles(data = pi_annual_percentile, sequence = c(0.0,0.05),
+                      lineColor = c("plum4"))
+mtext(side = 3, text = "Low variation", line = 1)
+
+```
+
+# MEDIUM VARIATION
+
+```{r}
+
+plotAnnualPercentiles(data = pi_annual_percentile, sequence = c(0.25,0.35), lineColor = viridis::inferno(length(theSequence), direction = -1)[vapply(seq(from = 0.25, to = 0.35, by = 0.05), function(val) which.min(abs(seq(0, 0.7, 0.05) - val)), integer(1))]
+                 )
+mtext(side = 3, text = "Medium variation", line = 1)
+
+```
+
+# HIGH VARIATION
+
+```{r}
+
+plotAnnualPercentiles(data = pi_annual_percentile, sequence = c(0.4,0.6),
+                      lineColor = viridis::inferno(length(theSequence), direction = -1)[vapply(seq(from = 0.4, to = 0.6, by = 0.05), function(val) which.min(abs(seq(0, 0.7, 0.05) - val)), integer(1))])
+mtext(side = 3, text = "High variation", line = 1)
+
+```
+
+
