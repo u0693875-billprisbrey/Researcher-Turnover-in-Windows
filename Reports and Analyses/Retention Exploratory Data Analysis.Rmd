@@ -56,16 +56,12 @@ output: html_document
       a.  By colleges    ***DONE***  
       b.  By PI clusters ***DONE***   
       c.  By percentiles ***DONE***   
-  3.  Briefly describe highlights and identify avenues for further exploration and next steps.           
-
+      
 **NOT PERFORMED IN THIS REPORT:**
 
   1.  Compare the retention data and the proposal data. 
   2.  Re-calculate and compare turnover using estimated hire dates from the comparison.   
   3.  Statistical tests
-      
-
-
   
 ```{r include = FALSE}
 
@@ -474,7 +470,7 @@ This data set includes all `r table(retData$PI_EMPLID %in% prepData$PROPOSAL_PI_
 
 The data contains up to three dates per PI:  initial hire date, one re-hire date, and the most recent termination date (if it exists.)  Because not all termination and re-hire dates are included, it is impossible to accurately tabulate head count.  This prevents accurate calculation of metrics that use the headcount as a denominator, such as the turnover rate.  Instead, re-hire dates are ignored and headcount is estimated using the initial hire date.
 
-As well, action reasons (such as an explanation for termination) are not included, making it is impossible to distinguish "voluntary" and "involuntary" separation.
+As well, action reasons (such as an explanation for termination) are not included, making it impossible to distinguish "voluntary" and "involuntary" separation.
 
 ***Dates and intervals:***    
 The earliest hire date reaches back to  `r year(min(retData$HIRE_DT, na.rm = TRUE))`, and the earliest termination date is in `r year(min(retData$TERMINATION_DT, na.rm = TRUE))`.  The largest interval between initial hire and rehire date is `r round(max(retData$initial, na.rm = TRUE))` years, and the largest interval between hire date and termination date is `r round(max(retData$hire, na.rm = TRUE))` years.
@@ -485,27 +481,18 @@ The data shows most hire or termination activity happening in the middle of the 
 ***Apparent population decline overall:***   
 Population head count appears to decline from 2020 onwards due to an increase in terminations and a decrease in hiring.  Because re-hires are ignored, head count is roughly estimated.
 
-***Estimated population by college:***
+***Estimated population by college:***    
 Among the colleges, the count of departures increased dramatically in 2024 at Engineering and Science, and remained stable (though elevated) at the School of Medicine and at the Huntsman Cancer Institute. 
 
-***Estimated population by cluster:***
+***Estimated population by cluster:***    
 The description of the clusters is contained in a report titled "Clustering principal investigators without time variables." 
 
 Among the clusters, departure counts among PI's not assigned to a cluster (due to too few proposals) are highest, and lowest in Cluster 5 "Prolific" (the workhorses of research at the U.)   
 
-***Estimated population by percentile:***
-A description of the percentiles is yet to be written. Percentiles were originally calculated based on ten years' of performance.  The 90th percentile or higher population has the lowest departure counts and what appears to be the most stable population.  Because the percentiles were calculated based on ten years' of performance, it introduces a chicken-or-egg question:  is this population successful because they are stable, or stable because they are successful?  Or, are highly successful researchers not part of the ten-year percentile because they left after only three years?
+***Estimated population by percentile:***   
+A description of the percentiles is yet to be written. Percentiles were originally calculated based on ten years' of performance.  The 90th percentile or higher population has the lowest departure counts and what appears to be the most stable population.  Because the percentiles were calculated based on ten years' of performance, it introduces a chicken-or-egg question:  is this population considered successful because they have been stable, or are they made stable because they are successful?  In other words, are highly successful researchers not part of the ten-year 90th percentile because they left after only three years?
 
 To answer this question, percentiles were then re-calculated on an annual basis.  About 40% of the PI's consistently win funds within a five percentile range of themselves in any given year.  However, a very strong alternating pattern was discovered where a PI wins at a high percentile in one year followed by a low percentile in the next year.  This pattern is noted in this report and deferred to examine in a yet-to-be-written report examining annual performance.    
-
-
-
-
-
-
-
-
-It consisted of a an intial hire date and re-hire or final termination dates as applicable.  Because there was no initial termination date paired with the re-hire date, the re-hire date was ignored.  This means that the headcount was calculated only using the initial hire date.  Because the head count was wrong, metrics like turnover rate that rely on the head count are wrong.
 
 
 # 1) DESCRIBE THE RETENTION DATA   
