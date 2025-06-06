@@ -47,29 +47,24 @@ output: html_document
 ```
 
 
-**PURPOSE:**  The purpose of this document is to describe the incomplete retention data of principal investigators originally available to the Office of Sponsored Projects.  This is a truncated report and demonstrates a stage in progress.  It is useful as a milestone or reference but should not be used to draw conclusions.    
+**PURPOSE:**  The purpose of this document is to describe the incomplete retention data of principal investigators originally available to the Office of Sponsored Projects.  This is a truncated report and demonstrates a stage in the process.  It is useful as a milestone or reference but should not be used to draw conclusions.    
 
 **OBJECTIVES:**   
 
   1.  Describe the retention data.
   2.  Calculate and compare turnover    
       a.  By colleges    ***DONE***  
-      b.  By departments ***NOT DONE***   
-      c.  By PI clusters ***DONE***    
-      d.  By percentiles ***DONE***    
-  3.  Describe the combination of the retention data and the proposal data.   ***ABANDONED IN THIS REPORT***   
-  4.  Re-calculate and compare turnover   
-      a.  By colleges     ***DONE***      
-      b.  By departments  ***NOT DONE***    
-      c.  By PI clusters  ***DONE***     
-      d.  By percentiles  ***DONE***
-  5.  Briefly describe highlights and identify avenues for further exploration and next steps.           
+      b.  By PI clusters ***DONE***   
+      c.  By percentiles ***DONE***   
+  3.  Briefly describe highlights and identify avenues for further exploration and next steps.           
 
+**NOT PERFORMED IN THIS REPORT:**
 
+  1.  Compare the retention data and the proposal data. 
+  2.  Re-calculate and compare turnover using estimated hire dates from the comparison.   
+  3.  Statistical tests
+      
 
-
-
-    
 
   
 ```{r include = FALSE}
@@ -440,13 +435,34 @@ activeProposing$effective_hire[rehire_condition] <- activeProposing$REHIRE_DT[re
 ```
 
 
+```{r}
+
+###################################
+## CALCULATE RETENTION INTERVALS ##
+###################################
+
+# library(lubridate)
+
+# This is the initial time between "hire date" and "re-hire date"
+retData$initial <- time_length(interval(retData$HIRE_DT, retData$REHIRE_DT), unit = "year")
+
+# This is the time between "re-hire date" and "termination date"
+retData$rehire <- time_length(interval(retData$REHIRE_DT, retData$TERMINATION_DT), unit = "year")
+
+# This is the time from initial hire to termination date
+retData$hire <- time_length(interval(retData$HIRE_DT, retData$TERMINATION_DT), unit = "year")
+
+
+```
+
+
 # EXECUTIVE SUMMARY
 
 All graphics produced in this report used incomplete data, and no conclusions should be drawn.
 
-This (incomplete) data shows a decline in the estimated headcount of principal investigators starting in about 2020 due to reduced hires and increased departures.  No investigation or explanation is attempted in this report.
+This incomplete data set shows a decline in the estimated headcount of principal investigators starting in about 2020 due to reduced hires and increased departures.  No investigation or explanation is attempted in this report.
 
-It also shows that Cluster 5 "Prolific" PI's (the workhorses of U research), and the population above the 90th percentile for funds won, are more stable with fewer departure counts than other clusters or percentiles.
+It also shows that Cluster 5 PI's (nick-named "Prolific" for being the workhorses of U research), and the population above the 90th percentile for funds won during a ten year period, are more stable with fewer departure counts than other clusters or percentiles.  This creates a "chicken-or-the-egg" question as to whether their proclivity led to their stability or vice versa.
 
 Upon re-analyzing with complete data, valid conclusions can be drawn.
 
@@ -456,56 +472,33 @@ The retention data contains records for `r nrow(retData) |> format(big.mark = ",
 
 This data set includes all `r table(retData$PI_EMPLID %in% prepData$PROPOSAL_PI_EMPLID)[2] |> format(big.mark = ",") ` principal investigators who submitted proposals after FY2013 as described in the Grants Exploratory project, and contains an additional `r table(retData$PI_EMPLID %in% prepData$PROPOSAL_PI_EMPLID)[1] |> format(big.mark = ",") ` principal investigators who presumably submitted proposals before 2013.  Although additional information from HR is forthcoming, and the designation of "principal investigator" in OSP data is being reviewed, it may be prudent to exclude the additional PI's from future projects due to incomplete data on their proposal submissions.
 
-The data contains up to three dates per PI:  initial hire date, one re-hire date, and the most recent termination date.  Because not all termination and re-hire dates are included, it is impossible to accurately tabulate head count.  This prevents accurate calculation of metrics that use the headcount as a denominator, such as the turnover rate.  Instead, re-hire dates are ignored and headcount is estimated using the initial hire date.
+The data contains up to three dates per PI:  initial hire date, one re-hire date, and the most recent termination date (if it exists.)  Because not all termination and re-hire dates are included, it is impossible to accurately tabulate head count.  This prevents accurate calculation of metrics that use the headcount as a denominator, such as the turnover rate.  Instead, re-hire dates are ignored and headcount is estimated using the initial hire date.
 
 As well, action reasons (such as an explanation for termination) are not included, making it is impossible to distinguish "voluntary" and "involuntary" separation.
 
-The earliest hire date reaches back to  `r year(min(retData$HIRE_DT, na.rm = TRUE))`, and the earliest termination date is in `r year(min(retData$HIRE_DT, na.rm = TRUE))`.  The largest interval between initial hire and rehire date is `r round(max(retData$initial, na.rm = TRUE))` years, and the largest interval between hire date and termination date is `r round(max(retData$hire, na.rm = TRUE))` years.
+***Dates and intervals:***    
+The earliest hire date reaches back to  `r year(min(retData$HIRE_DT, na.rm = TRUE))`, and the earliest termination date is in `r year(min(retData$TERMINATION_DT, na.rm = TRUE))`.  The largest interval between initial hire and rehire date is `r round(max(retData$initial, na.rm = TRUE))` years, and the largest interval between hire date and termination date is `r round(max(retData$hire, na.rm = TRUE))` years.
 
-The data shows most hire or termination activity happening around July 1st.
+***Seasonality:***    
+The data shows most hire or termination activity happening in the middle of the year around July 1st.
 
+***Apparent population decline overall:***   
 Population head count appears to decline from 2020 onwards due to an increase in terminations and a decrease in hiring.  Because re-hires are ignored, head count is roughly estimated.
 
+***Estimated population by college:***
 Among the colleges, the count of departures increased dramatically in 2024 at Engineering and Science, and remained stable (though elevated) at the School of Medicine and at the Huntsman Cancer Institute. 
 
-The description of the clusters and percentiles is located at [NAME DOCUMENT].
+***Estimated population by cluster:***
+The description of the clusters is contained in a report titled "Clustering principal investigators without time variables." 
 
-Among the clusters, departure counts among PI's not assigned to a cluster (due to too few proposals) are highest, and lowest in Cluster 5 (NAME THE CLUSTER.)   
+Among the clusters, departure counts among PI's not assigned to a cluster (due to too few proposals) are highest, and lowest in Cluster 5 "Prolific" (the workhorses of research at the U.)   
 
-By percentiles, the 90th percentile or higher population has the lowest departure counts and what appears to be the most stable population.  Errors introduced by this estimation aside, it introduces a chicken-or-egg question:  is this population successful because they are stable, or stable because they are successful?  
+***Estimated population by percentile:***
+A description of the percentiles is yet to be written. Percentiles were originally calculated based on ten years' of performance.  The 90th percentile or higher population has the lowest departure counts and what appears to be the most stable population.  Because the percentiles were calculated based on ten years' of performance, it introduces a chicken-or-egg question:  is this population successful because they are stable, or stable because they are successful?  Or, are highly successful researchers not part of the ten-year percentile because they left after only three years?
 
-[Do I want to say something about the lower percentiles?]
-
-Percentiles are re-calculated on an annual basis.  About 40% of the PI's consistently win funds within a five percentile range of themselves in any given year.  However, a very strong alternating pattern was discovered where a PI wins at a high percentile in one year followed by a low percentile in the next year.
-
-
-
-[how is that possible?]
+To answer this question, percentiles were then re-calculated on an annual basis.  About 40% of the PI's consistently win funds within a five percentile range of themselves in any given year.  However, a very strong alternating pattern was discovered where a PI wins at a high percentile in one year followed by a low percentile in the next year.  This pattern is noted in this report and deferred to examine in a yet-to-be-written report examining annual performance.    
 
 
-
-
-
-The count of hires is fairly stable after 2005 until declining 
-
-Describe that this is an investigation into turnover of principal investigators.
-
-Describe how principal investigators are defined; and reference some of the open questions that we're checking.
-
-
-Describe some details of the data (earliest hire date, number of PI's.)
-
-Describe some quirks (longest spans between hire and rehire, hire and termination, rehire and termination.)
-
-At the time of the preparation of this report, the Office of Sponsored Projects had access to incomplete HR data.  Although hire, departure, and net delta counts are possible, the head count had to be estimated, preventing accurate calculation of turnover rates.  Additionally, due to a lack of action reasons, voluntary and involuntary separation could not be differentiated.
-
-Generally, the data set shows an increase in estimated headcount followed by a decline starting in 2020.  The College of Medicine has the largest headcount of PI's, and the steepest decline.  Huntsman Cancer Institute had a modest decline in head count starting in 2024.
-
-The PI's greater than the 90th percentile in funds requested won showed stability, with equivalent hires and fewer departures than PI's greater than the 70th or 80th percentile.
-
-I need to change everything to counts, and only interpret that.
-
-Population definition -- who got in here and why?
 
 
 
@@ -600,26 +593,6 @@ par(plotPar)
 ```
 
 ### Retention intervals
-
-```{r}
-
-#########################
-## CALCULATE INTERVALS ##
-#########################
-
-# library(lubridate)
-
-# This is the initial time between "hire date" and "re-hire date"
-retData$initial <- time_length(interval(retData$HIRE_DT, retData$REHIRE_DT), unit = "year")
-
-# This is the time between "re-hire date" and "termination date"
-retData$rehire <- time_length(interval(retData$REHIRE_DT, retData$TERMINATION_DT), unit = "year")
-
-# This is the time from initial hire to termination date
-retData$hire <- time_length(interval(retData$HIRE_DT, retData$TERMINATION_DT), unit = "year")
-
-
-```
 
 ```{r}
 
@@ -1261,8 +1234,7 @@ plotMetrics(data = collegeMetrics[!names(collegeMetrics) %in% c("Med", "Hunt","E
 
 ### Approximate tabulations of the principal investigator population by cluster
 
-Please see the report [[NAME]] for a lengthier description of the clusters. 
-
+Please see the report "Clustering principal investigators without time variables" for a lengthier description of the clusters. 
 The cluster nicknames and percent of total funds requested won (over ten years) are as follows:
 
   * "Perfect" (Cluster 1) (2% of funds requested won)
@@ -1472,7 +1444,7 @@ plotMetrics(data = complexMetrics[5],
 
 ### Approximate tabulations of the principal investigator population by percentiles.
 
-Percentiles are calculated based on the ten year sum of funds requested won per PI.  Please see the report [[NAME]] for a lengthier description.
+Percentiles are calculated based on the ten year sum of funds requested won per PI.  A lengthier description is yet to be written.    
 
 
 
