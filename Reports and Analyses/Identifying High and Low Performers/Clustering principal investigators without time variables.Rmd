@@ -8,6 +8,16 @@ output: html_document
 
 # **OUTLINE**
 
+
+Re-visiting 6.9.2025:
+
+- This report just doesn't make sense.    
+- I don't like the "appendix" format.  
+  - Rather than create an appendix that is several self-contained reports, I think I'd just like to run them as separate reports and refer the reader to them.    
+  - A report that shows how these overlap or combine, to define "high" or "low" performers (the original intention of this report,) would be fine.    
+  - 
+- I'd like to create the "ivory" background for the entire report.  That shouldn't be too hard, right?
+
 (written 3.17.2025)
 This is how I imagine this report:
 
