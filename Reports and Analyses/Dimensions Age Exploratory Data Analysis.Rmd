@@ -1,0 +1,733 @@
+---
+title: "Dimensions Age Exploratory Data Analysis"
+author: "Bill Prisbrey"
+date: "2025-06-10"
+output:
+  html_document:
+    keep_md: true
+---
+
+
+```{r settings, include = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=7, fig.width=10)
+
+# fig.height=6.75, fig.width=12) for ppt
+# fig.height=7, fig.width=10) typical report
+
+
+# adjust graphic parameters
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+# par(oldPar) #restore old parameters # restore old parameters after the plot
+
+```
+
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+# PREP SCRIPT
+
+source(here::here("Prep scripts","Adjusting prepData and loading things.R"))
+
+
+# PER PI
+
+piClusters <- lapply(list.files(here::here("Robjects", "Clustering PIs"), full.names = TRUE), readRDS)
+
+###########
+## MERGE ## 
+###########
+
+piEmplid <- Reduce(function(x, y) {
+  merged <- merge(x, y, by = "emplid", all = FALSE)
+  merged <- merged[, !duplicated(sub("\\.x$|\\.y$", "", names(merged)))]  # Remove duplicate columns
+  
+  # Rename columns to remove ".x"
+  names(merged) <- sub("\\.x$", "", names(merged))
+  
+  merged
+}, piClusters)
+# piEmplid <- Reduce(function(x, y) merge(x, y, by = "emplid", all = FALSE), piClusters)
+# piEmplid <- do.call(merge, piClusters)
+
+
+
+prepData <- merge(prepData, piEmplid[,c("emplid","complex_cluster","rate_cluster")], by.x =  "PROPOSAL_PI_EMPLID", by.y = "emplid", all.x = TRUE)
+
+##########
+## PREP ##
+##########
+
+piEmplid$combined_cluster <-  factor(paste(piEmplid$complex_cluster, piEmplid$rate_cluster, sep = ", "))
+
+prepData$combined_cluster <- factor(paste(prepData$complex_cluster, prepData$rate_cluster, sep = ", "))
+
+###############
+## LIBRARIES ##
+###############
+
+library(viridis)
+library(pheatmap)
+
+#########
+## MAP ##
+#########
+
+piMap <- data.frame(college = row.names(piEmplid), abbrv = row.names(piEmplid), color = NA, pch = 19, cex = 0.7 )
+
+# I need the college map of colors
+
+fullEmplid <- calculateWinRates(data = cleanData, categoryColumn = "PROPOSAL_PI_EMPLID") |>
+  (\(x){x[[1]]})()
+
+fullEmplid$count.total <- apply(fullEmplid[,c("win.count","loss.count")],1,sum)
+
+filterTwoCount <- fullEmplid$count.total >= 2
+# filterThreeCount <- piEmplid$count.total > 3
+
+
+```
+
+
+```{r}
+             
+# Manage colors
+
+#############
+## COMPLEX ##
+#############
+
+complexClusterColors <- c("forestgreen", "deepskyblue", "goldenrod",  
+                            "firebrick", "darkslategray", "chartreuse",  
+                            "slateblue", "darkkhaki", "coral")
+
+names(complexClusterColors) <- c(as.character(1:5),"unassigned") # I'll surely regret this
+
+clusterComplexMapping <- piMap
+clusterComplexMapping[,"pch"] <- rep(19, nrow(clusterComplexMapping))
+
+clusterComplexMapping[,"color"] <- complexClusterColors [piEmplid$complex_cluster]
+
+# clusterComplexMapping[,"color"] <- complexClusterColors[complexHCPC$data.clust$clust[match(clusterComplexMapping[,"college"], row.names(complexHCPC$data.clust))] ]
+
+##############
+## COMBINED ##
+##############
+
+combinedClusterColors <- c("forestgreen", "deepskyblue", "goldenrod",  
+  "firebrick", "darkslategray", "chartreuse",  
+  "slateblue", "darkkhaki", "coral",  
+  "mediumorchid", "dodgerblue", "tomato",  
+  "orchid", "darkseagreen", "sienna",  
+  "royalblue", "indianred", "seagreen",  
+  "peru", "cadetblue", "plum",  
+  "midnightblue", "lawngreen", "darkorange",  
+  "lightsteelblue")
+
+clusterCombinedMapping <- piMap
+clusterCombinedMapping[,"pch"] <- rep(19, nrow(clusterCombinedMapping))
+
+clusterCombinedMapping[,"color"] <- combinedClusterColors [piEmplid$combined_cluster]
+
+
+
+################
+## PERCENTILE ##
+################
+
+percentileColors <- viridis(10,direction = -1)[c(1:7,10)]
+percentileMapping <- piMap
+
+percentileMapping[,"pch"] <- rep(19, nrow(percentileMapping))
+
+percentileMapping[,"color"] <- percentileColors[as.numeric(cut(piEmplid$win.sum_percentile, breaks = seq(0.2,1,by=0.1)))]
+
+#############
+## COLLEGE ##
+#############
+
+collegeAbbrv <- cbind(
+  college = c(sweet16, bigInst, "other"),
+  abbrv = c("Arch",
+            "Educ",
+            "FinArt",
+            "Health",
+            "Hum",
+            "Nurs",
+            "Pharm",
+            "Science",
+            "SocBeh",
+            "SocWrk",
+            "Bus",
+            "Law",
+            "Tran",
+            "Dent",
+            "Med",
+            "Engr",
+            "EGI",
+            "Hunt",
+            "SCI",
+            "CVRTI",
+            "ICSE",
+            "CTSI",
+            "other"
+  ),
+  color = c(
+    "lightslategray",
+    "orange",
+    "cyan", 
+    "hotpink", 
+    "brown", 
+    "darkgoldenrod", 
+    "gold", 
+    "green",
+    "navy", 
+    "magenta", 
+    "olivedrab4", 
+    "salmon", 
+    "darkgreen",
+    "yellowgreen", 
+    "red",
+    "blue",
+    "chocolate", 
+    "purple",
+    "violet", 
+    "khaki",
+    "deepskyblue3",
+    "chartreuse",
+    "darkmagenta"
+  ),
+  pch = c(
+    1,14,15,2,3,4,17,6,5,8,9,10,11,12,13,0,16,7,18, 23, 24, 25, 20  
+    
+    
+  ),
+  
+  cex = rep(NA, length(c(sweet16, bigInst, "other")) )
+)
+
+collegeColors <- setNames(collegeAbbrv[,"color"], collegeAbbrv[,"abbrv"])
+
+```
+
+
+```{r}
+
+###########
+## QUERY ##
+###########
+
+# Obtain age data
+
+keyring::keyring_unlock(keyring = "BIPR", password = "Excelsior!")
+
+library(DBI)
+con.ds <- DBI::dbConnect(odbc::odbc(), Driver = "oracle", Host = "ocm-campus01.it.utah.edu", 
+                         SVC = keyring::key_list(keyring = "BIPR")[1, 1], UID = keyring::key_list(keyring = "BIPR")[1, 
+                                                                                                                    2], PWD = keyring::key_get(keyring = "BIPR", service = keyring::key_list(keyring = "BIPR")[1, 
+                                                                                                                                                                                                               1]), Port = 2080)
+
+ageQuery <- "
+select
+               dc.emplid,
+               daa.first_pub_yr,
+               daa.last_pub_yr,
+               daa.total_publications,
+               daa.first_pub_title,
+               daa.first_pub_id,
+               daa.first_grant_yr,
+               daa.last_grant_yr,
+               daa.total_grants,
+               dc.dim_id,
+               dc.confidence,
+               dc.confidence_desc
+from vpr_dimensions.dimensions_crosswalk dc
+left join vpr_dimensions.ds_uu_academic_age daa on daa.uu_researcher_dim_id = dc.dim_id
+"
+
+ageData <- dbGetQuery(con.ds,
+                      ageQuery)
+
+DBI::dbDisconnect(con.ds)
+
+
+```
+
+
+```{r}
+
+###########
+## MERGE ##
+###########
+
+prepAgeData <- merge(prepData, ageData, by.x = "PROPOSAL_PI_EMPLID" , by.y = "EMPLID", all.x = TRUE)
+
+# due to ambiguous matches, there are multiple matches for some EMPLIDs
+
+length(unique(prepAgeData$PROPOSAL_PI_EMPLID[is.na(prepAgeData$CONFIDENCE)])) # 812 !
+
+prepAgeData$class <- ifelse(is.na(prepAgeData$CONFIDENCE),"missing","present")
+
+```
+
+```{r}
+
+####################################################
+## USE ML TO SEE IF MISSING VALUES HAVE A PATTERN ##
+####################################################
+
+## PREP
+
+### calculate win/loss per pI
+
+fullPI <- calculateWinRates(data = prepData, categoryColumn = "PROPOSAL_PI_EMPLID", functionList = list(mean = mean, median = median)) |> (\(x){ x[[1]] })()
+
+fullPI$count.total <- apply(fullPI[,c("win.count","loss.count")], 1, sum, na.rm = TRUE )
+fullPI$sum.total <- apply(fullPI[,c("win.sum","loss.sum")], 1, sum, na.rm = TRUE )
+
+###  extract most common strings and factors
+
+theStrings <- c("PROPOSAL_PURPOSE", 
+                "PROPOSAL_TYPE", 
+                "college",
+                "PROPOSAL_RECIPIENT_FUNDING_TYPE",
+                "PROPOSAL_FANDA_WAIVER_INDIVATOR",
+                "PROPOSAL_COST_SHARE_INDICATOR",
+          "PROPOSAL_FANDA_OFF_CAMPUS_RATE_INDICATOR",
+                "PROPOSAL_UPLOAD_DATE_FISCAL_YEAR",
+                "PROPOSAL_PI_APPOINTMENT_COLLEGE",
+                "PROPOSAL_PI_ACADEMIC_RANK",
+                "PROPOSAL_PI_TENURE_STATUS",
+          "PROPOSAL_PI_FACULTY_CATEGORY",
+          "PROPOSAL_PI_FACULTY_SUBCATEGORY",
+          "PROPOSAL_PI_ACADEMIC_RANK_LEVEL",
+          "PROPOSAL_PI_RANK_SORTED",
+          "PROPOSAL_PI_FACULTY_LINE_SORTED",
+          "VPR_PROPOSAL_COLLEGE",
+          "PROPOSAL_VP",
+          "VPR_PROPOSAL_VP",
+          "PROPOSAL_SPONSOR_TYPE",
+          "PROPOSAL_IACUC_IRB_DIM_KEY",
+          "HIGHEST_GOVERNMENT_AGENCY_ACRONYM",
+          "NEXT_HIGHEST_GOVERNMENT_AGENCY_ACRONYM",
+          "complex_cluster",
+          "rate_cluster"
+                )
+
+mostCommon_list <- lapply(theStrings, function(theString){
+  
+  aggregate(get(theString) ~ PROPOSAL_PI_EMPLID,
+           data = prepData,
+           function(x){ table(as.character(x))[order(table(as.character(x)), decreasing = TRUE)] |> 
+               names() |>
+               (\(y){y[1]})()
+  
+  
+})
+  
+}
+
+)
+
+mostCommon <- Reduce(function(x,y){merge(x,y, by = "PROPOSAL_PI_EMPLID", all.x=TRUE)}, mostCommon_list)
+
+names(mostCommon) <- c("PROPOSAL_PI_EMPLID", theStrings)
+
+mostCommon$complex_cluster[is.na(mostCommon$complex_cluster)] <- "unassigned"
+
+mostCommon$rate_cluster[is.na(mostCommon$rate_cluster)] <- "unassigned"
+
+### extract dates
+
+theDates <- aggregate(upload_year ~ PROPOSAL_PI_EMPLID, data = prepData,
+function (x) {c(minYr = min(x, na.rm = TRUE),maxYr = max(x, na.rm = TRUE))})
+
+theDates <- cbind(theDates[1], as.data.frame(theDates$upload_year))
+
+theDates$dateRange <- theDates$maxYr - theDates$minYr
+
+# I could pull in something like years since initial hire
+
+# but let's see what this coughs up
+
+### merge back together
+
+fullPI <- merge(fullPI, merge(mostCommon, theDates, by = "PROPOSAL_PI_EMPLID"), by.x = "row.names", by.y = "PROPOSAL_PI_EMPLID" )
+
+row.names(fullPI) <- fullPI$Row.names
+names(fullPI)[names(fullPI) %in% "Row.names"] <- "PROPOSAL_PI_EMPLID"
+
+fullPI$class <- ifelse(fullPI$PROPOSAL_PI_EMPLID %in% ageData$EMPLID, "present","missing")
+
+fullPI$class <- factor(fullPI$class)
+
+```
+
+
+```{r}
+
+## SPLIT
+
+set.seed(42)
+
+splitIndex <- createDataPartition(fullPI$class, p = 0.8, list = FALSE)
+
+trainData <- fullPI[splitIndex,!colnames(fullPI) %in% c("PROPOSAL_PI_EMPLID")]
+testData <- fullPI[-splitIndex,!colnames(fullPI) %in% c("PROPOSAL_PI_EMPLID")]
+
+## TRAIN
+
+ctrl <- trainControl(
+  method = "cv",       # k-fold cross-validation
+  number = 5,          # 5-fold CV
+  verboseIter = TRUE,  # optional
+  classProbs = TRUE,   # needed for AUC/ROC
+  summaryFunction = twoClassSummary 
+)
+
+set.seed(42)
+
+xgbModel <- train(
+  class ~ .,
+  data = trainData,
+  method = "xgbTree",
+  trControl = ctrl,
+  metric = "ROC",       # maximize AUC
+  preProcess = c("center", "scale"),  # optional
+  tuneLength = 5        # try 5 tuning parameter combinations
+)
+
+
+```
+
+```{r}
+
+### PREDICT
+
+filter <- testData$college != "CTSI" &
+          testData$PROPOSAL_IACUC_IRB_DIM_KEY != 3
+
+predProbs <- predict(xgbModel, newdata = testData[filter,], type = "prob")
+predClass <- predict(xgbModel, newdata = testData[filter,])
+
+drawCM(confusionMatrix(predClass, testData$class[filter]))
+
+# This is such a border-line result
+# Weak signals with all that data, but not *nothing*
+
+```
+
+```{r}
+
+
+plot(varImp(xgbModel), 20)
+
+# I'm getting a picture of lots of "other"
+# Let's look closer into those top 7
+
+boxplot(maxYr ~ class, data = fullPI)
+boxplot(dateRange ~ class, data = fullPI)
+boxplot(log(sum.total) ~ class, data = fullPI)
+boxplot(sum.total ~ class, data = fullPI, log = "y")
+boxplot(sum.rate ~ class, data = fullPI)
+
+# This isn't in the model...
+boxplot(count.total ~ class, data = fullPI,log = "y")
+# ...even though it's a huge difference
+
+plotCategory("PROPOSAL_PI_FACULTY_LINE_SORTED")
+
+plotCategory("PROPOSAL_PI_APPOINTMENT_COLLEGE")
+
+plotCategory("VPR_PROPOSAL_COLLEGE", wanted_label = "OTHER")
+
+plotCategory("college", wanted_label = c("Bus", "other", "SocBeh","Med",  "FinArt", "SCI" ) ) # "Science",
+
+table(fullPI[,c("PROPOSAL_PI_FACULTY_LINE_SORTED", "class")]) |> 
+  
+  (\(x){ 
+    plot(x,
+         main = "PROPOSAL_PI_FACULTY_LINE_SORTED",
+         col = c("darkcyan","chocolate4"))
+        
+    })()
+  
+  
+
+
+# I wonder if the character name matters? like shorter names are harder to match?
+
+aggregate(PROPOSAL_PI_NAME ~ class, data = prepAgeData, function(x) { mean(nchar(as.character(x)))   })
+
+    class PROPOSAL_PI_NAME
+1 missing         17.38025
+2 present         16.12802
+
+# I could turn this into a t-test, see if it's signficant,
+# and I could re-run my model.
+
+# Next, I wonder who is the most successful and prolific PI that we haven't found?
+
+# should I add "percentiles" back into this --- naa, I've already scaled amounts
+
+# Let's follow Chat and conduct various statistical tests
+# to find the ones that differ, even if they don't matter to the model.
+
+```
+
+```{r}
+
+# developing a function to display categorical differences
+
+plotCategory <- function(colname, wanted_label=NA) {
+  
+  table(fullPI[,c(colname, "class")]) |> 
+  (\(x){ 
+    
+if (!all(is.na(wanted_label))) {
+        original_names <- rownames(x)
+        new_names <- ifelse(original_names %in% wanted_label, original_names, "")
+        dimnames(x)[[1]] <- new_names
+      }
+    
+    plot(x,
+         main = gsub("_", " ", gsub("PROPOSAL_","", colname)),
+         col = c("darkcyan","chocolate4"),
+         cex = 1.2)
+        
+    })()
+  
+}
+
+
+```
+
+
+
+
+```{r eval = FALSE}
+
+# sandbox
+
+####################################################
+## USE ML TO SEE IF MISSING VALUES HAVE A PATTERN ##
+####################################################
+
+# prep
+
+######################
+## CALCULATE PER PI ##
+######################
+
+fullPI <- calculateWinRates(data = prepData, categoryColumn = "PROPOSAL_PI_EMPLID", functionList = list(mean = mean, median = median)) |> (\(x){ x[[1]] })()
+# really starting to hate the list nature and why do I want "call" ?
+
+fullPI$count.total <- apply(fullPI[,c("win.count","loss.count")], 1, sum, na.rm = TRUE )
+fullPI$sum.total <- apply(fullPI[,c("win.sum","loss.sum")], 1, sum, na.rm = TRUE )
+
+
+
+mostCommon <- aggregate(cbind(PROPOSAL_PURPOSE, PROPOSAL_TYPE, PROPOSAL_COLLEGE) ~ PROPOSAL_PI_EMPLID,
+           data = prepData,
+           
+           function(x){ table(as.character(x))[order(table(as.character(x)), decreasing = TRUE)] |> 
+               names() |>
+               (\(y){y[1]})() |>
+               list()
+             
+            }
+           
+           )
+
+
+# wow aggregating is aggravating
+# no wonder dplyr took off
+
+uniqueValues <- sapply(prepData[, sapply(prepData, is.factor), drop = FALSE], nlevels)
+
+theStrings <- c("PROPOSAL_PURPOSE", 
+                "PROPOSAL_TYPE", 
+                "college",
+                "PROPOSAL_RECIPIENT_FUNDING_TYPE",
+                "PROPOSAL_FANDA_WAIVER_INDIVATOR",
+                "PROPOSAL_COST_SHARE_INDICATOR",
+          "PROPOSAL_FANDA_OFF_CAMPUS_RATE_INDICATOR",
+                "PROPOSAL_UPLOAD_DATE_FISCAL_YEAR",
+                "PROPOSAL_PI_APPOINTMENT_COLLEGE",
+                "PROPOSAL_PI_ACADEMIC_RANK",
+                "PROPOSAL_PI_TENURE_STATUS",
+          "PROPOSAL_PI_FACULTY_CATEGORY",
+          "PROPOSAL_PI_FACULTY_SUBCATEGORY",
+          "PROPOSAL_PI_ACADEMIC_RANK_LEVEL",
+          "PROPOSAL_PI_RANK_SORTED",
+          "PROPOSAL_PI_FACULTY_LINE_SORTED",
+          "VPR_PROPOSAL_COLLEGE",
+          "PROPOSAL_VP",
+          "VPR_PROPOSAL_VP",
+          "PROPOSAL_SPONSOR_TYPE",
+          "PROPOSAL_IACUC_IRB_DIM_KEY",
+          "HIGHEST_GOVERNMENT_AGENCY_ACRONYM",
+          "NEXT_HIGHEST_GOVERNMENT_AGENCY_ACRONYM",
+          "complex_cluster",
+          "rate_cluster"
+                )
+
+mostCommon_list <- lapply(theStrings, function(theString){
+  
+  aggregate(get(theString) ~ PROPOSAL_PI_EMPLID,
+           data = prepData,
+           function(x){ table(as.character(x))[order(table(as.character(x)), decreasing = TRUE)] |> 
+               names() |>
+               (\(y){y[1]})()
+  
+  
+})
+  
+}
+
+)
+
+mostCommon <- Reduce(function(x,y){merge(x,y, by = "PROPOSAL_PI_EMPLID", all.x=TRUE)}, mostCommon_list)
+
+names(mostCommon) <- c("PROPOSAL_PI_EMPLID", theStrings)
+
+mostCommon$complex_cluster[is.na(mostCommon$complex_cluster)] <- "unassigned"
+
+mostCommon$rate_cluster[is.na(mostCommon$rate_cluster)] <- "unassigned"
+
+theDates <- aggregate(upload_year ~ PROPOSAL_PI_EMPLID, data = prepData,
+function (x) {c(minYr = min(x, na.rm = TRUE),maxYr = max(x, na.rm = TRUE))})
+
+theDates <- cbind(theDates[1], as.data.frame(theDates$upload_year))
+
+
+
+```
+
+
+```{r}
+
+keepColumns <- c(
+ "PROPOSAL_PI_EMPLID",                      
+ "PROPOSAL_ID",                             
+ "win",                                     
+ "PROPOSAL_DIRECT_COST",                    
+ "PROPOSAL_FA_COST",                        
+ "PROPOSAL_TOTAL_SPONSOR_BUDGET",           
+ "PROPOSAL_UNIVERSITY_COSTSHARE",           
+ "PROPOSAL_3RD_PARTY_COSTSHARE",            
+ "PROPOSAL_DIRECT_COST_prop",               
+ "PROPOSAL_FA_COST_prop",                   
+ "PROPOSAL_UNIVERSITY_COSTSHARE_prop",      
+ "PROPOSAL_3RD_PARTY_COSTSHARE_prop",       
+ "PROPOSAL_SHORT_TITLE",                    
+ "PROPOSAL_TYPE",                           
+ "PROPOSAL_PURPOSE",                        
+ "PROPOSAL_RECIPIENT_FUNDING_TYPE",         
+ "PROPOSAL_COST_SHARE_INDICATOR",           
+ "PROPOSAL_FANDA_WAIVER_INDIVATOR",         
+ "PROPOSAL_FANDA_OFF_CAMPUS_RATE_INDICATOR",
+ "PROPOSAL_UPLOAD_DATE_FISCAL_YEAR",        
+ "PROPOSAL_PI_NAME",                        
+ "PROPOSAL_PI_APPOINTMENT_DEPT",            
+ "PROPOSAL_PI_APPOINTMENT_COLLEGE",         
+ "PROPOSAL_PI_ACADEMIC_RANK",               
+ "PROPOSAL_PI_TENURE_STATUS",               
+ "PROPOSAL_PI_FACULTY_CATEGORY",            
+ "PROPOSAL_PI_FACULTY_SUBCATEGORY",         
+ "PROPOSAL_PI_ACADEMIC_RANK_LEVEL",         
+ "PROPOSAL_PI_RANK_SORTED",                 
+ "PROPOSAL_PI_FACULTY_LINE_SORTED",         
+ "PROPOSAL_ORG",                            
+ "PROPOSAL_DEPT",                           
+ "VPR_PROPOSAL_COLLEGE",                    
+ "PROPOSAL_VP",                             
+ "VPR_PROPOSAL_VP",                         
+ "PROPOSAL_SPONSOR_ID",                     
+ "PROPOSAL_SPONSOR_NAME",                   
+ "PROPOSAL_SPONSOR_TYPE_CODE",              
+ "PROPOSAL_SPONSOR_TYPE",                   
+ "PROPOSAL_IACUC_IRB_DIM_KEY",              
+ "PROPOSAL_SPO_EMPLID",                     
+ "PROPOSAL_SPO_NAME",                       
+ "PROPOSAL_CREATION_DATE",                  
+ "PROPOSAL_OSP_RECEIVED_DATE",              
+ "PROPOSAL_OSP_REVIEW_DATE",                
+ "PROPOSAL_UPLOAD_DATE",                    
+ "PROPOSAL_PROJECT_START_DATE",             
+ "PROPOSAL_PROJECT_END_DATE",               
+ "PROPOSAL_SPONSOR_DUE_DATE",               
+ "HIGHEST_GOVERNMENT_AGENCY_ACRONYM",       
+ "NEXT_HIGHEST_GOVERNMENT_AGENCY_ACRONYM",  
+ "PROPOSAL_CREATION_DATE.week",             
+ "PROPOSAL_CREATION_DATE.month",           
+ "PROPOSAL_OSP_RECEIVED_DATE.week",         
+ "PROPOSAL_OSP_RECEIVED_DATE.month",        
+"PROPOSAL_OSP_REVIEW_DATE.week",           
+ "PROPOSAL_OSP_REVIEW_DATE.month",          
+ "PROPOSAL_UPLOAD_DATE.week",               
+ "PROPOSAL_UPLOAD_DATE.month",              
+ "PROPOSAL_PROJECT_START_DATE.week",        
+ "PROPOSAL_PROJECT_START_DATE.month",       
+ "PROPOSAL_PROJECT_END_DATE.week",          
+ "PROPOSAL_PROJECT_END_DATE.month",         
+ "PROPOSAL_SPONSOR_DUE_DATE.week",          
+ "PROPOSAL_SPONSOR_DUE_DATE.month",         
+ "interval.org",                            
+ "win.count.prior.org",                     
+ "loss.count.prior.org",                    
+ "total.count.prior.org",                   
+ "priorOrg",                                
+ "interval.PI",                             
+ "win.count.prior.PI",                      
+ "loss.count.prior.PI",                     
+ "total.count.prior.PI",                    
+ "priorPI",                                 
+ "collegeDiffer",                           
+ "upload_year",                             
+ "upload_fiscal_year",                      
+ "big5",                                    
+ "PROPOSAL_COLLEGE",                        
+"college16_bigInst",                       
+ "college",                                 
+ "total_cut",                               
+ "complex_cluster",                         
+ "rate_cluster",                            
+ "combined_cluster",                        
+ "FIRST_PUB_YR",                            
+ "LAST_PUB_YR",                             
+ "TOTAL_PUBLICATIONS",                      
+"FIRST_PUB_TITLE",                         
+"FIRST_PUB_ID",                            
+ "FIRST_GRANT_YR",                          
+ "LAST_GRANT_YR",                           
+ "TOTAL_GRANTS",                            
+ "DIM_ID",                                  
+ "CONFIDENCE",                              
+ "CONFIDENCE_DESC",                         
+ "class"
+)
+
+# I think I'm going to aggregate and merge, and be a little more thoughtful about 
+# what I am using to predict the missing values
+
+# let's get Kaidon working on this
+
+# write.csv(paste0("'", unique(prepAgeData$PROPOSAL_PI_EMPLID[prepAgeData$class == "missing"])), here::here("Robjects", "missingEmplid.csv"))
+
+
+
+```
+
