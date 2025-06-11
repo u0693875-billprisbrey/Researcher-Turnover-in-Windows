@@ -387,6 +387,11 @@ splitIndex <- createDataPartition(fullPI$class, p = 0.8, list = FALSE)
 trainData <- fullPI[splitIndex,!colnames(fullPI) %in% c("PROPOSAL_PI_EMPLID")]
 testData <- fullPI[-splitIndex,!colnames(fullPI) %in% c("PROPOSAL_PI_EMPLID")]
 
+```
+
+
+```{r eval=FALSE}
+
 ## TRAIN
 
 ctrl <- trainControl(
@@ -408,6 +413,8 @@ xgbModel <- train(
   preProcess = c("center", "scale"),  # optional
   tuneLength = 5        # try 5 tuning parameter combinations
 )
+
+saveRDS(xgbModel, here::here("Robjects", "Identifying missing age values from Dimensions Age Exploratory Data Analysis.rds"))
 
 
 ```
@@ -730,4 +737,110 @@ keepColumns <- c(
 
 
 ```
+
+To Do:
+
+Create some simple visualizations of some of the columns.
+
+Find the most prolific/high win rate individuals who are still missing.
+
+Clean up the visualizations that I have.
+
+For my own edification, compare differences per variable and statistical significance.
+
+### Grants and publication dates
+
+```{r}
+
+# First and last publication dates
+
+plotPar <- par(mfrow = c(4,1), 
+               bg = "ivory", 
+               fg = "gray20",
+               oma = c(1,0,0,0),
+               mar = c(3, 4.1, 2, 0.3)
+               )
+
+#mar = c(2, 4.1, 1.1, 0.1)) # c(5.1,4.1,4.1,2.1)
+
+table(ageData$FIRST_PUB_YR) |>
+  plot(ylab = "Count of PI's",
+       main = "Initial publication year",
+       type = "l",
+       las = 1,
+       col = "forestgreen")
+
+
+table(ageData$LAST_PUB_YR) |> log () |>
+  plot(ylab = "Log count of PI's",
+       main = "Final publication year",
+       type = "b",
+       cex = 0.619,
+       las = 1,
+       col = "darkolivegreen3")
+
+
+
+table(ageData$FIRST_GRANT_YR) |>
+  plot(ylab = "Count of PI's",
+       main = "Initial grant year",
+       type = "l",
+       las = 1,
+       col = "purple4")
+
+
+table(ageData$LAST_GRANT_YR) |> log () |>
+  plot(ylab = "Log count of PI's",
+       main = "Final grant year",
+       type = "b",
+       cex = 0.619,
+       las = 1,
+       col = "orchid")
+
+
+par(plotPar)
+
+
+```
+
+### Grants and publications
+
+```{r}
+
+plotPar <- par(mfrow = c(2,1), 
+               bg = "ivory", 
+               fg = "gray20",
+               oma = c(1,0,0,0),
+               mar = c(3, 4.1, 2, 0.3)
+               )
+
+
+
+hist(ageData$TOTAL_PUBLICATIONS, col = "darkolivegreen3")
+
+hist(ageData$TOTAL_GRANTS, col = "orchid")
+
+par(plotPar)
+
+```
+
+### Matching confidence
+
+```{r}
+
+# I should probably make a table of duplicates or something like that.
+
+table(ageData$CONFIDENCE) |>
+  plot(lwd = 40,
+       xpd = TRUE,
+       col= c(viridis::viridis(5),"gray"))
+
+# some kind of count of unique PI's per confidence level?
+
+
+
+```
+
+
+
 
