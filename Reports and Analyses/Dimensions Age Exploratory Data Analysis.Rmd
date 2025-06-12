@@ -837,7 +837,24 @@ table(ageData$CONFIDENCE) |>
 
 # some kind of count of unique PI's per confidence level?
 
+ratingsPer <- table(unique(ageData[,c("EMPLID", "CONFIDENCE")])) |>
+  as.data.frame.matrix() |>
+  (\(x){x[,"sum"] <- apply(x, 1, sum); return(x)  })()
+  
 
+dim(ratingsPer[ratingsPer$sum >1,]) # 828 7
+
+# huh
+
+# let's look at that 1:1
+
+theDupes <- table(ageData[,c("EMPLID", "DIM_ID")]) |>
+  as.data.frame.matrix() |>
+    (\(x){apply(x, 1, sum)  })() |>
+    (\(x){x[x>1]})()
+
+# perfect . . . 
+# now what?
 
 ```
 
