@@ -856,6 +856,100 @@ theDupes <- table(ageData[,c("EMPLID", "DIM_ID")]) |>
 # perfect . . . 
 # now what?
 
+View(ageData[ageData$EMPLID %in% names(theDupes),])
+
+# struggling to make use of this, actually
+# It's missing so-o many values
+
+# And, at this point I kinda want their name
+
+View(prepAgeData[prepAgeData$PROPOSAL_PI_EMPLID %in% names(theDupes), c("PROPOSAL_PI_EMPLID", "PROPOSAL_PI_NAME", "CONFIDENCE" )])
+
+# 00020501 is both a "W" and a "1".  Interesting.
+
+# I want to describe what proportion of the ~3000 PI's in my data are covered at which confidence level.
+
+# I want to describe what proportion/count of the Age data
+# have no duplicates
+# have no duplicates and at which confidence level
+# Among the duplicates--
+#   How many matches
+#   How many matches at which confidence level
+
+length(theDupes)/length(unique(ageData$EMPLID))
+
+barplot(as.matrix(c(length(theDupes), length(unique(ageData$EMPLID)[!unique(ageData$EMPLID) %in% names(theDupes)]  ))))
+
+nonDupes <- unique(ageData$EMPLID)[!unique(ageData$EMPLID) %in% names(theDupes)]  
+
+# I'd like multiple bar plots here in a row
+# Next one is non-dupes at which confidence level
+
+table(ageData$CONFIDENCE[ageData$EMPLID %in% nonDupes], useNA = "always")
+
+barplot(as.matrix(table(ageData$CONFIDENCE[ageData$EMPLID %in% nonDupes])), col = viridis::viridis(5)) # stack actually looks bad in this case
+
+barplot((table(ageData$CONFIDENCE[ageData$EMPLID %in% nonDupes])), col = c(viridis::viridis(5),"gray") )
+
+
+ageData$CONFIDENCE[ageData$EMPLID %in% nonDupes] |>
+  table() |>
+  (\(x){
+    x[names(x) != "1"]
+    
+  })() |>
+  barplot(col = c(viridis::viridis(5)[2:5],"grey") )
+
+
+```
+
+
+```{r}
+
+# Graphing non-dupes
+
+oldPar <- par(mfrow = c(1,3),
+              mar = c(2,4,0,0),
+              oma = c(0,0,2,0))
+
+firstPlot <- barplot(as.matrix(c(length(theDupes), length(unique(ageData$EMPLID)[ageData$EMPLID %in% nonDupes]  ))),
+        col = c("pink","gray"),
+         ylab = "COUNT OF PI'S", font.lab = 2
+        )
+
+text( x = firstPlot, y = 4000, "NON-DUPLICATED", col = "purple", cex = 1.6, font =2 )
+
+text(x = firstPlot, y = 1000, "DUPLICATED", col = "gray30", cex = 1.6, font = 2)
+
+
+secondPlot <- barplot(as.matrix(table(ageData$CONFIDENCE[ageData$EMPLID %in% nonDupes])), col = c(viridis::viridis(5),"gray"),
+                      border = NA,
+                      ylab = "NON-DUPLICATED PI'S", font.lab = 2,
+                      col.lab = "purple")
+
+text(x=secondPlot, y = table(ageData$CONFIDENCE[ageData$EMPLID %in% nonDupes])[1]*0.619, "CONFIDENCE = 1", col = "ivory", font = 2 , cex = 1.6)
+
+thirdPlot <- ageData$CONFIDENCE[ageData$EMPLID %in% nonDupes] |>
+  table() |>
+  (\(x){
+    x[names(x) != "1"]
+    
+  })() |>
+  barplot(
+    ylab = "NON-DUPLICATED PI'S",
+    font.lab = 2,
+    col.lab = "purple",
+    #ylab = expression(CONFIDENCE != 1),
+    #font.lab = 2,
+    #col.lab = "gray20",
+    col = c(viridis::viridis(5)[2:5],"grey") )
+
+mtext("PI duplication and confidence for non-duplicated PI's", outer = TRUE)
+
+par(oldPar)
+
+
+
 ```
 
 
