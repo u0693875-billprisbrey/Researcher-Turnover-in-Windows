@@ -298,6 +298,12 @@ DBI::dbDisconnect(con.ds)
 
 ```{r}
 
+##########
+## PREP ##
+##########
+
+ageData$CONFIDENCE <- factor(ageData$CONFIDENCE, levels = c(1:5, "W"))
+
 ###########
 ## MERGE ##
 ###########
@@ -311,6 +317,14 @@ prepAgeData <- merge(prepData, ageData, by.x = "PROPOSAL_PI_EMPLID" , by.y = "EM
 prepAgeData$class <- ifelse(is.na(prepAgeData$CONFIDENCE),"missing","present")
 
 ```
+
+```{r}
+
+skim(ageData)
+
+```
+
+
 
 
 ```{r}
@@ -326,6 +340,98 @@ nonDupes <- unique(ageData$EMPLID)[!unique(ageData$EMPLID) %in% names(theDupes)]
 
 ```
 
+### Grants and publication dates
+
+```{r}
+
+# First and last publication dates
+
+plotPar <- par(mfrow = c(4,1), 
+               bg = "ivory", 
+               fg = "gray20",
+               oma = c(1,0,0,0),
+               mar = c(3, 4.1, 2, 0.3)
+               )
+
+#mar = c(2, 4.1, 1.1, 0.1)) # c(5.1,4.1,4.1,2.1)
+
+table(ageData$FIRST_PUB_YR) |>
+  plot(ylab = "Count of PI's",
+       main = "Initial publication year",
+       type = "l",
+       las = 1,
+       col = "forestgreen")
+
+
+table(ageData$LAST_PUB_YR) |> log () |>
+  plot(ylab = "Log count of PI's",
+       main = "Final publication year",
+       type = "b",
+       cex = 0.619,
+       las = 1,
+       col = "darkolivegreen3")
+
+
+
+table(ageData$FIRST_GRANT_YR) |>
+  plot(ylab = "Count of PI's",
+       main = "Initial grant year",
+       type = "l",
+       las = 1,
+       col = "purple4")
+
+
+table(ageData$LAST_GRANT_YR) |> log () |>
+  plot(ylab = "Log count of PI's",
+       main = "Final grant year",
+       type = "b",
+       cex = 0.619,
+       las = 1,
+       col = "orchid")
+
+
+par(plotPar)
+
+
+```
+
+### Grants and publications
+
+```{r}
+
+plotPar <- par(mfrow = c(2,1), 
+               bg = "ivory", 
+               fg = "gray20",
+               oma = c(1,0,0,0),
+               mar = c(3, 4.1, 2, 0.3)
+               )
+
+
+
+hist(ageData$TOTAL_PUBLICATIONS, col = "darkolivegreen3")
+
+hist(ageData$TOTAL_GRANTS, col = "orchid")
+
+par(plotPar)
+
+```
+
+### Matching confidence
+
+I need a table of the description
+
+```{r}
+
+unique(ageData[, c("CONFIDENCE", "CONFIDENCE_DESC")]) |>
+  (\(x){
+    x[order(match(x$CONFIDENCE, levels(ageData$CONFIDENCE))),]
+    
+  })() |>
+  kbl(caption = "Confidence ratings and description", row.names = FALSE, col.names = c("", "DESCRIPTION")  ) |>
+  column_spec(2, extra_css = "padding-left: 1em;")
+
+
+```
 
 ```{r}
 
@@ -428,83 +534,6 @@ par(incomingPar)
 ```
 
 
-### Grants and publication dates
-
-```{r}
-
-# First and last publication dates
-
-plotPar <- par(mfrow = c(4,1), 
-               bg = "ivory", 
-               fg = "gray20",
-               oma = c(1,0,0,0),
-               mar = c(3, 4.1, 2, 0.3)
-               )
-
-#mar = c(2, 4.1, 1.1, 0.1)) # c(5.1,4.1,4.1,2.1)
-
-table(ageData$FIRST_PUB_YR) |>
-  plot(ylab = "Count of PI's",
-       main = "Initial publication year",
-       type = "l",
-       las = 1,
-       col = "forestgreen")
-
-
-table(ageData$LAST_PUB_YR) |> log () |>
-  plot(ylab = "Log count of PI's",
-       main = "Final publication year",
-       type = "b",
-       cex = 0.619,
-       las = 1,
-       col = "darkolivegreen3")
-
-
-
-table(ageData$FIRST_GRANT_YR) |>
-  plot(ylab = "Count of PI's",
-       main = "Initial grant year",
-       type = "l",
-       las = 1,
-       col = "purple4")
-
-
-table(ageData$LAST_GRANT_YR) |> log () |>
-  plot(ylab = "Log count of PI's",
-       main = "Final grant year",
-       type = "b",
-       cex = 0.619,
-       las = 1,
-       col = "orchid")
-
-
-par(plotPar)
-
-
-```
-
-### Grants and publications
-
-```{r}
-
-plotPar <- par(mfrow = c(2,1), 
-               bg = "ivory", 
-               fg = "gray20",
-               oma = c(1,0,0,0),
-               mar = c(3, 4.1, 2, 0.3)
-               )
-
-
-
-hist(ageData$TOTAL_PUBLICATIONS, col = "darkolivegreen3")
-
-hist(ageData$TOTAL_GRANTS, col = "orchid")
-
-par(plotPar)
-
-```
-
-### Matching confidence
 
 
 
