@@ -306,7 +306,7 @@ prepAgeData <- merge(prepData, ageData, by.x = "PROPOSAL_PI_EMPLID" , by.y = "EM
 
 # due to ambiguous matches, there are multiple matches for some EMPLIDs
 
-length(unique(prepAgeData$PROPOSAL_PI_EMPLID[is.na(prepAgeData$CONFIDENCE)])) # 812 !
+# length(unique(prepAgeData$PROPOSAL_PI_EMPLID[is.na(prepAgeData$CONFIDENCE)])) # 812 !
 
 prepAgeData$class <- ifelse(is.na(prepAgeData$CONFIDENCE),"missing","present")
 
@@ -428,6 +428,83 @@ par(incomingPar)
 ```
 
 
+### Grants and publication dates
+
+```{r}
+
+# First and last publication dates
+
+plotPar <- par(mfrow = c(4,1), 
+               bg = "ivory", 
+               fg = "gray20",
+               oma = c(1,0,0,0),
+               mar = c(3, 4.1, 2, 0.3)
+               )
+
+#mar = c(2, 4.1, 1.1, 0.1)) # c(5.1,4.1,4.1,2.1)
+
+table(ageData$FIRST_PUB_YR) |>
+  plot(ylab = "Count of PI's",
+       main = "Initial publication year",
+       type = "l",
+       las = 1,
+       col = "forestgreen")
+
+
+table(ageData$LAST_PUB_YR) |> log () |>
+  plot(ylab = "Log count of PI's",
+       main = "Final publication year",
+       type = "b",
+       cex = 0.619,
+       las = 1,
+       col = "darkolivegreen3")
+
+
+
+table(ageData$FIRST_GRANT_YR) |>
+  plot(ylab = "Count of PI's",
+       main = "Initial grant year",
+       type = "l",
+       las = 1,
+       col = "purple4")
+
+
+table(ageData$LAST_GRANT_YR) |> log () |>
+  plot(ylab = "Log count of PI's",
+       main = "Final grant year",
+       type = "b",
+       cex = 0.619,
+       las = 1,
+       col = "orchid")
+
+
+par(plotPar)
+
+
+```
+
+### Grants and publications
+
+```{r}
+
+plotPar <- par(mfrow = c(2,1), 
+               bg = "ivory", 
+               fg = "gray20",
+               oma = c(1,0,0,0),
+               mar = c(3, 4.1, 2, 0.3)
+               )
+
+
+
+hist(ageData$TOTAL_PUBLICATIONS, col = "darkolivegreen3")
+
+hist(ageData$TOTAL_GRANTS, col = "orchid")
+
+par(plotPar)
+
+```
+
+### Matching confidence
 
 
 
@@ -873,83 +950,6 @@ Clean up the visualizations that I have.
 
 For my own edification, compare differences per variable and statistical significance.
 
-### Grants and publication dates
-
-```{r}
-
-# First and last publication dates
-
-plotPar <- par(mfrow = c(4,1), 
-               bg = "ivory", 
-               fg = "gray20",
-               oma = c(1,0,0,0),
-               mar = c(3, 4.1, 2, 0.3)
-               )
-
-#mar = c(2, 4.1, 1.1, 0.1)) # c(5.1,4.1,4.1,2.1)
-
-table(ageData$FIRST_PUB_YR) |>
-  plot(ylab = "Count of PI's",
-       main = "Initial publication year",
-       type = "l",
-       las = 1,
-       col = "forestgreen")
-
-
-table(ageData$LAST_PUB_YR) |> log () |>
-  plot(ylab = "Log count of PI's",
-       main = "Final publication year",
-       type = "b",
-       cex = 0.619,
-       las = 1,
-       col = "darkolivegreen3")
-
-
-
-table(ageData$FIRST_GRANT_YR) |>
-  plot(ylab = "Count of PI's",
-       main = "Initial grant year",
-       type = "l",
-       las = 1,
-       col = "purple4")
-
-
-table(ageData$LAST_GRANT_YR) |> log () |>
-  plot(ylab = "Log count of PI's",
-       main = "Final grant year",
-       type = "b",
-       cex = 0.619,
-       las = 1,
-       col = "orchid")
-
-
-par(plotPar)
-
-
-```
-
-### Grants and publications
-
-```{r}
-
-plotPar <- par(mfrow = c(2,1), 
-               bg = "ivory", 
-               fg = "gray20",
-               oma = c(1,0,0,0),
-               mar = c(3, 4.1, 2, 0.3)
-               )
-
-
-
-hist(ageData$TOTAL_PUBLICATIONS, col = "darkolivegreen3")
-
-hist(ageData$TOTAL_GRANTS, col = "orchid")
-
-par(plotPar)
-
-```
-
-### Matching confidence
 
 ```{r eval=FALSE}
 
