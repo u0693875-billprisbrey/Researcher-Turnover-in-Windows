@@ -554,7 +554,7 @@ fullPI <- calculateWinRates(data = prepData, categoryColumn = "PROPOSAL_PI_EMPLI
 fullPI$count.total <- apply(fullPI[,c("win.count","loss.count")], 1, sum, na.rm = TRUE )
 fullPI$sum.total <- apply(fullPI[,c("win.sum","loss.sum")], 1, sum, na.rm = TRUE )
 
-###  extract most common strings and factors
+###  extract most common strings and factors for certain columns
 
 theStrings <- c("PROPOSAL_PURPOSE", 
                 "PROPOSAL_TYPE", 
@@ -695,8 +695,67 @@ drawCM(confusionMatrix(predClass, testData$class[filter]))
 
 ```{r}
 
-
 plot(varImp(xgbModel), 20)
+
+
+```
+
+### VARIABLES THAT PREDICT MISSING VALUES
+
+Conclusion: Missing values aren't random.
+
+```{r}
+
+incomingPar <- par(
+  mfrow = c(2,2),
+  oma = c(0,0,2,0),
+  mar = c(4,4,2,1)
+  )
+
+boxplot(maxYr ~ class, data = fullPI,  ylab = "",
+        main = "Maximum (?) year")
+
+boxplot(dateRange ~ class, data = fullPI, ylab = "",
+        main = "Date range")
+
+boxplot(log(sum.total) ~ class, data = fullPI, ylab = "", main = "Proposal total (log)")
+
+boxplot(sum.rate ~ class, data = fullPI, ylab = "",
+        main = "Win rate (sum)")
+
+mtext(side = 3, text = "Variables that distinguish missing values", font = 2, cex = 1.619, outer = TRUE)
+
+par(incomingPar)
+
+```
+
+```{r}
+
+incomingPar <- par(
+  mfrow = c(2,2),
+  oma = c(0,0,2,0),
+  mar = c(4,4,2,1)
+  )
+
+plotCategory("PROPOSAL_PI_FACULTY_LINE_SORTED")
+
+plotCategory("PROPOSAL_PI_APPOINTMENT_COLLEGE", wanted_label = c("NNN","other"))
+
+# plotCategory("VPR_PROPOSAL_COLLEGE", wanted_label = "OTHER")
+
+plotCategory("PROPOSAL_PI_FACULTY_LINE_SORTED")
+
+plotCategory("college", wanted_label = c("Bus", "other", "SocBeh","Med",  "FinArt", "SCI" ) )
+
+par(incomingPar)
+
+```
+
+
+
+
+
+```{r eval=FALSE}
 
 # I'm getting a picture of lots of "other"
 # Let's look closer into those top 7
