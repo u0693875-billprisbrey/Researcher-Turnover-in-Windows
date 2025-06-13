@@ -29,6 +29,33 @@ oldPar <- par(cex.main = 3,
 
 ```
 
+```{r}
+
+# developing a function to display categorical differences
+
+plotCategory <- function(colname, wanted_label=NA) {
+  
+  table(fullPI[,c(colname, "class")]) |> 
+  (\(x){ 
+    
+if (!all(is.na(wanted_label))) {
+        original_names <- rownames(x)
+        new_names <- ifelse(original_names %in% wanted_label, original_names, "")
+        dimnames(x)[[1]] <- new_names
+      }
+    
+    plot(x,
+         main = gsub("_", " ", gsub("PROPOSAL_","", colname)),
+         col = c("darkcyan","chocolate4"),
+         cex = 1.2)
+        
+    })()
+  
+}
+
+
+```
+
 
 
 ```{r}
@@ -41,6 +68,9 @@ oldPar <- par(cex.main = 3,
 
 source(here::here("Prep scripts","Adjusting prepData and loading things.R"))
 
+# LOAD MODEL 
+
+xgbModel <- readRDS(here::here("Robjects", "Identifying missing age values from Dimensions Age Exploratory Data Analysis.rds"))
 
 # PER PI
 
@@ -282,6 +312,127 @@ prepAgeData$class <- ifelse(is.na(prepAgeData$CONFIDENCE),"missing","present")
 
 ```
 
+
+```{r}
+
+## IDENTIFY DUPLICATE MATCHES
+
+theDupes <- table(ageData[,c("EMPLID", "DIM_ID")]) |>
+  as.data.frame.matrix() |>
+    (\(x){apply(x, 1, sum)  })() |>
+    (\(x){x[x>1]})()
+
+nonDupes <- unique(ageData$EMPLID)[!unique(ageData$EMPLID) %in% names(theDupes)]  
+
+```
+
+
+```{r}
+
+# Graphing non-dupes
+
+incomingPar <- par(mfrow = c(1,3),
+              mar = c(2,4,0,0),
+              oma = c(0,0,2,0))
+
+firstPlot <- barplot(as.matrix(c(length(theDupes), length(unique(ageData$EMPLID)[ageData$EMPLID %in% nonDupes]  ))),
+        col = c("pink","gray"),
+         ylab = "COUNT OF PI'S", font.lab = 2
+        )
+
+text( x = firstPlot, y = 4000, "NON-DUPLICATED", col = "purple", cex = 1.6, font =2 )
+
+text( x = firstPlot, y = 4000*0.9, paste(round(proportions(c(length(theDupes), length(unique(ageData$EMPLID)[ageData$EMPLID %in% nonDupes]  )))[2]*100,0),"%"), col = "purple", cex = 1.6, font =2 )
+
+
+text(x = firstPlot, y = 1000, "DUPLICATED", col = "gray30", cex = 1.6, font = 2)
+
+
+secondPlot <- barplot(as.matrix(table(ageData$CONFIDENCE[ageData$EMPLID %in% nonDupes])), col = c(viridis::viridis(5),"gray"),
+                      border = NA,
+                      ylab = "NON-DUPLICATED PI'S", font.lab = 2,
+                      col.lab = "purple")
+
+text(x=secondPlot, y = table(ageData$CONFIDENCE[ageData$EMPLID %in% nonDupes])[1]*0.619, "CONFIDENCE = 1", col = "ivory", font = 2 , cex = 1.6)
+
+text(x=secondPlot, y = table(ageData$CONFIDENCE[ageData$EMPLID %in% nonDupes])[1]*0.619 * 0.85, paste0(round(proportions(table(ageData$CONFIDENCE[ageData$EMPLID %in% nonDupes]))[1]*100,0),"%") , col = "ivory", font = 2 , cex = 1.6)
+
+
+thirdPlot <- ageData$CONFIDENCE[ageData$EMPLID %in% nonDupes] |>
+  table() |>
+  (\(x){
+    x[names(x) != "1"]
+    
+  })() |>
+  barplot(
+    ylab = "NON-DUPLICATED PI'S",
+    font.lab = 2,
+    col.lab = "purple",
+    #ylab = expression(CONFIDENCE != 1),
+    #font.lab = 2,
+    #col.lab = "gray20",
+    col = c(viridis::viridis(5)[2:5],"grey") )
+
+mtext("PI duplication and confidence score for non-duplicated PI matches", outer = TRUE)
+
+par(incomingPar)
+
+
+
+```
+
+
+```{r}
+
+# Graphing duplicates
+
+incomingPar <- par(mfrow = c(1,3),
+              mar = c(2,4,0,0),
+              oma = c(0,0,2,0))
+
+firstPlot <- barplot(as.matrix(c(length(theDupes), length(unique(ageData$EMPLID)[ageData$EMPLID %in% nonDupes]  ))),
+        col = c("pink","gray"),
+         ylab = "COUNT OF PI'S", font.lab = 2
+        )
+
+text( x = firstPlot, y = 4000, "NON-DUPLICATED", col = "purple", cex = 1.6, font =2 )
+
+text( x = firstPlot, y = 4000*0.9, paste(round(proportions(c(length(theDupes), length(unique(ageData$EMPLID)[ageData$EMPLID %in% nonDupes]  )))[2]*100,0),"%"), col = "purple", cex = 1.6, font =2 )
+
+
+text(x = firstPlot, y = 1000, "DUPLICATED", col = "gray30", cex = 1.6, font = 2)
+
+
+boxplot(theDupes, col = "pink"
+        )
+
+mtext(side = 2,
+      text = "DUPLICATIONS PER PI",
+      line = 2.9,
+      font =2,
+      col = "gray20")
+
+
+table(ageData$CONFIDENCE[ageData$EMPLID %in% names(theDupes)]) |>
+  barplot(col = c(viridis::viridis(5)[1:5],"grey"))
+
+mtext("PI duplication and confidence score for duplicate PI matches", outer = TRUE)
+
+par(incomingPar)
+
+# looks great
+
+# should I drill down?
+# nah, that's good enough for this report
+
+```
+
+
+
+
+
+
+
 ```{r}
 
 ####################################################
@@ -494,32 +645,6 @@ aggregate(PROPOSAL_PI_NAME ~ class, data = prepAgeData, function(x) { mean(nchar
 
 ```
 
-```{r}
-
-# developing a function to display categorical differences
-
-plotCategory <- function(colname, wanted_label=NA) {
-  
-  table(fullPI[,c(colname, "class")]) |> 
-  (\(x){ 
-    
-if (!all(is.na(wanted_label))) {
-        original_names <- rownames(x)
-        new_names <- ifelse(original_names %in% wanted_label, original_names, "")
-        dimnames(x)[[1]] <- new_names
-      }
-    
-    plot(x,
-         main = gsub("_", " ", gsub("PROPOSAL_","", colname)),
-         col = c("darkcyan","chocolate4"),
-         cex = 1.2)
-        
-    })()
-  
-}
-
-
-```
 
 
 
@@ -826,7 +951,9 @@ par(plotPar)
 
 ### Matching confidence
 
-```{r}
+```{r eval=FALSE}
+
+# SANDBOX
 
 # I should probably make a table of duplicates or something like that.
 
@@ -900,107 +1027,6 @@ ageData$CONFIDENCE[ageData$EMPLID %in% nonDupes] |>
   })() |>
   barplot(col = c(viridis::viridis(5)[2:5],"grey") )
 
-
-```
-
-
-```{r}
-
-# Graphing non-dupes
-
-incomingPar <- par(mfrow = c(1,3),
-              mar = c(2,4,0,0),
-              oma = c(0,0,2,0))
-
-firstPlot <- barplot(as.matrix(c(length(theDupes), length(unique(ageData$EMPLID)[ageData$EMPLID %in% nonDupes]  ))),
-        col = c("pink","gray"),
-         ylab = "COUNT OF PI'S", font.lab = 2
-        )
-
-text( x = firstPlot, y = 4000, "NON-DUPLICATED", col = "purple", cex = 1.6, font =2 )
-
-text( x = firstPlot, y = 4000*0.9, paste(round(proportions(c(length(theDupes), length(unique(ageData$EMPLID)[ageData$EMPLID %in% nonDupes]  )))[2]*100,0),"%"), col = "purple", cex = 1.6, font =2 )
-
-
-text(x = firstPlot, y = 1000, "DUPLICATED", col = "gray30", cex = 1.6, font = 2)
-
-
-secondPlot <- barplot(as.matrix(table(ageData$CONFIDENCE[ageData$EMPLID %in% nonDupes])), col = c(viridis::viridis(5),"gray"),
-                      border = NA,
-                      ylab = "NON-DUPLICATED PI'S", font.lab = 2,
-                      col.lab = "purple")
-
-text(x=secondPlot, y = table(ageData$CONFIDENCE[ageData$EMPLID %in% nonDupes])[1]*0.619, "CONFIDENCE = 1", col = "ivory", font = 2 , cex = 1.6)
-
-text(x=secondPlot, y = table(ageData$CONFIDENCE[ageData$EMPLID %in% nonDupes])[1]*0.619 * 0.85, paste0(round(proportions(table(ageData$CONFIDENCE[ageData$EMPLID %in% nonDupes]))[1]*100,0),"%") , col = "ivory", font = 2 , cex = 1.6)
-
-
-thirdPlot <- ageData$CONFIDENCE[ageData$EMPLID %in% nonDupes] |>
-  table() |>
-  (\(x){
-    x[names(x) != "1"]
-    
-  })() |>
-  barplot(
-    ylab = "NON-DUPLICATED PI'S",
-    font.lab = 2,
-    col.lab = "purple",
-    #ylab = expression(CONFIDENCE != 1),
-    #font.lab = 2,
-    #col.lab = "gray20",
-    col = c(viridis::viridis(5)[2:5],"grey") )
-
-mtext("PI duplication and confidence score for non-duplicated PI matches", outer = TRUE)
-
-par(incomingPar)
-
-
-
-```
-
-
-```{r}
-
-# Graphing duplicates
-
-incomingPar <- par(mfrow = c(1,3),
-              mar = c(2,4,0,0),
-              oma = c(0,0,2,0))
-
-firstPlot <- barplot(as.matrix(c(length(theDupes), length(unique(ageData$EMPLID)[ageData$EMPLID %in% nonDupes]  ))),
-        col = c("pink","gray"),
-         ylab = "COUNT OF PI'S", font.lab = 2
-        )
-
-text( x = firstPlot, y = 4000, "NON-DUPLICATED", col = "purple", cex = 1.6, font =2 )
-
-text( x = firstPlot, y = 4000*0.9, paste(round(proportions(c(length(theDupes), length(unique(ageData$EMPLID)[ageData$EMPLID %in% nonDupes]  )))[2]*100,0),"%"), col = "purple", cex = 1.6, font =2 )
-
-
-text(x = firstPlot, y = 1000, "DUPLICATED", col = "gray30", cex = 1.6, font = 2)
-
-
-boxplot(theDupes, col = "pink"
-        )
-
-mtext(side = 2,
-      text = "DUPLICATIONS PER PI",
-      line = 2.9,
-      font =2,
-      col = "gray20")
-
-
-table(ageData$CONFIDENCE[ageData$EMPLID %in% names(theDupes)]) |>
-  barplot(col = c(viridis::viridis(5)[1:5],"grey"))
-
-mtext("PI duplication and confidence score for duplicate PI matches", outer = TRUE)
-
-par(incomingPar)
-
-# looks great
-
-# should I drill down?
-# nah, that's good enough for this report
 
 ```
 
