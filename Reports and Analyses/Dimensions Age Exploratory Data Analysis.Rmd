@@ -318,6 +318,34 @@ prepAgeData$class <- ifelse(is.na(prepAgeData$CONFIDENCE),"missing","present")
 
 ```
 
+
+**PURPOSE:**  The purpose of this report is to describe an aspect of the external Dimensions data set and its alignment with internal proposal data.
+
+
+**OBJECTIVES:**   
+
+  1.  Describe the Dimensions data.   
+  2.  Describe alignment with internal data.    
+  3.  Identify patterns in alignment.   
+  
+**SUMMARY:**   
+
+The Dimensions data set is an external data set that tracks activity by researchers.  It is described [here.] (Find a link.)  
+
+Internally, the Office of Sponsored Projects similarly tracks proposal activity by principal investigators.
+
+The internal and external data sets are aligned by matching researcher identification through clues such as name, department, and publication title.  [Explain why this isn't a perfect match.]
+
+
+
+
+
+Wow I'm struggling to write anything coherent.
+
+The intent is to identify the first publication date per PI, 
+
+
+
 ```{r}
 
 skim(ageData)
