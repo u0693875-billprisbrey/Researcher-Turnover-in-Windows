@@ -334,7 +334,25 @@ The Dimensions data set is an external data set that tracks activity by research
 
 Internally, the Office of Sponsored Projects similarly tracks proposal activity by principal investigators.
 
-The internal and external data sets are aligned by matching researcher identification through clues such as name, department, and publication title.  [Explain why this isn't a perfect match.]
+The internal and external data sets can be aligned in order to have a more comprehensive evaluation of an individual's activity, both preceding and succeeding their time at the U.
+
+For the purposes of evaluating PI turnover and retention, it is hoped that an "academic age" per PI can be derived from this data set based on their earliest publication [or grant?].  The "academic age" will be used as a proxy for actual age, as although employees' birthdates are known this information is considered PPI and subject to maximum restriction.
+
+The internal and external data sets are aligned by matching researcher identification through clues such as name, department, and publication title.  However, external data sets are never perfect and often require manual curation.  A perfect alignment is not expected.
+
+For the purposes of this analysis, date fields describing first and last publishing year or grant year, total number of publications and grants, and an alignment confidence score are extracted from the external data set.
+
+The publication dates range from the year `r min(ageData$FIRST_PUB_YR, na.rm = TRUE)` to `r max(ageData$LAST_PUB_YR, na.rm = TRUE)`, and the grant dates range from the year `r min(ageData$FIRST_GRANT_YR, na.rm = TRUE)` to `r max(ageData$LAST_GRANT_YR, na.rm = TRUE)`.  `r sum(ageData$TOTAL_PUBLICATIONS, na.rm = TRUE) |> format(big.mark = ',')` publications and `r sum(ageData$TOTAL_GRANTS, na.rm = TRUE) |> format(big.mark = ',')` grants are tallied.
+
+The combined data set attempts to align `r length(unique(ageData$EMPLID))` internal employee identification numbers with `r length(unique(ageData$DIM_ID))` external researcher identification numbers and provides a score of confidence in the alignment.  It aligns `r length(unique(ageData$EMPLID[ageData$EMPLID %in% nonDupes & ageData$CONFIDENCE == 1])) |> format(big.mark = ",")` (`r  (length(unique(ageData$EMPLID[ageData$EMPLID %in% nonDupes & ageData$CONFIDENCE == 1])) / length(unique(ageData$EMPLID))) |> (\(x){round(x*100,0)})() `%) internal EMPLIDs with a one-to-one match at the highest confidence score.  The remaining `r length(unique(ageData$EMPLID[!(ageData$EMPLID %in% nonDupes) | ageData$CONFIDENCE != 1]))` EMPLID's are aligned with multiple potential external ID's at reduced confidence levels.  
+
+(Oddly, `r length(unique(ageData$EMPLID[ageData$EMPLID %in% names(theDupes) & ageData$CONFIDENCE == 1]))` EMPLID's are aligned with multiple external ID's with a confidence level of 1.)
+
+However, internally OSP has tracked the research activity 
+
+
+
+This evaluation found that 
 
 
 
@@ -342,7 +360,13 @@ The internal and external data sets are aligned by matching researcher identific
 
 Wow I'm struggling to write anything coherent.
 
-The intent is to identify the first publication date per PI, 
+The intent is to identify the first publication date per PI.
+
+I actually don't need many words on this one.  The point is to get it done.  It's just a quick look at what we have.
+
+Where's my graphic of how many are matched and un-matched?
+
+
 
 
 
