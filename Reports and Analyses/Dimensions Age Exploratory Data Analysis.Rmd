@@ -319,6 +319,22 @@ prepAgeData$class <- ifelse(is.na(prepAgeData$CONFIDENCE),"missing","present")
 ```
 
 
+
+```{r}
+
+## IDENTIFY DUPLICATE MATCHES
+
+theDupes <- table(ageData[,c("EMPLID", "DIM_ID")]) |>
+  as.data.frame.matrix() |>
+    (\(x){apply(x, 1, sum)  })() |>
+    (\(x){x[x>1]})()
+
+nonDupes <- unique(ageData$EMPLID)[!unique(ageData$EMPLID) %in% names(theDupes)]  
+
+```
+
+
+
 **PURPOSE:**  The purpose of this report is to describe an aspect of the external Dimensions data set and its alignment with internal proposal data.
 
 
@@ -377,20 +393,6 @@ skim(ageData)
 ```
 
 
-
-
-```{r}
-
-## IDENTIFY DUPLICATE MATCHES
-
-theDupes <- table(ageData[,c("EMPLID", "DIM_ID")]) |>
-  as.data.frame.matrix() |>
-    (\(x){apply(x, 1, sum)  })() |>
-    (\(x){x[x>1]})()
-
-nonDupes <- unique(ageData$EMPLID)[!unique(ageData$EMPLID) %in% names(theDupes)]  
-
-```
 
 ### Grants and publication dates
 
@@ -585,7 +587,33 @@ par(incomingPar)
 
 ```
 
+# SUBSET OF INTEREST
 
+Not all `r length(unique(ageData$EMPLID)) |> format(big.mark = ",")` PI's available in the Dimensions data are of immediate interest.  A previous study examined `r length(unique(prepData$PROPOSAL_PI_EMPLID)) |> format(big.mark = ",")` PI's who submitted proposals between FY2013 and FY2023.  
+
+
+
+```{r}
+
+all(unique(prepData$PROPOSAL_PI_EMPLID) %in% unique(ageData$EMPLID))
+
+unique(prepData$PROPOSAL_PI_EMPLID)[!(unique(prepData$PROPOSAL_PI_EMPLID)) %in% unique(ageData$EMPLID)] |> length() # 812
+
+# Go back to where I calculated all of this and figure out a way to demonstrate it.
+
+# I think the "subset of interest" is reasonable.
+
+# For the subset of interest--
+#  - Repeat the pink/gray "duplication" graphics.
+#  - State whether the missing values are random.
+#  - And I seriously need better words to describe this.
+
+# I think I'll publish what I have and review.
+
+
+
+
+```  
 
 
 
