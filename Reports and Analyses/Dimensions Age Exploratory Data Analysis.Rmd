@@ -598,7 +598,7 @@ mtext("SINGLE PI MATCHES", at = -2, line = 2, xpd = TRUE)
 
 # mtext("PI duplication and confidence score for non-duplicated PI matches", outer = TRUE)
 
-mtext("Matches per PI and confidence scores", outer = TRUE, font = 2, cex = 1.381)
+mtext("Matches per PI and confidence scores of available data", outer = TRUE, font = 2, cex = 1.381)
 
 par(incomingPar)
 
@@ -697,6 +697,153 @@ and maybe have some kind of visual cue.
 
 
 You almost want a flow-chart graphic to keep these things straight.
+
+### MATCHES AND CONFIDENCE SCORES FOR SUBSET
+
+```{r}
+
+# Subset of interest
+
+missingSubset <- unique(prepAgeData$PROPOSAL_PI_EMPLID[is.na(prepAgeData$CONFIDENCE)])
+
+matchedSubset <- unique(prepAgeData$PROPOSAL_PI_EMPLID[!is.na(prepAgeData$CONFIDENCE)])
+
+singleSubset <- droplevels(unique(prepAgeData$PROPOSAL_PI_EMPLID[prepAgeData$PROPOSAL_PI_EMPLID %in% nonDupes]))
+
+multipleSubset <- droplevels(unique(prepAgeData$PROPOSAL_PI_EMPLID[prepAgeData$PROPOSAL_PI_EMPLID %in% names(theDupes)]))
+
+c(length(unique(prepAgeData$PROPOSAL_PI_EMPLID[is.na(prepAgeData$CONFIDENCE)])),
+  length(unique(prepAgeData$PROPOSAL_PI_EMPLID[!is.na(prepAgeData$CONFIDENCE)]))
+  )
+
+# Create the layout 
+layout(matrix(c(1,1,1,1,1,2,3,4,5,6), nrow = 2, byrow = TRUE),
+       heights = c(0.3, 1)) 
+
+incomingPar <- par(mar = c(4,3,4,2),
+                   oma = c(0,0,3,1))
+
+# Missing, dupes, and non-dupes barplot
+
+firstPlot <- barplot(as.matrix(c(length(missingSubset), length(multipleSubset), length(singleSubset))),
+        col = c("chocolate4", "pink","gray"),
+        main = "COUNT of PI'S IN SUBSET", main.lab = 2,
+        horiz = TRUE
+        )
+
+missingPercentage <- paste0(
+  round(
+    proportions(
+      c(length(missingSubset), length(multipleSubset), length(singleSubset)
+        )  
+      )
+    [1]*100,0),"%")
+
+multiplePercentage <- paste0(
+  round(
+    proportions(
+      c(length(missingSubset), length(multipleSubset), length(singleSubset)
+        )  
+      )
+    [2]*100,0),"%")
+
+singlePercentage <- paste0(
+  round(
+    proportions(
+      c(length(missingSubset), length(multipleSubset), length(singleSubset)
+        )  
+      )
+    [3]*100,0),"%")
+
+text(x = length(missingSubset)*0.5, y = firstPlot,  paste0("MISSING (", missingPercentage, ")") , col = "wheat", cex = 1.3, font =2 )
+
+text(x = (length(missingSubset) + length(multipleSubset))*0.8, y = firstPlot,  paste0("MULTIPLE (", multiplePercentage, ")") , col = "gray30", cex = 1.3, font =2 )
+
+text(x = (length(missingSubset) + length(multipleSubset)+length(singleSubset))*0.9, y = firstPlot,  paste0("SINGLE (", singlePercentage, ")") , col = "purple", cex = 1.3, font =2 )
+
+# text(x = 4000, y = firstPlot,  "SINGLE", col = "purple", cex = 1.6, font =2 )
+
+# text(x = 4000, y = firstPlot*0.7,  paste(round(proportions(c(length(theDupes), length(unique(ageData$EMPLID)[ageData$EMPLID %in% nonDupes]  )))[2]*100,0),"%"), col = "purple", cex = 1.6, font =2 )
+
+
+# plain plot
+
+plot(1, type = "n", xlab = "", ylab = "", xaxt = "n", yaxt = "n", bty = "n")
+rect(xleft = 0.6, ybottom = 0.75, xright = 1.4, ytop = 1.25, col = "chocolate4", border = FALSE)
+text(x=1, y= 1, "Missing\nexamined\nbelow", col = "wheat", font = 2, cex = 1.619)
+
+mtext("NO PI MATCHES\n(MISSING)", at = -2, line = 2)
+
+# Graphing duplicates first
+
+par(mar = c(4,4,4,2))
+
+boxplot(theDupes[names(theDupes) %in% multipleSubset], col = "pink"
+        )
+
+mtext(side = 2,
+      text = "MATCHES per PI",
+      line = 2.5,
+      font =2,
+      col = "gray20",
+      cex = 0.7)
+
+
+table(prepAgeData$CONFIDENCE[prepAgeData$PROPOSAL_PI_EMPLID %in% multipleSubset]) |>
+  barplot(col = c(viridis::viridis(5)[1:5],"grey"),
+    ylab = "COUNT of MATCHES",
+    font.lab = 2,
+    col.lab = "gray20",
+    xlab = "CONFIDENCE",)
+
+mtext("MULTIPLE PI MATCHES", at = -2, line = 2, xpd = TRUE)
+
+# mtext("PI duplication and confidence score for duplicate PI matches", outer = TRUE)
+
+
+
+# Graphing non-dupes
+
+secondPlot <- barplot(as.matrix(table(prepAgeData$CONFIDENCE[prepAgeData$PROPOSAL_PI_EMPLID %in% singleSubset])), col = c(viridis::viridis(5),"gray"),
+                      border = NA,
+                      ylab = "COUNT of PI'S", font.lab = 2,
+                      col.lab = "purple")
+
+text(x=secondPlot, y = table(prepAgeData$CONFIDENCE[prepAgeData$PROPOSAL_PI_EMPLID %in% singleSubset])[1]*0.619, "CONFIDENCE\n= 1", col = "ivory", font = 2 , cex = 1.3)
+
+text(x=secondPlot, y = table(prepAgeData$CONFIDENCE[prepAgeData$PROPOSAL_PI_EMPLID %in% singleSubset])[1]*0.619 * 0.85, paste0(round(proportions(table(prepAgeData$CONFIDENCE[prepAgeData$PROPOSAL_PI_EMPLID %in% singleSubset]))[1]*100,0),"%") , col = "ivory", font = 2 , cex = 1.3)
+
+
+thirdPlot <- prepAgeData$CONFIDENCE[prepAgeData$PROPOSAL_PI_EMPLID %in% singleSubset] |>
+  table() |>
+  (\(x){
+    x[names(x) != "1"]
+    
+  })() |>
+  barplot(
+    ylab = "COUNT of PI'S",
+    font.lab = 2,
+    col.lab = "purple",
+    xlab = "CONFIDENCE",
+    #ylab = expression(CONFIDENCE != 1),
+    #font.lab = 2,
+    #col.lab = "gray20",
+    col = c(viridis::viridis(5)[2:5],"grey") )
+
+
+mtext("SINGLE PI MATCHES", at = -2, line = 2, xpd = TRUE)
+
+# mtext("PI duplication and confidence score for non-duplicated PI matches", outer = TRUE)
+
+mtext("Matches per PI and confidence scores of target population", outer = TRUE, font = 2, cex = 1.381)
+
+par(incomingPar)
+
+
+
+```
+
+
 
 
 

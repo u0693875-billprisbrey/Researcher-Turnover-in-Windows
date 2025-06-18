@@ -78,6 +78,18 @@ I actually don't need many words on this one.  The point is to get it done.  It'
 
 Where's my graphic of how many are matched and un-matched?
 
+It's like, instead of three tiles describing "duplicate" I need to add a fourth one on the right, the first one, which is
+
+... is ....
+
+... hold on ...
+
+..."subset of interest" that is "found" and "not found" ?
+
+I guess it's just another row of three.
+
+Let's do that, first, and see what it looks like.
+
 
 
 
@@ -178,10 +190,12 @@ I need a table of the description
 </tbody>
 </table>
 
+### MATCHES AND CONFIDENCE SCORES
+
 ![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
 
 
-![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
+
 
 # SUBSET OF INTEREST
 
@@ -198,6 +212,28 @@ Not all 5,192 PI's available in the Dimensions data are of immediate interest.  
 ## [1] 812
 ```
 
+```
+## [1] 0.2764726
+```
+
+![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
+
+And now that I've looked at this long enough,
+
+what I think I'd like is to add the pink and gray bar not as a vertical on the left, but as a horizontal.  Then the two patterns on the right of each pink-and-gray become a row of four underneath the pink or gray,
+and maybe have some kind of visual cue.
+
+
+You almost want a flow-chart graphic to keep these things straight.
+
+### MATCHES AND CONFIDENCE SCORES FOR SUBSET
+
+
+```
+## [1]  812 2125
+```
+
+![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
 
 
 
@@ -210,17 +246,18 @@ Not all 5,192 PI's available in the Dimensions data are of immediate interest.  
 
 
 
-![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-17-1.png)<!-- -->
 
 ![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-18-1.png)<!-- -->
+
+![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-19-1.png)<!-- -->
 
 ### VARIABLES THAT PREDICT MISSING VALUES
 
 Conclusion: Missing values aren't random.
 
-![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-19-1.png)<!-- -->
-
 ![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-20-1.png)<!-- -->
+
+![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-21-1.png)<!-- -->
 
 
 
