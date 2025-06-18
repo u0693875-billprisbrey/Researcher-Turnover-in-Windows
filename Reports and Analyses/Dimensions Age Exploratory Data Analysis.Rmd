@@ -506,31 +506,40 @@ unique(ageData[, c("CONFIDENCE", "CONFIDENCE_DESC")]) |>
 # Combining graphic of dupes and non-dupes
 
 # parameters
-incomingPar <- par(mfrow = c(1,3),
-              mar = c(1,2,0,1),
-              oma = c(0,0,2,0))
+# incomingPar <- par(mfrow = c(1,3),
+#              mar = c(1,2,0,1),
+#              oma = c(0,0,2,0))
 
 # Create the layout 
 layout(matrix(c(1,1,1,1,2,3,4,5), nrow = 2, byrow = TRUE),
        heights = c(0.3, 1)) 
 
+incomingPar <- par(mar = c(4,3,4,2),
+                   oma = c(0,0,3,1))
+
 # Dupes and non-dupes barplot
 
 firstPlot <- barplot(as.matrix(c(length(theDupes), length(unique(ageData$EMPLID)[ageData$EMPLID %in% nonDupes]  ))),
         col = c("pink","gray"),
-         ylab = "COUNT OF PI'S", font.lab = 2,
+        main = "COUNT OF PI'S", main.lab = 2,
         horiz = TRUE
         )
 
-text(x = 4000, y = firstPlot,  "NON-DUPLICATED", col = "purple", cex = 1.6, font =2 )
+singlePercentage <- paste(round(proportions(c(length(theDupes), length(unique(ageData$EMPLID)[ageData$EMPLID %in% nonDupes]  )))[2]*100,0),"%")
 
-text(x = 4000, y = firstPlot*0.7,  paste(round(proportions(c(length(theDupes), length(unique(ageData$EMPLID)[ageData$EMPLID %in% nonDupes]  )))[2]*100,0),"%"), col = "purple", cex = 1.6, font =2 )
+text(x = 4000, y = firstPlot,  paste0("SINGLE (", singlePercentage, ")") , col = "purple", cex = 1.6, font =2 )
+
+# text(x = 4000, y = firstPlot,  "SINGLE", col = "purple", cex = 1.6, font =2 )
+
+# text(x = 4000, y = firstPlot*0.7,  paste(round(proportions(c(length(theDupes), length(unique(ageData$EMPLID)[ageData$EMPLID %in% nonDupes]  )))[2]*100,0),"%"), col = "purple", cex = 1.6, font =2 )
 
 
-text(x = 0.619*length(theDupes), y = firstPlot,  "DUPLICATED", col = "gray30", cex = 1.6, font = 2)
+text(x = 0.619*length(theDupes), y = firstPlot,  "MULTIPLE", col = "gray30", cex = 1.6, font = 2)
 
 
 # Graphing duplicates first
+
+par(mar = c(4,4,4,2))
 
 boxplot(theDupes, col = "pink"
         )
@@ -545,7 +554,9 @@ mtext(side = 2,
 table(ageData$CONFIDENCE[ageData$EMPLID %in% names(theDupes)]) |>
   barplot(col = c(viridis::viridis(5)[1:5],"grey"))
 
-mtext("PI duplication and confidence score for duplicate PI matches", outer = TRUE)
+mtext("MULTIPLE PI MATCHES", at = -2, line = 2, xpd = TRUE)
+
+# mtext("PI duplication and confidence score for duplicate PI matches", outer = TRUE)
 
 
 
@@ -576,7 +587,12 @@ thirdPlot <- ageData$CONFIDENCE[ageData$EMPLID %in% nonDupes] |>
     #col.lab = "gray20",
     col = c(viridis::viridis(5)[2:5],"grey") )
 
-mtext("PI duplication and confidence score for non-duplicated PI matches", outer = TRUE)
+
+mtext("SINGLE PI MATCHES", at = -2, line = 2, xpd = TRUE)
+
+# mtext("PI duplication and confidence score for non-duplicated PI matches", outer = TRUE)
+
+mtext("Matches per PI and confidence scores", outer = TRUE, font = 2, cex = 1.381)
 
 par(incomingPar)
 
