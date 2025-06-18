@@ -331,18 +331,67 @@ theDupes <- table(ageData[,c("EMPLID", "DIM_ID")]) |>
 
 nonDupes <- unique(ageData$EMPLID)[!unique(ageData$EMPLID) %in% names(theDupes)]  
 
+# DESCRIBE TARGET POPULATION
+
+missingSubset <- unique(prepAgeData$PROPOSAL_PI_EMPLID[is.na(prepAgeData$CONFIDENCE)])
+
+matchedSubset <- unique(prepAgeData$PROPOSAL_PI_EMPLID[!is.na(prepAgeData$CONFIDENCE)])
+
+singleSubset <- droplevels(unique(prepAgeData$PROPOSAL_PI_EMPLID[prepAgeData$PROPOSAL_PI_EMPLID %in% nonDupes]))
+
+multipleSubset <- droplevels(unique(prepAgeData$PROPOSAL_PI_EMPLID[prepAgeData$PROPOSAL_PI_EMPLID %in% names(theDupes)]))
+
+missingPercentage <- paste0(
+  round(
+    proportions(
+      c(length(missingSubset), length(multipleSubset), length(singleSubset)
+        )  
+      )
+    [1]*100,0),"%")
+
+multiplePercentage <- paste0(
+  round(
+    proportions(
+      c(length(missingSubset), length(multipleSubset), length(singleSubset)
+        )  
+      )
+    [2]*100,0),"%")
+
+singlePercentage <- paste0(
+  round(
+    proportions(
+      c(length(missingSubset), length(multipleSubset), length(singleSubset)
+        )  
+      )
+    [3]*100,0),"%")
+
+
 ```
 
 
 
-**PURPOSE:**  The purpose of this report is to describe an aspect of the external Dimensions data set and its alignment with internal proposal data.
-
+**PURPOSE:**  The purpose of this report is to describe aligning the "Dimensions" data set with the target population of PI's and draw conclusions on its utility. 
 
 **OBJECTIVES:**   
 
   1.  Describe the Dimensions data.   
-  2.  Describe alignment with internal data.    
-  3.  Identify patterns in alignment.   
+  2.  Describe alignment with the target population.    
+  3.  Identify patterns in missing matches.
+
+**EXECUTIVE SUMMARY:**
+
+The Dimensions data set is an external data set that tracks activity by researchers.  It could be used to identify the first publication (grant?) by a researcher, and use this date as a proxy for the birthdate, deriving an "academic age" per PI.
+
+This Dimensions data set is manually curated and aligned with internal PI's using clues like name, department, and title.  However, the alignment is time-consuming and imperfect.
+
+As of today, `r today()`, `r length(unique(ageData$EMPLID)) |> format(big.mark = ",")` PI's have potential matches with `r length(unique(ageData$DIM_ID)) |> format(big.mark = ",")` researchers identified in Dimensions with varying counts of matches and varying levels of confidence.  
+
+However, of the target population of `r length(unique(prepData$PROPOSAL_PI_EMPLID)) |> format(big.mark = ",") ` PI's, some `r missingPercentage` have no matches.   These missing matches are not random, scoring a Kappa value of 0.29 when predicted with a machine learning model.  The missing PI's tend to be older, sparser researchers outside of the main researching institutions at the U. 
+
+As well, there are internal inconsistencies in the confidence rating, where PI's have multiple potential matches but are scored as having a one-to-one match.
+
+In conclusion, the data set is unattractive in determining an "academic age" per PI because it is too incomplete, too biased in missing values, and too inconsistent.
+
   
 **SUMMARY:**   
 
@@ -396,6 +445,10 @@ Let's do that, first, and see what it looks like.
 
 
 
+
+I'm getting tired of this.
+
+I need to simply conclude that this external data set is not usable for the purposes of this study due to a large proportion of non-random missing data in the target population.  As well, concerns about consistency of definitions are noted (where PI's with multiple matches are scored with a self-contradictory 'one-to-one' match rating.)
 
 
 ```{r}
@@ -660,7 +713,7 @@ Not all `r length(unique(ageData$EMPLID)) |> format(big.mark = ",")` PI's availa
 
 
 
-```{r}
+```{r eval=FALSE}
 
 all(unique(prepData$PROPOSAL_PI_EMPLID) %in% unique(ageData$EMPLID))
 
@@ -704,17 +757,6 @@ You almost want a flow-chart graphic to keep these things straight.
 
 # Subset of interest
 
-missingSubset <- unique(prepAgeData$PROPOSAL_PI_EMPLID[is.na(prepAgeData$CONFIDENCE)])
-
-matchedSubset <- unique(prepAgeData$PROPOSAL_PI_EMPLID[!is.na(prepAgeData$CONFIDENCE)])
-
-singleSubset <- droplevels(unique(prepAgeData$PROPOSAL_PI_EMPLID[prepAgeData$PROPOSAL_PI_EMPLID %in% nonDupes]))
-
-multipleSubset <- droplevels(unique(prepAgeData$PROPOSAL_PI_EMPLID[prepAgeData$PROPOSAL_PI_EMPLID %in% names(theDupes)]))
-
-c(length(unique(prepAgeData$PROPOSAL_PI_EMPLID[is.na(prepAgeData$CONFIDENCE)])),
-  length(unique(prepAgeData$PROPOSAL_PI_EMPLID[!is.na(prepAgeData$CONFIDENCE)]))
-  )
 
 # Create the layout 
 layout(matrix(c(1,1,1,1,1,2,3,4,5,6), nrow = 2, byrow = TRUE),
@@ -730,30 +772,6 @@ firstPlot <- barplot(as.matrix(c(length(missingSubset), length(multipleSubset), 
         main = "COUNT of PI'S IN SUBSET", main.lab = 2,
         horiz = TRUE
         )
-
-missingPercentage <- paste0(
-  round(
-    proportions(
-      c(length(missingSubset), length(multipleSubset), length(singleSubset)
-        )  
-      )
-    [1]*100,0),"%")
-
-multiplePercentage <- paste0(
-  round(
-    proportions(
-      c(length(missingSubset), length(multipleSubset), length(singleSubset)
-        )  
-      )
-    [2]*100,0),"%")
-
-singlePercentage <- paste0(
-  round(
-    proportions(
-      c(length(missingSubset), length(multipleSubset), length(singleSubset)
-        )  
-      )
-    [3]*100,0),"%")
 
 text(x = length(missingSubset)*0.5, y = firstPlot,  paste0("MISSING (", missingPercentage, ")") , col = "wheat", cex = 1.3, font =2 )
 
