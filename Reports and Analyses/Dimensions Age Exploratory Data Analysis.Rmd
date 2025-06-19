@@ -7,6 +7,12 @@ output:
     keep_md: true
 ---
 
+To Do:
+Limit the query to a date
+Remove the "As of today" phrase
+Adjust plot sizes
+A few more words and it's done
+Refer to "target population"
 
 ```{r settings, include = FALSE}
 
@@ -386,11 +392,11 @@ This Dimensions data set is manually curated and aligned with internal PI's usin
 
 As of today, `r today()`, `r length(unique(ageData$EMPLID)) |> format(big.mark = ",")` PI's have potential matches with `r length(unique(ageData$DIM_ID)) |> format(big.mark = ",")` researchers identified in Dimensions with varying counts of matches and varying levels of confidence.  
 
-However, of the target population of `r length(unique(prepData$PROPOSAL_PI_EMPLID)) |> format(big.mark = ",") ` PI's, some `r missingPercentage` have no matches.   These missing matches are not random, scoring a Kappa value of 0.29 when predicted with a machine learning model.  The missing PI's tend to be older, sparser researchers outside of the main researching institutions at the U. 
+However, of the target population of `r length(unique(prepData$PROPOSAL_PI_EMPLID)) |> format(big.mark = ",") ` PI's, some `r missingPercentage` have no matches.   Further complicating an analysis, these missing matches are not random.  A predictive machine learning model scored a Kappa value of 0.29 where a Kappa value of less than 0.1 would indicate randomness.  Instead, the missing PI's tend to be older, with a sparser activity record outside of the main researching institutions at the U. 
 
 As well, there are internal inconsistencies in the confidence rating, where PI's have multiple potential matches but are scored as having a one-to-one match.
 
-In conclusion, the data set is unattractive in determining an "academic age" per PI because it is too incomplete, too biased in missing values, and too inconsistent.
+In conclusion, the data set is unattractive to use in further analysis, specifically in determining an "academic age" per PI, because it is too incomplete, too biased in missing values, and too inconsistent.  Alternative data should be explored before using this data.   
 
   
 **SUMMARY:**   
@@ -401,9 +407,9 @@ Internally, the Office of Sponsored Projects similarly tracks proposal activity 
 
 The internal and external data sets can be aligned in order to have a more comprehensive evaluation of an individual's activity, both preceding and succeeding their time at the U.
 
-For the purposes of evaluating PI turnover and retention, it is hoped that an "academic age" per PI can be derived from this data set based on their earliest publication [or grant?].  The "academic age" will be used as a proxy for actual age, as although employees' birthdates are known this information is considered PPI and subject to maximum restriction.
+For the purposes of evaluating PI turnover and retention, it is hoped that an "academic age" per PI can be derived from this data set based on their earliest publication [or grant?].  The "academic age" will be used as a proxy for actual age, as the employees' birthdates is unavailable for analyses because this information is considered sensitive and subject to maximum restriction.
 
-The internal and external data sets are aligned by matching researcher identification through clues such as name, department, and publication title.  However, external data sets are never perfect and often require manual curation.  A perfect alignment is not expected.
+The internal and external data sets are aligned by matching researcher identification through clues such as name, department, and publication title.  However, external data sets are created through a mish mash of methods and adhere to varying rules and quality standards. A perfect alignment with internal data, which verifiably follows a number of rules and quality standards, is not expected.
 
 For the purposes of this analysis, date fields describing first and last publishing year or grant year, total number of publications and grants, and an alignment confidence score are extracted from the external data set.
 
@@ -450,6 +456,7 @@ I'm getting tired of this.
 
 I need to simply conclude that this external data set is not usable for the purposes of this study due to a large proportion of non-random missing data in the target population.  As well, concerns about consistency of definitions are noted (where PI's with multiple matches are scored with a self-contradictory 'one-to-one' match rating.)
 
+### Data summary
 
 ```{r}
 
@@ -535,9 +542,8 @@ par(plotPar)
 
 ```
 
-### Matching confidence
+### Matching confidence explained
 
-I need a table of the description
 
 ```{r}
 
@@ -552,9 +558,9 @@ unique(ageData[, c("CONFIDENCE", "CONFIDENCE_DESC")]) |>
 
 ```
 
-### MATCHES AND CONFIDENCE SCORES
+### Matches and confidence scores
 
-```{r}
+```{r fig.height = 6, fig.width= 9}
 
 # Combining graphic of dupes and non-dupes
 
@@ -707,7 +713,7 @@ par(incomingPar)
 
 ```
 
-# SUBSET OF INTEREST
+### Target population
 
 Not all `r length(unique(ageData$EMPLID)) |> format(big.mark = ",")` PI's available in the Dimensions data are of immediate interest.  A previous study examined `r length(unique(prepData$PROPOSAL_PI_EMPLID)) |> format(big.mark = ",")` PI's who submitted proposals between FY2013 and FY2023.  
 
@@ -743,15 +749,6 @@ c(length(unique(prepAgeData$PROPOSAL_PI_EMPLID[is.na(prepAgeData$CONFIDENCE)])),
 
 ```  
 
-And now that I've looked at this long enough,
-
-what I think I'd like is to add the pink and gray bar not as a vertical on the left, but as a horizontal.  Then the two patterns on the right of each pink-and-gray become a row of four underneath the pink or gray,
-and maybe have some kind of visual cue.
-
-
-You almost want a flow-chart graphic to keep these things straight.
-
-### MATCHES AND CONFIDENCE SCORES FOR SUBSET
 
 ```{r}
 
@@ -862,7 +859,9 @@ par(incomingPar)
 ```
 
 
+### Patterns in missing matches found via machine learning
 
+You probably want some words here.
 
 
 ```{r}
