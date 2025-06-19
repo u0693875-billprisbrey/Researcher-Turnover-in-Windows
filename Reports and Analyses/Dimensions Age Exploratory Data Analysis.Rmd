@@ -52,7 +52,7 @@ if (!all(is.na(wanted_label))) {
     
     plot(x,
          main = gsub("_", " ", gsub("PROPOSAL_","", colname)),
-         col = c("darkcyan","chocolate4"),
+         col = c("chocolate4","thistle"),
          cex = 1.2)
         
     })()
@@ -715,9 +715,9 @@ par(incomingPar)
 
 ```
 
-## (2) DESCRIBE ALLIGNMENT WITH THE TARGET POPULATION
+## (2) DESCRIBE ALIGNMENT WITH THE TARGET POPULATION
 
-Not all `r length(unique(ageData$EMPLID)) |> format(big.mark = ",")` PI's available in the Dimensions data are of immediate interest.  A previous study examined `r length(unique(prepData$PROPOSAL_PI_EMPLID)) |> format(big.mark = ",")` PI's who submitted proposals between FY2013 and FY2023.  
+Not all `r length(unique(ageData$EMPLID)) |> format(big.mark = ",")` PI's available in the Dimensions data are of immediate interest.  A previous study examined `r length(unique(prepData$PROPOSAL_PI_EMPLID)) |> format(big.mark = ",")` PI's who submitted proposals between FY2013 and FY2023.  This is the target population.   
 
 
 
@@ -1004,7 +1004,7 @@ saveRDS(xgbModel, here::here("Robjects", "Identifying missing age values from Di
 
 Out of the target population of `r length(unique(prepData$PROPOSAL_PI_EMPLID)) |> format(big.mark=",") ` some `r length(missingSubset) ` (`r missingPercentage`) do not have matches.
 
-Machine learning was used to identify patterns in the missing data.  If no patterns were found, and the missing matches were random, then the missing values could be imputed or the records with missing values removed with less impact on study conclusions. However, the presence of patterns in missing data would undermine study conclusions due to not fully scoping the situation.
+Machine learning was used to identify patterns in the missing data by using the available data to classify whether a match in Dimensions data was "missing" or "present."  If no patterns were found, and the missing matches were random, then the missing values could be imputed or the records with missing values removed with less impact on study conclusions. However, the presence of patterns in missing data would undermine study conclusions due to not fully scoping the situation.
 
 Identifying patterns could also help efforts to find matches.   
 
@@ -1012,9 +1012,9 @@ Extreme gradient boosting was used with default settings to detect whether a PI 
 
 The most common character value was chosen per PI. The minimum and maximum proposal year (between 2013 and 2023 per population filter criteria), and the range between, was extracted or calculated.  Values like the number of proposals won or lost, and the median amount requested, was calculated per PI.
 
-The machine learning model had an overall accuracy of 76%, precision of 59%, and recall of 34%.  Of most relevance was the Kappa score, a measure of agreement beyond chance, at 0.29 which greatly exceeded the 0.1 threshold.  This suggests the presence of patterns or underyling structure that describe  which PI's were missing matches.
+The machine learning model had an overall accuracy of 76%, precision of 59%, and recall of 34%.  Of most relevance was the Kappa score, a measure of agreement beyond chance, at 0.29 which greatly exceeded a 0.1 threshold.  This suggests the presence of patterns or underlying structure that describe which PI's were missing matches.
 
-### Data set used to in machine learning
+### Data set used for machine learning
 
 ```{r}
 
@@ -1022,7 +1022,7 @@ skim(fullPI)
 
 ```
 
-
+### Model performance
 
 ```{r}
 
@@ -1052,9 +1052,8 @@ plot(varImp(xgbModel), 20)
 
 ```
 
-### VARIABLES THAT PREDICT MISSING VALUES
+### Variables that predict missing matches
 
-Conclusion: Missing values aren't random.
 
 ```{r}
 
@@ -1065,15 +1064,18 @@ incomingPar <- par(
   )
 
 boxplot(maxYr ~ class, data = fullPI,  ylab = "",
-        main = "Maximum (?) year")
+        col = c("chocolate4","thistle"),
+        main = "Maximum (?) year"
+        )
 
 boxplot(dateRange ~ class, data = fullPI, ylab = "",
+        col = c("chocolate4","thistle"),
         main = "Date range")
 
-boxplot(log(sum.total) ~ class, data = fullPI, ylab = "", main = "Proposal total (log)")
+boxplot(log(sum.total) ~ class, data = fullPI, ylab = "", col = c("chocolate4","thistle"), main = "Proposal total (log)")
 
-boxplot(sum.rate ~ class, data = fullPI, ylab = "",
-        main = "Win rate (sum)")
+boxplot(log(count.total) ~ class, data = fullPI, ylab = "", col = c("chocolate4","thistle"),
+        main = "Proposal count (log)")
 
 mtext(side = 3, text = "Variables that distinguish missing values", font = 2, cex = 1.619, outer = TRUE)
 

@@ -223,9 +223,9 @@ Table: Data summary
 
 
 
-## (2) DESCRIBE ALLIGNMENT WITH THE TARGET POPULATION
+## (2) DESCRIBE ALIGNMENT WITH THE TARGET POPULATION
 
-Not all 5,192 PI's available in the Dimensions data are of immediate interest.  A previous study examined 2,937 PI's who submitted proposals between FY2013 and FY2023.  
+Not all 5,192 PI's available in the Dimensions data are of immediate interest.  A previous study examined 2,937 PI's who submitted proposals between FY2013 and FY2023.  This is the target population.   
 
 
 
@@ -249,7 +249,7 @@ Not all 5,192 PI's available in the Dimensions data are of immediate interest.  
 
 Out of the target population of 2,937 some 812 (28%) do not have matches.
 
-Machine learning was used to identify patterns in the missing data.  If no patterns were found, and the missing matches were random, then the missing values could be imputed or the records with missing values removed with less impact on study conclusions. However, the presence of patterns in missing data would undermine study conclusions due to not fully scoping the situation.
+Machine learning was used to identify patterns in the missing data by using the available data to classify whether a match in Dimensions data was "missing" or "present."  If no patterns were found, and the missing matches were random, then the missing values could be imputed or the records with missing values removed with less impact on study conclusions. However, the presence of patterns in missing data would undermine study conclusions due to not fully scoping the situation.
 
 Identifying patterns could also help efforts to find matches.   
 
@@ -257,9 +257,9 @@ Extreme gradient boosting was used with default settings to detect whether a PI 
 
 The most common character value was chosen per PI. The minimum and maximum proposal year (between 2013 and 2023 per population filter criteria), and the range between, was extracted or calculated.  Values like the number of proposals won or lost, and the median amount requested, was calculated per PI.
 
-The machine learning model had an overall accuracy of 76%, precision of 59%, and recall of 34%.  Of most relevance was the Kappa score, a measure of agreement beyond chance, at 0.29 which greatly exceeded the 0.1 threshold.  This suggests the presence of patterns or underyling structure that describe  which PI's were missing matches.
+The machine learning model had an overall accuracy of 76%, precision of 59%, and recall of 34%.  Of most relevance was the Kappa score, a measure of agreement beyond chance, at 0.29 which greatly exceeded a 0.1 threshold.  This suggests the presence of patterns or underlying structure that describe which PI's were missing matches.
 
-### Data set used to in machine learning
+### Data set used for machine learning
 
 
 Table: Data summary
@@ -344,7 +344,7 @@ Table: Data summary
 |maxYr         |         0|             1|    2020.19|        2.98| 2013|   2018.00|    2021.00|    2023.00|      2023|▂▂▂▃▇ |
 |dateRange     |         0|             1|       3.77|        3.41|    0|      0.00|       3.00|       7.00|        10|▇▃▂▂▂ |
 
-
+### Model performance
 
 ![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-19-1.png)<!-- -->
 
@@ -354,9 +354,8 @@ Table: Data summary
 
 ![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-20-1.png)<!-- -->
 
-### VARIABLES THAT PREDICT MISSING VALUES
+### Variables that predict missing matches
 
-Conclusion: Missing values aren't random.
 
 ![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-21-1.png)<!-- -->
 
