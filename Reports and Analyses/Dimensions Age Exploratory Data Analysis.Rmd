@@ -456,6 +456,8 @@ I'm getting tired of this.
 
 I need to simply conclude that this external data set is not usable for the purposes of this study due to a large proportion of non-random missing data in the target population.  As well, concerns about consistency of definitions are noted (where PI's with multiple matches are scored with a self-contradictory 'one-to-one' match rating.)
 
+## (1) DESCRIBE THE DIMENSIONS DATA
+
 ### Data summary
 
 ```{r}
@@ -558,7 +560,7 @@ unique(ageData[, c("CONFIDENCE", "CONFIDENCE_DESC")]) |>
 
 ```
 
-### Matches and confidence scores
+### Matches and confidence scores of the available data
 
 ```{r fig.height = 6, fig.width= 9}
 
@@ -713,7 +715,7 @@ par(incomingPar)
 
 ```
 
-### Target population
+## (2) DESCRIBE ALLIGNMENT WITH THE TARGET POPULATION
 
 Not all `r length(unique(ageData$EMPLID)) |> format(big.mark = ",")` PI's available in the Dimensions data are of immediate interest.  A previous study examined `r length(unique(prepData$PROPOSAL_PI_EMPLID)) |> format(big.mark = ",")` PI's who submitted proposals between FY2013 and FY2023.  
 
@@ -750,7 +752,7 @@ c(length(unique(prepAgeData$PROPOSAL_PI_EMPLID[is.na(prepAgeData$CONFIDENCE)])),
 ```  
 
 
-```{r}
+```{r fig.height = 6, fig.width= 9}
 
 # Subset of interest
 
@@ -859,9 +861,8 @@ par(incomingPar)
 ```
 
 
-### Patterns in missing matches found via machine learning
+### (3) IDENTIFY PATTERNS IN MISSING MATCHES
 
-You probably want some words here.
 
 
 ```{r}
@@ -1001,6 +1002,28 @@ saveRDS(xgbModel, here::here("Robjects", "Identifying missing age values from Di
 
 ```
 
+Out of the target population of `r length(unique(prepData$PROPOSAL_PI_EMPLID)) |> format(big.mark=",") ` some `r length(missingSubset) ` (`r missingPercentage`) do not have matches.
+
+Machine learning was used to identify patterns in the missing data.  If no patterns were found, and the missing matches were random, then the missing values could be imputed or the records with missing values removed with less impact on study conclusions. However, the presence of patterns in missing data would undermine study conclusions due to not fully scoping the situation.
+
+Identifying patterns could also help efforts to find matches.   
+
+Extreme gradient boosting was used with default settings to detect whether a PI was "missing" or "present" in Dimensions data using `r ncol(fullPI) - 2` variables, `r sapply(fullPI, class) |> table() |> (\(x){ x[names(x) == "numeric"]})()` numeric and `r sapply(fullPI, class) |> table() |> (\(x){ x[names(x) == "character"]})()` character. 
+
+The most common character value was chosen per PI. The minimum and maximum proposal year (between 2013 and 2023 per population filter criteria), and the range between, was extracted or calculated.  Values like the number of proposals won or lost, and the median amount requested, was calculated per PI.
+
+The machine learning model had an overall accuracy of 76%, precision of 59%, and recall of 34%.  Of most relevance was the Kappa score, a measure of agreement beyond chance, at 0.29 which greatly exceeded the 0.1 threshold.  This suggests the presence of patterns or underyling structure that describe  which PI's were missing matches.
+
+### Data set used to in machine learning
+
+```{r}
+
+skim(fullPI)
+
+```
+
+
+
 ```{r}
 
 ### PREDICT
@@ -1017,6 +1040,10 @@ drawCM(confusionMatrix(predClass, testData$class[filter]))
 # Weak signals with all that data, but not *nothing*
 
 ```
+
+
+
+### Variable importance to the machine learning model
 
 ```{r}
 
