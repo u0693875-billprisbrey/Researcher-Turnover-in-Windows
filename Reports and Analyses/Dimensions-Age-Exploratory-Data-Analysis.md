@@ -1,18 +1,12 @@
 ---
 title: "Dimensions Age Exploratory Data Analysis"
 author: "Bill Prisbrey"
-date: "2025-06-10"
+date: "2025-06-20"
 output:
   html_document:
     keep_md: true
 ---
 
-To Do:
-Limit the query to a date
-Remove the "As of today" phrase
-Adjust plot sizes
-A few more words and it's done
-Refer to "target population"
 
 
 
@@ -37,7 +31,9 @@ Refer to "target population"
 
 
 
-**PURPOSE:**  The purpose of this report is to describe aligning the "Dimensions" data set with the target population of PI's and draw conclusions on its utility. 
+
+
+**PURPOSE:**  The purpose of this report is to conclude on the utility of using an aspect of the "Dimensions" data set by describing the alignment of the "Dimensions" data set with internal principal investigator employee ID numbers, particularly noting alignment for a target population of principal investigators.
 
 **OBJECTIVES:**   
 
@@ -47,17 +43,17 @@ Refer to "target population"
 
 **EXECUTIVE SUMMARY:**
 
-The Dimensions data set is an external data set that tracks activity by researchers.  It could be used to identify the first publication (grant?) by a researcher, and use this date as a proxy for the birthdate, deriving an "academic age" per PI.
+The Dimensions data set is an external data set that tracks activity by researchers.  It could be used to identify the first publication by a researcher, and use this date as a proxy for the birthdate, deriving an "academic age" per PI.
 
-This Dimensions data set is manually curated and aligned with internal PI's using clues like name, department, and title.  However, the alignment is time-consuming and imperfect.
+This Dimensions data set is manually curated and aligned with internal OSP data per PI using clues like name, department, and publication title.  However, the external data is incomplete and the alignment is time-consuming and imperfect.
 
-As of today, 2025-06-19, 5,192 PI's have potential matches with 7,632 researchers identified in Dimensions with varying counts of matches and varying levels of confidence.  
+As of report publication on 20 June 2025, 5,192 PI's have potential matches with 7,632 researchers identified in Dimensions with varying counts of matches and varying levels of confidence.  
 
-However, of the target population of 2,937 PI's, some 28% have no matches.   Further complicating an analysis, these missing matches are not random.  A predictive machine learning model scored a Kappa value of 0.29 where a Kappa value of less than 0.1 would indicate randomness.  Instead, the missing PI's tend to be older, with a sparser activity record outside of the main researching institutions at the U. 
+However, of the target population of 2,937 PI's, some 28% have no matches.   Further complicating an analysis, these missing matches are not random.  A predictive machine learning model scored a Kappa value of 0.29 where a Kappa value of less than 0.1 would indicate randomness.  Instead, the PI's without matches have less activity, older activity, and are outside of the main research institutions at the U.
 
-As well, there are internal inconsistencies in the confidence rating, where PI's have multiple potential matches but are scored as having a one-to-one match.
+As well, there are some internal inconsistencies in the confidence rating, where PI's have multiple potential matches but are scored as having a one-to-one match.
 
-In conclusion, the data set is unattractive to use in further analysis, specifically in determining an "academic age" per PI, because it is too incomplete, too biased in missing values, and too inconsistent.  Alternative data should be explored before using this data.   
+In conclusion, the data set is somewhat unattractive to use in further analysis, specifically in determining an "academic age" per PI, because it is too incomplete, too biased in missing values, and too inconsistent.  Alternative data should be explored before addressing modifications to enable using this data.   
 
   
 **SUMMARY:**   
@@ -68,54 +64,24 @@ Internally, the Office of Sponsored Projects similarly tracks proposal activity 
 
 The internal and external data sets can be aligned in order to have a more comprehensive evaluation of an individual's activity, both preceding and succeeding their time at the U.
 
-For the purposes of evaluating PI turnover and retention, it is hoped that an "academic age" per PI can be derived from this data set based on their earliest publication [or grant?].  The "academic age" will be used as a proxy for actual age, as the employees' birthdates is unavailable for analyses because this information is considered sensitive and subject to maximum restriction.
+For the purposes of evaluating PI turnover and retention, it is hoped that an "academic age" per PI can be derived from this data set based on their earliest publication or grant.  The "academic age" will be used as a proxy for actual age, as the employees' birthdates is unavailable for analysis because this information is considered sensitive and subject to maximum restriction.
 
-The internal and external data sets are aligned by matching researcher identification through clues such as name, department, and publication title.  However, external data sets are created through a mish mash of methods and adhere to varying rules and quality standards. A perfect alignment with internal data, which verifiably follows a number of rules and quality standards, is not expected.
+The internal and external data sets are aligned by matching researcher identification through clues such as name, department, and publication title.  However, external data sets are created through a mish-mash of methods and adhere to varying rules and quality standards. A perfect alignment with internal data (which verifiably follows a number of rules and quality standards) is not expected.
 
-For the purposes of this analysis, date fields describing first and last publishing year or grant year, total number of publications and grants, and an alignment confidence score are extracted from the external data set.
+Date fields describing first and last publishing year or grant year, total number of publications and grants, and an alignment confidence score are extracted from the external Dimensions data set.
 
 The publication dates range from the year 1935 to 2025, and the grant dates range from the year 1967 to 2030.  353,524 publications and 10,567 grants are tallied.
 
-The combined data set attempts to align 5192 internal employee identification numbers with 7632 external researcher identification numbers and provides a score of confidence in the alignment.  It aligns 3,440 (66%) internal EMPLIDs with a one-to-one match at the highest confidence score.  The remaining 1752 EMPLID's are aligned with multiple potential external ID's at reduced confidence levels.  
+The combined data set attempts to align 5,192 internal employee identification numbers with 7,632 external researcher identification numbers and provides a score of confidence in the alignment.  It aligns 3,440 (66%) internal EMPLIDs with a one-to-one match at the highest confidence score.  The remaining 1,752 EMPLID's are aligned with multiple potential external ID's at reduced confidence levels.  
 
-(Oddly, 361 EMPLID's are aligned with multiple external ID's with a confidence level of 1.)
+An inconsistency is discovered, where 361 EMPLID's are aligned with multiple external ID's with a confidence level of 1.
 
-However, internally OSP has tracked the research activity 
+The target population of 2,937 PI's is identified in previous research as principal investigators submitting a proposal between FY2013 and FY2023. Of this target population, 28% do not have matches in the Dimensions data; 25% have multiple matches; and 47% have a single match of various confidence levels.
 
+A machine learning model (extreme gradient boosting using default levels) predicted the missing matches with a Kappa score of 0.29, indicating structure or discernible patterns among the PI's that are missing matches.  Among other differences, the PI's without matches have less recent activity, are outside of the main research institutions at the U, and possess a sparser activity record.
 
+In conclusion, the data set is somewhat unattractive to use in further analysis, specifically in determining an "academic age" per PI, because it is too incomplete, too biased in missing values, and too inconsistent.  Alternative data should be explored before addressing modifications to enable using this data. 
 
-This evaluation found that 
-
-
-
-
-
-Wow I'm struggling to write anything coherent.
-
-The intent is to identify the first publication date per PI.
-
-I actually don't need many words on this one.  The point is to get it done.  It's just a quick look at what we have.
-
-Where's my graphic of how many are matched and un-matched?
-
-It's like, instead of three tiles describing "duplicate" I need to add a fourth one on the right, the first one, which is
-
-... is ....
-
-... hold on ...
-
-..."subset of interest" that is "found" and "not found" ?
-
-I guess it's just another row of three.
-
-Let's do that, first, and see what it looks like.
-
-
-
-
-I'm getting tired of this.
-
-I need to simply conclude that this external data set is not usable for the purposes of this study due to a large proportion of non-random missing data in the target population.  As well, concerns about consistency of definitions are noted (where PI's with multiple matches are scored with a self-contradictory 'one-to-one' match rating.)
 
 ## (1) DESCRIBE THE DIMENSIONS DATA
 
@@ -171,11 +137,11 @@ Table: Data summary
 
 ### Grants and publication dates
 
-![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
-
-### Grants and publications
-
 ![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+
+### Grants and publication histograms
+
+![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
 
 ### Matching confidence explained
 
@@ -218,7 +184,7 @@ Table: Data summary
 
 ### Matches and confidence scores of the available data
 
-![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
+![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
 
 
 
@@ -232,7 +198,7 @@ Not all 5,192 PI's available in the Dimensions data are of immediate interest.  
 
 
 
-![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
+![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
 
 
 ### (3) IDENTIFY PATTERNS IN MISSING MATCHES
@@ -253,9 +219,9 @@ Machine learning was used to identify patterns in the missing data by using the 
 
 Identifying patterns could also help efforts to find matches.   
 
-Extreme gradient boosting was used with default settings to detect whether a PI was "missing" or "present" in Dimensions data using 40 variables, 15 numeric and 25 character. 
+Extreme gradient boosting was used with default settings to detect whether a PI match was "missing" or "present" in Dimensions data using 40 variables (15 numeric and 25 categories.) 
 
-The most common character value was chosen per PI. The minimum and maximum proposal year (between 2013 and 2023 per population filter criteria), and the range between, was extracted or calculated.  Values like the number of proposals won or lost, and the median amount requested, was calculated per PI.
+The most common category value was chosen per PI. The minimum and maximum proposal year (between 2013 and 2023 per population filter criteria), and the range between, was extracted or calculated.  Values like the number of proposals won or lost, and the median amount requested, was calculated per PI.
 
 The machine learning model had an overall accuracy of 76%, precision of 59%, and recall of 34%.  Of most relevance was the Kappa score, a measure of agreement beyond chance, at 0.29 which greatly exceeded a 0.1 threshold.  This suggests the presence of patterns or underlying structure that describe which PI's were missing matches.
 
@@ -346,21 +312,20 @@ Table: Data summary
 
 ### Model performance
 
-![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-19-1.png)<!-- -->
+![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-20-1.png)<!-- -->
 
 
 
 ### Variable importance to the machine learning model
 
-![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-20-1.png)<!-- -->
-
-### Variables that predict missing matches
-
-
 ![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-21-1.png)<!-- -->
+
+### Variables used to predict missing matches
+
 
 ![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-22-1.png)<!-- -->
 
+![](Dimensions-Age-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-23-1.png)<!-- -->
 
 
 
@@ -376,15 +341,7 @@ Table: Data summary
 
 
 
-To Do:
 
-Create some simple visualizations of some of the columns.
-
-Find the most prolific/high win rate individuals who are still missing.
-
-Clean up the visualizations that I have.
-
-For my own edification, compare differences per variable and statistical significance.
 
 
 

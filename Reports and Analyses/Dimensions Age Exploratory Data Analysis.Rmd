@@ -1,18 +1,25 @@
 ---
 title: "Dimensions Age Exploratory Data Analysis"
 author: "Bill Prisbrey"
-date: "2025-06-10"
+date: "2025-06-20"
 output:
   html_document:
     keep_md: true
 ---
 
-To Do:
-Limit the query to a date
-Remove the "As of today" phrase
-Adjust plot sizes
-A few more words and it's done
-Refer to "target population"
+```{r include = FALSE}
+
+# From the author:
+
+# A couple of nice-to-haves:
+
+# Find the most prolific/high win rate individuals who are still missing.
+
+# For my own edification, compare differences per variable and statistical significance.
+
+
+```
+
 
 ```{r settings, include = FALSE}
 
@@ -293,6 +300,8 @@ from vpr_dimensions.dimensions_crosswalk dc
 left join vpr_dimensions.ds_uu_academic_age daa on daa.uu_researcher_dim_id = dc.dim_id
 "
 
+# where daa.first_pub_yr <= 2025 AND daa.last_pub_yr <= 2025
+
 ageData <- dbGetQuery(con.ds,
                       ageQuery)
 
@@ -376,7 +385,7 @@ singlePercentage <- paste0(
 
 
 
-**PURPOSE:**  The purpose of this report is to describe aligning the "Dimensions" data set with the target population of PI's and draw conclusions on its utility. 
+**PURPOSE:**  The purpose of this report is to conclude on the utility of using an aspect of the "Dimensions" data set by describing the alignment of the "Dimensions" data set with internal principal investigator employee ID numbers, particularly noting alignment for a target population of principal investigators.
 
 **OBJECTIVES:**   
 
@@ -386,17 +395,17 @@ singlePercentage <- paste0(
 
 **EXECUTIVE SUMMARY:**
 
-The Dimensions data set is an external data set that tracks activity by researchers.  It could be used to identify the first publication (grant?) by a researcher, and use this date as a proxy for the birthdate, deriving an "academic age" per PI.
+The Dimensions data set is an external data set that tracks activity by researchers.  It could be used to identify the first publication by a researcher, and use this date as a proxy for the birthdate, deriving an "academic age" per PI.
 
-This Dimensions data set is manually curated and aligned with internal PI's using clues like name, department, and title.  However, the alignment is time-consuming and imperfect.
+This Dimensions data set is manually curated and aligned with internal OSP data per PI using clues like name, department, and publication title.  However, the external data is incomplete and the alignment is time-consuming and imperfect.
 
-As of today, `r today()`, `r length(unique(ageData$EMPLID)) |> format(big.mark = ",")` PI's have potential matches with `r length(unique(ageData$DIM_ID)) |> format(big.mark = ",")` researchers identified in Dimensions with varying counts of matches and varying levels of confidence.  
+As of report publication on 20 June 2025, `r length(unique(ageData$EMPLID)) |> format(big.mark = ",")` PI's have potential matches with `r length(unique(ageData$DIM_ID)) |> format(big.mark = ",")` researchers identified in Dimensions with varying counts of matches and varying levels of confidence.  
 
-However, of the target population of `r length(unique(prepData$PROPOSAL_PI_EMPLID)) |> format(big.mark = ",") ` PI's, some `r missingPercentage` have no matches.   Further complicating an analysis, these missing matches are not random.  A predictive machine learning model scored a Kappa value of 0.29 where a Kappa value of less than 0.1 would indicate randomness.  Instead, the missing PI's tend to be older, with a sparser activity record outside of the main researching institutions at the U. 
+However, of the target population of `r length(unique(prepData$PROPOSAL_PI_EMPLID)) |> format(big.mark = ",") ` PI's, some `r missingPercentage` have no matches.   Further complicating an analysis, these missing matches are not random.  A predictive machine learning model scored a Kappa value of 0.29 where a Kappa value of less than 0.1 would indicate randomness.  Instead, the PI's without matches have less activity, older activity, and are outside of the main research institutions at the U.
 
-As well, there are internal inconsistencies in the confidence rating, where PI's have multiple potential matches but are scored as having a one-to-one match.
+As well, there are some internal inconsistencies in the confidence rating, where PI's have multiple potential matches but are scored as having a one-to-one match.
 
-In conclusion, the data set is unattractive to use in further analysis, specifically in determining an "academic age" per PI, because it is too incomplete, too biased in missing values, and too inconsistent.  Alternative data should be explored before using this data.   
+In conclusion, the data set is somewhat unattractive to use in further analysis, specifically in determining an "academic age" per PI, because it is too incomplete, too biased in missing values, and too inconsistent.  Alternative data should be explored before addressing modifications to enable using this data.   
 
   
 **SUMMARY:**   
@@ -407,54 +416,24 @@ Internally, the Office of Sponsored Projects similarly tracks proposal activity 
 
 The internal and external data sets can be aligned in order to have a more comprehensive evaluation of an individual's activity, both preceding and succeeding their time at the U.
 
-For the purposes of evaluating PI turnover and retention, it is hoped that an "academic age" per PI can be derived from this data set based on their earliest publication [or grant?].  The "academic age" will be used as a proxy for actual age, as the employees' birthdates is unavailable for analyses because this information is considered sensitive and subject to maximum restriction.
+For the purposes of evaluating PI turnover and retention, it is hoped that an "academic age" per PI can be derived from this data set based on their earliest publication or grant.  The "academic age" will be used as a proxy for actual age, as the employees' birthdates is unavailable for analysis because this information is considered sensitive and subject to maximum restriction.
 
-The internal and external data sets are aligned by matching researcher identification through clues such as name, department, and publication title.  However, external data sets are created through a mish mash of methods and adhere to varying rules and quality standards. A perfect alignment with internal data, which verifiably follows a number of rules and quality standards, is not expected.
+The internal and external data sets are aligned by matching researcher identification through clues such as name, department, and publication title.  However, external data sets are created through a mish-mash of methods and adhere to varying rules and quality standards. A perfect alignment with internal data (which verifiably follows a number of rules and quality standards) is not expected.
 
-For the purposes of this analysis, date fields describing first and last publishing year or grant year, total number of publications and grants, and an alignment confidence score are extracted from the external data set.
+Date fields describing first and last publishing year or grant year, total number of publications and grants, and an alignment confidence score are extracted from the external Dimensions data set.
 
 The publication dates range from the year `r min(ageData$FIRST_PUB_YR, na.rm = TRUE)` to `r max(ageData$LAST_PUB_YR, na.rm = TRUE)`, and the grant dates range from the year `r min(ageData$FIRST_GRANT_YR, na.rm = TRUE)` to `r max(ageData$LAST_GRANT_YR, na.rm = TRUE)`.  `r sum(ageData$TOTAL_PUBLICATIONS, na.rm = TRUE) |> format(big.mark = ',')` publications and `r sum(ageData$TOTAL_GRANTS, na.rm = TRUE) |> format(big.mark = ',')` grants are tallied.
 
-The combined data set attempts to align `r length(unique(ageData$EMPLID))` internal employee identification numbers with `r length(unique(ageData$DIM_ID))` external researcher identification numbers and provides a score of confidence in the alignment.  It aligns `r length(unique(ageData$EMPLID[ageData$EMPLID %in% nonDupes & ageData$CONFIDENCE == 1])) |> format(big.mark = ",")` (`r  (length(unique(ageData$EMPLID[ageData$EMPLID %in% nonDupes & ageData$CONFIDENCE == 1])) / length(unique(ageData$EMPLID))) |> (\(x){round(x*100,0)})() `%) internal EMPLIDs with a one-to-one match at the highest confidence score.  The remaining `r length(unique(ageData$EMPLID[!(ageData$EMPLID %in% nonDupes) | ageData$CONFIDENCE != 1]))` EMPLID's are aligned with multiple potential external ID's at reduced confidence levels.  
+The combined data set attempts to align `r length(unique(ageData$EMPLID)) |> format(big.mark = ",")` internal employee identification numbers with `r length(unique(ageData$DIM_ID)) |> format(big.mark = ",")` external researcher identification numbers and provides a score of confidence in the alignment.  It aligns `r length(unique(ageData$EMPLID[ageData$EMPLID %in% nonDupes & ageData$CONFIDENCE == 1])) |> format(big.mark = ",")` (`r  (length(unique(ageData$EMPLID[ageData$EMPLID %in% nonDupes & ageData$CONFIDENCE == 1])) / length(unique(ageData$EMPLID))) |> (\(x){round(x*100,0)})() `%) internal EMPLIDs with a one-to-one match at the highest confidence score.  The remaining `r length(unique(ageData$EMPLID[!(ageData$EMPLID %in% nonDupes) | ageData$CONFIDENCE != 1])) |> format(big.mark = ",")` EMPLID's are aligned with multiple potential external ID's at reduced confidence levels.  
 
-(Oddly, `r length(unique(ageData$EMPLID[ageData$EMPLID %in% names(theDupes) & ageData$CONFIDENCE == 1]))` EMPLID's are aligned with multiple external ID's with a confidence level of 1.)
+An inconsistency is discovered, where `r length(unique(ageData$EMPLID[ageData$EMPLID %in% names(theDupes) & ageData$CONFIDENCE == 1]))` EMPLID's are aligned with multiple external ID's with a confidence level of 1.
 
-However, internally OSP has tracked the research activity 
+The target population of `r length(unique(prepData$PROPOSAL_PI_EMPLID)) |> format(big.mark=",")` PI's is identified in previous research as principal investigators submitting a proposal between FY2013 and FY2023. Of this target population, `r missingPercentage` do not have matches in the Dimensions data; `r multiplePercentage` have multiple matches; and `r singlePercentage` have a single match of various confidence levels.
 
+A machine learning model (extreme gradient boosting using default levels) predicted the missing matches with a Kappa score of 0.29, indicating structure or discernible patterns among the PI's that are missing matches.  Among other differences, the PI's without matches have less recent activity, are outside of the main research institutions at the U, and possess a sparser activity record.
 
+In conclusion, the data set is somewhat unattractive to use in further analysis, specifically in determining an "academic age" per PI, because it is too incomplete, too biased in missing values, and too inconsistent.  Alternative data should be explored before addressing modifications to enable using this data. 
 
-This evaluation found that 
-
-
-
-
-
-Wow I'm struggling to write anything coherent.
-
-The intent is to identify the first publication date per PI.
-
-I actually don't need many words on this one.  The point is to get it done.  It's just a quick look at what we have.
-
-Where's my graphic of how many are matched and un-matched?
-
-It's like, instead of three tiles describing "duplicate" I need to add a fourth one on the right, the first one, which is
-
-... is ....
-
-... hold on ...
-
-..."subset of interest" that is "found" and "not found" ?
-
-I guess it's just another row of three.
-
-Let's do that, first, and see what it looks like.
-
-
-
-
-I'm getting tired of this.
-
-I need to simply conclude that this external data set is not usable for the purposes of this study due to a large proportion of non-random missing data in the target population.  As well, concerns about consistency of definitions are noted (where PI's with multiple matches are scored with a self-contradictory 'one-to-one' match rating.)
 
 ## (1) DESCRIBE THE DIMENSIONS DATA
 
@@ -523,7 +502,7 @@ par(plotPar)
 
 ```
 
-### Grants and publications
+### Grants and publication histograms
 
 ```{r}
 
@@ -536,9 +515,15 @@ plotPar <- par(mfrow = c(2,1),
 
 
 
-hist(ageData$TOTAL_PUBLICATIONS, col = "darkolivegreen3")
+hist(log(ageData$TOTAL_PUBLICATIONS), col = "darkolivegreen3",
+     ylab = "Count of PI's",
+     xlab = "",
+     main = "Total publications per PI (log)")
 
-hist(ageData$TOTAL_GRANTS, col = "orchid")
+hist(log(ageData$TOTAL_GRANTS), col = "orchid",
+     ylab = "Count of PI's",
+     xlab = "",
+     main = "Total grants per PI (log)")
 
 par(plotPar)
 
@@ -1008,9 +993,9 @@ Machine learning was used to identify patterns in the missing data by using the 
 
 Identifying patterns could also help efforts to find matches.   
 
-Extreme gradient boosting was used with default settings to detect whether a PI was "missing" or "present" in Dimensions data using `r ncol(fullPI) - 2` variables, `r sapply(fullPI, class) |> table() |> (\(x){ x[names(x) == "numeric"]})()` numeric and `r sapply(fullPI, class) |> table() |> (\(x){ x[names(x) == "character"]})()` character. 
+Extreme gradient boosting was used with default settings to detect whether a PI match was "missing" or "present" in Dimensions data using `r ncol(fullPI) - 2` variables (`r sapply(fullPI, class) |> table() |> (\(x){ x[names(x) == "numeric"]})()` numeric and `r sapply(fullPI, class) |> table() |> (\(x){ x[names(x) == "character"]})()` categories.) 
 
-The most common character value was chosen per PI. The minimum and maximum proposal year (between 2013 and 2023 per population filter criteria), and the range between, was extracted or calculated.  Values like the number of proposals won or lost, and the median amount requested, was calculated per PI.
+The most common category value was chosen per PI. The minimum and maximum proposal year (between 2013 and 2023 per population filter criteria), and the range between, was extracted or calculated.  Values like the number of proposals won or lost, and the median amount requested, was calculated per PI.
 
 The machine learning model had an overall accuracy of 76%, precision of 59%, and recall of 34%.  Of most relevance was the Kappa score, a measure of agreement beyond chance, at 0.29 which greatly exceeded a 0.1 threshold.  This suggests the presence of patterns or underlying structure that describe which PI's were missing matches.
 
@@ -1052,7 +1037,7 @@ plot(varImp(xgbModel), 20)
 
 ```
 
-### Variables that predict missing matches
+### Variables used to predict missing matches
 
 
 ```{r}
@@ -1065,7 +1050,7 @@ incomingPar <- par(
 
 boxplot(maxYr ~ class, data = fullPI,  ylab = "",
         col = c("chocolate4","thistle"),
-        main = "Maximum (?) year"
+        main = "Maximum proposal year"
         )
 
 boxplot(dateRange ~ class, data = fullPI, ylab = "",
@@ -1382,15 +1367,6 @@ keepColumns <- c(
 
 ```
 
-To Do:
-
-Create some simple visualizations of some of the columns.
-
-Find the most prolific/high win rate individuals who are still missing.
-
-Clean up the visualizations that I have.
-
-For my own edification, compare differences per variable and statistical significance.
 
 
 ```{r eval=FALSE}
