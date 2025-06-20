@@ -27,6 +27,8 @@ oldPar <- par(cex.main = 3,
 
 # par(oldPar) #restore old parameters # restore old parameters after the plot
 
+library(kableExtra)
+
 ```
 
 
@@ -173,6 +175,21 @@ uniqueReasons <- unique(journeyData[, c("ACTION_REASON","ACTION_REASON_DESCR")])
 reasonCount <- table(journeyData[, "ACTION_REASON"])
 reasonFrame <- merge(uniqueReasons, data.frame(ACTION_REASON = names(reasonCount), count = as.vector(reasonCount)), by = "ACTION_REASON")
 
+
+# Association between action and reason
+
+actionReasonCombo <- table(journeyData[,c("ACTION", "ACTION_DESCR",  "ACTION_REASON", "ACTION_REASON_DESCR")]) |>
+  as.data.frame() |>
+  (\(x){ x[x$Freq>0,]})() |>
+  (\(x){x[order(x$ACTION),]  })()
+
+actionsPerReason <- aggregate(ACTION ~ ACTION_REASON, journeyData, function(x){length(unique(x))} ) |>
+  (\(x){x[x$ACTION >1,]})()
+
+
+reasonsPerAction <- aggregate(ACTION_REASON ~ ACTION + ACTION_DESCR, journeyData, function(x){length(unique(x))} )  
+
+
 ```
 
 
@@ -212,10 +229,13 @@ skim(journeyData)
 
 ```{r}
 
-actionFrame |>
-  kbl(caption = "Action and descriptions",
-      col.names = c("", "description","count"),
-      row.names=FALSE)
+merge(actionFrame, reasonsPerAction[,c("ACTION","ACTION_REASON")], by = "ACTION") |>
+  kbl(caption = "Clever title here",
+      col.names = c("", "description", "count", "unique\nreasons"),
+      row.names=FALSE,
+      escape = FALSE) |>  
+  kable_styling(full_width = FALSE) |>
+  scroll_box(height = "1000px")
 
 
 ```
@@ -225,39 +245,45 @@ actionFrame |>
 reasonFrame |>
   kbl(caption = "Action reasons",
       col.names = c("", "description","count"),
-      row.names=FALSE)
+      row.names=FALSE,
+      escape = FALSE) |>  
+  kable_styling(full_width = FALSE) |>
+  scroll_box(height = "1000px")
 
 ```
 
 ```{r}
 
-# Association between action and reason
-
-actionReasonCombo <- table(journeyData[,c("ACTION", "ACTION_DESCR",  "ACTION_REASON", "ACTION_REASON_DESCR")]) |>
-  as.data.frame() |>
-  (\(x){ x[x$Freq>0,]})() |>
-  (\(x){x[order(x$ACTION),]  })()
 
 
 actionReasonCombo |>
   kbl(caption = "Actions and reasons",
       col.names = c("", "action", "reason", "description",  "count"),
-      row.names=FALSE)
+      row.names=FALSE,
+      escape = FALSE) |>  
+  kable_styling(full_width = FALSE) |>
+  scroll_box(height = "1000px")
 
-
-# I like it.  Almost there.
-# Needs sorting, and add the descr why not.  Color code somehow?
-
-# Now I need to see which reasons apply to multiple actions
-
-actionsPerReason <- aggregate(ACTION ~ ACTION_REASON, journeyData, function(x){length(unique(x))} ) |>
-  (\(x){x[x$ACTION >1,]})()
 
 actionReasonCombo[actionReasonCombo$ACTION_REASON %in% actionsPerReason$ACTION_REASON,] |>
-  kbl()
+  (\(x){x[order(x$ACTION_REASON),]})() |>
+  kbl(caption = "Reasons applied to multiple actions",
+      col.names = c("", "action", "reason","description", "count"),
+      row.names=FALSE,
+      escape=FALSE
+  ) |>  
+  kable_styling(full_width = FALSE) |>
+  scroll_box(height = "1000px")
 
-reasonsPerAction <- aggregate(ACTION_REASON ~ ACTION + ACTION_DESCR, journeyData, function(x){length(unique(x))} )  # That's a good one
-# let's move that one up earlier
+actionReasonCombo[!(actionReasonCombo$ACTION_REASON %in% actionsPerReason$ACTION_REASON),] |>
+#  (\(x){x[order(x$ACTION_REASON),]})() |>
+  kbl(caption = "Reasons applied to a single action",
+      col.names = c("", "action", "reason","description", "count"),
+      row.names=FALSE,
+      escape=FALSE
+  ) |>  
+  kable_styling(full_width = FALSE) |>
+  scroll_box(height = "1000px")
 
 
 
