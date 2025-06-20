@@ -102,14 +102,14 @@ Table: Data summary
 |:-------------|---------:|-------------:|:----------|:----------|:----------|--------:|
 |EFFDT         |         0|             1|2010-01-02 |2027-03-15 |2018-08-23 |     5722|
 
-<div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:1000px; "><table class="table" style="color: black; width: auto !important; margin-left: auto; margin-right: auto;">
-<caption>Clever title here</caption>
+<table class="table" style="color: black; width: auto !important; margin-left: auto; margin-right: auto;">
+<caption>Actions and reasons</caption>
  <thead>
   <tr>
-   <th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">  </th>
-   <th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;"> description </th>
-   <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"> count </th>
-   <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"> unique
+   <th style="text-align:left;">  </th>
+   <th style="text-align:left;"> description </th>
+   <th style="text-align:right;"> count </th>
+   <th style="text-align:right;"> unique
 reasons </th>
   </tr>
  </thead>
@@ -217,7 +217,7 @@ reasons </th>
    <td style="text-align:right;"> 8 </td>
   </tr>
 </tbody>
-</table></div>
+</table>
 
 <div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:1000px; "><table class="table" style="color: black; width: auto !important; margin-left: auto; margin-right: auto;">
 <caption>Action reasons</caption>
@@ -391,12 +391,12 @@ reasons </th>
   </tr>
   <tr>
    <td style="text-align:left;"> FYF </td>
-   <td style="text-align:left;"> FY Increase </td>
+   <td style="text-align:left;"> FYSC Terms (SYS) </td>
    <td style="text-align:right;"> 179797 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> FYF </td>
-   <td style="text-align:left;"> FYSC Terms (SYS) </td>
+   <td style="text-align:left;"> FY Increase </td>
    <td style="text-align:right;"> 179797 </td>
   </tr>
   <tr>
@@ -471,12 +471,12 @@ reasons </th>
   </tr>
   <tr>
    <td style="text-align:left;"> JIN </td>
-   <td style="text-align:left;"> Job Information </td>
+   <td style="text-align:left;"> Job Info </td>
    <td style="text-align:right;"> 97856 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> JIN </td>
-   <td style="text-align:left;"> Job Info </td>
+   <td style="text-align:left;"> Job Information </td>
    <td style="text-align:right;"> 97856 </td>
   </tr>
   <tr>
@@ -646,12 +646,12 @@ reasons </th>
   </tr>
   <tr>
    <td style="text-align:left;"> RET </td>
-   <td style="text-align:left;"> Return to School </td>
+   <td style="text-align:left;"> Regular Retirement </td>
    <td style="text-align:right;"> 3693 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RET </td>
-   <td style="text-align:left;"> Regular Retirement </td>
+   <td style="text-align:left;"> Return to School </td>
    <td style="text-align:right;"> 3693 </td>
   </tr>
   <tr>
@@ -761,12 +761,12 @@ reasons </th>
   </tr>
   <tr>
    <td style="text-align:left;"> WC </td>
-   <td style="text-align:left;"> Workers Compensation Leave </td>
+   <td style="text-align:left;"> Worker's Comp-Leave Supplement </td>
    <td style="text-align:right;"> 379 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> WC </td>
-   <td style="text-align:left;"> Worker's Comp-Leave Supplement </td>
+   <td style="text-align:left;"> Workers Compensation Leave </td>
    <td style="text-align:right;"> 379 </td>
   </tr>
   <tr>
@@ -2752,9 +2752,19 @@ reasons </th>
 
 ### Seasonality
 
+
+
+![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-18-1.png)<!-- -->![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-18-2.png)<!-- -->
+
+![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-19-1.png)<!-- -->
+
+
+
 ### Termination 
 
-Do I want to see a break-down of the reasons for termination?
+There seems to be several over-lapping actions and reasons, like a "RET" -and- a "TERM". 
+
+It might be nice to explore these here.   
 
 ### Query
 

@@ -230,12 +230,11 @@ skim(journeyData)
 ```{r}
 
 merge(actionFrame, reasonsPerAction[,c("ACTION","ACTION_REASON")], by = "ACTION") |>
-  kbl(caption = "Clever title here",
+  kbl(caption = "Actions and reasons",
       col.names = c("", "description", "count", "unique\nreasons"),
       row.names=FALSE,
       escape = FALSE) |>  
-  kable_styling(full_width = FALSE) |>
-  scroll_box(height = "1000px")
+  kable_styling(full_width = FALSE) 
 
 
 ```
@@ -472,7 +471,7 @@ legend("topright",
 
 ### Count of actions per date
 
-```{r fig.height = 2}
+```{r fig.height = 3}
 
 # Plot the count of actions per date, one plot per cluster
 
@@ -481,7 +480,7 @@ plotActions(cluster=2)
 
 ```
 
-```{r fig.height = 6}
+```{r fig.height = 5}
 
 plotActions(cluster=3)
 
@@ -614,9 +613,102 @@ legend("topright",
 
 ### Seasonality
 
+```{r}
+
+# let's do week of year
+
+actionsPerWeek <- lapply(actionsInOrder, function(x){ aggregate(count ~ week(EFFDT),  data = transform(journeyData[journeyData$ACTION == x,], count =1), length)}   )
+names(actionsPerWeek) <- actionsInOrder # unique(journeyData$ACTION)
+
+
+# Establish weekly maximum per cluster
+
+clusterWeekMax <- sapply(1:3,
+                     function(y) {
+                       
+                       sapply(actionsPerWeek[actionDateCluster == y ], function(x) {max(x[,"count"], na.rm=TRUE)}  ) 
+                     }
+                     )
+
+
+plotWeeklyActions <- function(cluster) {
+
+incomingPar <-  par(mar = c(4,4,3,6))
+on.exit(par(incomingPar))
+
+
+plot(1,
+     type = "n",
+     ylim = log(c(1,max(clusterWeekMax[[cluster]]))),
+     xlim = range(week(journeyData$EFFDT)),
+     ylab = "",
+     xlab = "",
+     xaxt = "n"
+     )
+
+axis(side = 1, at = pretty(week(journeyData$EFFDT)))
+
+invisible(
+  lapply(
+    names(actionDateCluster[actionDateCluster == cluster]),
+    function(act){
+    
+    points(x = actionsPerWeek[[act]][,"week(EFFDT)"],
+           y = log(actionsPerWeek[[act]][,"count"]),
+           col = actionColorMap[act],
+           type = "l",
+           lwd = 0.619
+    )
+      
+    }
+  )
+)
+
+mtext(side = 3, font=2, cex = 1.381, line = 0.619, text = paste0("Weekly actions in Cluster ", cluster)  )
+
+mtext(side = 2, font = 1, cex = 1, line = 2.5, text = "Count of actions (log)")
+
+mtext(side = 1, font = 1, cex = 1, line = 2.5, text = "Week of year")
+
+legend("topright",
+       legend = names(actionDateCluster[actionDateCluster == cluster]),
+       col = actionColorMap[actionDateCluster == cluster],
+       pch = 19,
+       pt.cex = 3,
+       xpd = TRUE,
+       inset = -0.1
+       )
+
+
+
+}
+
+
+```
+
+```{r fig.height = 3}
+
+# Plot the count of actions per date, one plot per cluster
+
+plotWeeklyActions(cluster=1)
+plotWeeklyActions(cluster=2)
+
+```
+
+```{r fig.height = 5}
+
+plotWeeklyActions(cluster=3)
+
+
+```
+
+
+
 ### Termination 
 
-Do I want to see a break-down of the reasons for termination?
+There seems to be several over-lapping actions and reasons, like a "RET" -and- a "TERM". 
+
+It might be nice to explore these here.   
 
 ### Query
 
