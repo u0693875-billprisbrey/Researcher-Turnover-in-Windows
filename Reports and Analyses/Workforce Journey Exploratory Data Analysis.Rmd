@@ -135,6 +135,7 @@ DBI::dbDisconnect(con.ds)
 ## PREP ##
 ##########
 
+# Create factors with levels in the proper order
 journeyData$AGE_BAND <- factor(journeyData$AGE_BAND, levels = 
                                  c(
                                    "Under 20",
@@ -149,6 +150,14 @@ journeyData$AGE_BAND <- factor(journeyData$AGE_BAND, levels =
                                  )
                                  )
 
+# Remove a bad date
+#> journeyData[journeyData$EFFDT > as.Date("2030-12-31"),]
+#          EMPLID EMPL_RCD      EFFDT EFFSEQ ACTION     ACTION_DESCR ACTION_REASON
+#1950047 06013186        0 2202-11-21      0    LOA Leave of Absence           EXT
+#        ACTION_REASON_DESCR VOLUNTARY_FLAG AGE_BAND
+# 1950047           Extension           <NA>      30s
+
+journeyData <- journeyData[journeyData$EFFDT <= as.Date("2030-12-31"),]
 
 ```
 
@@ -271,17 +280,266 @@ actionsPerEmplid[actionsPerEmplid$ACTION == "TER","count"] |> hist()
 
 termFlag <- aggregate(rep(1, nrow(journeyData)) ~ VOLUNTARY_FLAG, data = journeyData, length )
 
-termFlag[,2] |> 
+log(termFlag[,2]) |> 
   barplot(col = c("slateblue4", "saddlebrown"),
           names = termFlag[,1],
           main = "Termination flag",
-          ylab = "count"
+          ylab = "count (log)"
           )
 
 
 ```
 
+```{r}
 
+# Actions over time
+
+actionsInOrder <-  c("POS", "DTA", "PAY", "TER", "HIR", "SWB", "XFR", "RWB", "REH", "JRC", "PLA", "RFL", "LOA", "RET", "RWP", "LTO", "TWP")
+
+actionsPerDate <- lapply(actionsInOrder, function(x){ aggregate(count ~ EFFDT,  data = transform(journeyData[journeyData$ACTION == x,], count =1), length)}   )
+names(actionsPerDate) <- actionsInOrder # unique(journeyData$ACTION)
+
+# Determine maximum per action
+actionDateMax <- sapply(actionsPerDate, function(x) {max(x[,"count"],na.rm=TRUE )}) |> max() 
+
+# Sort into clusters
+actionDateCluster <- 
+  actionsPerDate |> 
+  sapply(function(x){mean(x[,"count"], na.rm = TRUE)}) |>
+  dist() |>
+  hclust() |>
+  # plot() # looks like 3 is reasonable
+  cutree(3)
+
+# Establish decreasing order of mean count
+meanCount <- actionsPerDate |> 
+     sapply(function(x){mean(x[,"count"], na.rm = TRUE)}) |> sort(decreasing = TRUE)
+
+# Use this to define "actionsInOrder"
+# It would be better if I re-ordered it here as this is no longer
+# flexible to add a new action
+
+# Establish maximum per cluster
+
+clusterMax <- sapply(1:3,
+                     function(y) {
+                       
+                       sapply(actionsPerDate[actionDateCluster == y ], function(x) {max(x[,"count"], na.rm=TRUE)}  ) 
+                     }
+                     )
+
+# Create color map per action
+
+# create action colors
+
+actionColorMap <- vector("numeric", length(actionDateCluster))
+
+names(actionColorMap) <- names(actionDateCluster)
+
+actionColorMap[actionDateCluster == 3] <- viridis::viridis(n = length(actionDateCluster[actionDateCluster == 3]))
+
+actionColorMap[actionDateCluster == 2] <- viridis::turbo(n = length(actionDateCluster[actionDateCluster == 2]), begin = 0.3, end = 0.7)
+
+actionColorMap[actionDateCluster == 1] <- viridis::mako(n = length(actionDateCluster[actionDateCluster == 1]))
+
+# Function to plot a cluster at a time
+
+plotActions <- function(cluster) {
+
+incomingPar <-  par(mar = c(2,4,3,6))
+on.exit(par(incomingPar))
+
+
+plot(1,
+     type = "n",
+     ylim = log(c(1,max(clusterMax[[cluster]]))),
+     xlim = range(as.Date(journeyData$EFFDT)),
+     ylab = "",
+     xlab = "",
+     xaxt = "n"
+     )
+
+axis.Date(side = 1, at = pretty(as.Date(journeyData$EFFDT)), format = "%Y-%m")
+
+invisible(
+  lapply(
+    names(actionDateCluster[actionDateCluster == cluster]),
+    function(act){
+    
+    points(x = as.Date(actionsPerDate[[act]][,"EFFDT"]),
+           y = log(actionsPerDate[[act]][,"count"]),
+           col = actionColorMap[act],
+           type = "l",
+           lwd = 0.619
+    )
+      
+    }
+  )
+)
+
+mtext(side = 3, font=2, cex = 1.381, line = 0.619, text = paste0("Actions in Cluster ", cluster)  )
+
+mtext(side = 2, font = 1, cex = 1, line = 2.5, text = "Count of actions (log)")
+
+legend("topright",
+       legend = names(actionDateCluster[actionDateCluster == cluster]),
+       col = actionColorMap[actionDateCluster == cluster],
+       pch = 19,
+       pt.cex = 3,
+       xpd = TRUE,
+       inset = -0.1
+       )
+
+
+
+}
+
+
+
+```
+
+### Count of actions per date
+
+```{r fig.height = 2}
+
+# Plot the count of actions per date, one plot per cluster
+
+plotActions(cluster=1)
+plotActions(cluster=2)
+plotActions(cluster=3)
+
+
+```
+
+
+```{r eval=FALSE}
+
+# Dates sandbox
+
+# One line per action over time
+
+jGo <- aggregate(EFFDT ~ ACTION, data = journeyData, function(x){length(unique(x))})
+
+skim(journeyData$EFFDT)
+
+tBlo <- lapply(unique(journeyData$ACTION), function(x){ aggregate(count ~ EFFDT,  data = transform(journeyData[journeyData$ACTION == x,], count =1), length)}   )
+names(tBlo) <- unique(journeyData$ACTION)
+
+actionDateMax <- sapply(tBlo, function(x) {max(x[,"count"],na.rm=TRUE )}) |> max() 
+
+
+# let's lump these
+
+actionDateCluster <- 
+  tBlo |> 
+  sapply(function(x){mean(x[,"count"], na.rm = TRUE)}) |>
+  dist() |>
+  hclust() |>
+  # plot() # looks like 3 is reasonable
+  cutree(3)
+  
+names(tBlo)
+
+clusterMax <- sapply(1:3,
+                     function(y) {
+                       
+                       sapply(tBlo[actionDateCluster == y ], function(x) {max(x[,"count"], na.rm=TRUE)}  ) 
+                     }
+                     )
+
+# well, let's plot it and see what we get
+# create action colors
+
+actionColorMap <- vector("numeric", length(actionDateCluster))
+
+names(actionColorMap) <- names(actionDateCluster)
+
+actionColorMap[actionDateCluster == 1] <- viridis::viridis(n = length(actionDateCluster[actionDateCluster == 1]))
+
+actionColorMap[actionDateCluster == 2] <- viridis::turbo(n = length(actionDateCluster[actionDateCluster == 2]), begin = 0.3, end = 0.7)
+
+actionColorMap[actionDateCluster == 3] <- viridis::mako(n = length(actionDateCluster[actionDateCluster == 3]))
+
+plotActions <- function(cluster) {
+
+incomingPar <-  par(mar = c(2,4,3,6))
+on.exit(par(incomingPar))
+
+
+plot(1,
+     type = "n",
+     ylim = c(0,max(clusterMax[[cluster]])),
+     xlim = range(as.Date(journeyData$EFFDT)),
+     ylab = "",
+     xlab = "",
+     xaxt = "n"
+     )
+
+axis.Date(side = 1, at = pretty(as.Date(journeyData$EFFDT)), format = "%Y-%m")
+
+invisible(
+  lapply(
+    names(actionDateCluster[actionDateCluster == cluster]),
+    function(act){
+    
+    points(x = as.Date(tBlo[[act]][,"EFFDT"]),
+           y = tBlo[[act]][,"count"],
+           col = actionColorMap[act],
+           type = "l",
+           lwd = 0.619
+    )
+      
+    }
+  )
+)
+
+mtext(side = 3, font=2, cex = 1.381, line = 0.619, text = paste0("Actions in Cluster ", cluster)  )
+
+legend("topright",
+       legend = names(actionDateCluster[actionDateCluster == cluster]),
+       col = actionColorMap[actionDateCluster == cluster],
+       pch = 19,
+       pt.cex = 3,
+       xpd = TRUE,
+       inset = -0.1
+       )
+
+
+
+}
+
+
+plotActions(cluster = 1)
+
+
+plotActions(cluster = 2)
+mtext(side = 3, font=2, cex = 1.381, line = 0.619, text ="Actions in Cluster 2"  )
+legend("topright",
+       legend = names(actionDateCluster[actionDateCluster == 2]),
+       col = actionColorMap[actionDateCluster == 2],
+       pch = 19,
+       pt.cex = 3,
+       xpd = TRUE,
+       inset = -0.1
+       )
+
+plotActions(cluster = 3)
+mtext(side = 3, font=2, cex = 1.381, line = 0.619, text ="Actions in Cluster 3"  )
+legend("topright",
+       legend = names(actionDateCluster[actionDateCluster == 3]),
+       col = actionColorMap[actionDateCluster == 3],
+       pch = 19,
+       pt.cex = 3,
+       xpd = TRUE,
+       inset = -0.1
+       )
+```
+
+### Seasonality
+
+### Termination 
+
+Do I want to see a break-down of the reasons for termination?
 
 ### Query
 

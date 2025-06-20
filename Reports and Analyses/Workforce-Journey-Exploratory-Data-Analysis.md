@@ -50,7 +50,7 @@ Table: Data summary
 |                         |            |
 |:------------------------|:-----------|
 |Name                     |journeyData |
-|Number of rows           |2453472     |
+|Number of rows           |2453789     |
 |Number of columns        |10          |
 |_______________________  |            |
 |Column type frequency:   |            |
@@ -66,19 +66,19 @@ Table: Data summary
 
 |skim_variable       | n_missing| complete_rate| min| max| empty| n_unique| whitespace|
 |:-------------------|---------:|-------------:|---:|---:|-----:|--------:|----------:|
-|EMPLID              |         0|          1.00|   8|   8|     0|   158045|          0|
+|EMPLID              |         0|          1.00|   8|   8|     0|   158056|          0|
 |ACTION              |         0|          1.00|   3|   3|     0|       17|          0|
 |ACTION_DESCR        |         0|          1.00|   4|  22|     0|       17|          0|
 |ACTION_REASON       |         0|          1.00|   2|   3|     0|      105|          0|
 |ACTION_REASON_DESCR |         0|          1.00|   5|  30|     0|      110|          0|
-|VOLUNTARY_FLAG      |   2257513|          0.08|   9|  11|     0|        2|          0|
+|VOLUNTARY_FLAG      |   2257800|          0.08|   9|  11|     0|        2|          0|
 
 
 **Variable type: factor**
 
 |skim_variable | n_missing| complete_rate|ordered | n_unique|top_counts                                         |
 |:-------------|---------:|-------------:|:-------|--------:|:--------------------------------------------------|
-|AGE_BAND      |         0|             1|FALSE   |        9|30s: 736244, 40s: 559668, 20s: 431938, 50s: 326439 |
+|AGE_BAND      |         0|             1|FALSE   |        9|30s: 736225, 40s: 559854, 20s: 431855, 50s: 326571 |
 
 
 **Variable type: numeric**
@@ -93,7 +93,7 @@ Table: Data summary
 
 |skim_variable | n_missing| complete_rate|min        |max        |median     | n_unique|
 |:-------------|---------:|-------------:|:----------|:----------|:----------|--------:|
-|EFFDT         |         0|             1|2010-01-02 |2202-11-21 |2018-08-22 |     5723|
+|EFFDT         |         0|             1|2010-01-02 |2027-03-15 |2018-08-23 |     5722|
 
 <table>
 <caption>Action and descriptions</caption>
@@ -108,12 +108,12 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> DTA </td>
    <td style="text-align:left;"> Data Change </td>
-   <td style="text-align:right;"> 1049269 </td>
+   <td style="text-align:right;"> 1049427 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> HIR </td>
    <td style="text-align:left;"> Hire </td>
-   <td style="text-align:right;"> 153331 </td>
+   <td style="text-align:right;"> 153344 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> JRC </td>
@@ -123,7 +123,7 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> LOA </td>
    <td style="text-align:left;"> Leave of Absence </td>
-   <td style="text-align:right;"> 14320 </td>
+   <td style="text-align:right;"> 14332 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LTO </td>
@@ -133,12 +133,12 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> PAY </td>
    <td style="text-align:left;"> Pay Rate Change </td>
-   <td style="text-align:right;"> 619968 </td>
+   <td style="text-align:right;"> 619978 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PLA </td>
    <td style="text-align:left;"> Paid Leave of Absence </td>
-   <td style="text-align:right;"> 37924 </td>
+   <td style="text-align:right;"> 37949 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> POS </td>
@@ -148,7 +148,7 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> REH </td>
    <td style="text-align:left;"> Rehire </td>
-   <td style="text-align:right;"> 66192 </td>
+   <td style="text-align:right;"> 66201 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RET </td>
@@ -158,12 +158,12 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> RFL </td>
    <td style="text-align:left;"> Return from Leave </td>
-   <td style="text-align:right;"> 36950 </td>
+   <td style="text-align:right;"> 36977 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RWB </td>
    <td style="text-align:left;"> Return from Work Break </td>
-   <td style="text-align:right;"> 49276 </td>
+   <td style="text-align:right;"> 49275 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RWP </td>
@@ -173,12 +173,12 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> SWB </td>
    <td style="text-align:left;"> Short Work Break </td>
-   <td style="text-align:right;"> 50439 </td>
+   <td style="text-align:right;"> 50431 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
-   <td style="text-align:right;"> 195959 </td>
+   <td style="text-align:right;"> 195989 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TWP </td>
@@ -188,7 +188,7 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> XFR </td>
    <td style="text-align:left;"> Transfer </td>
-   <td style="text-align:right;"> 118611 </td>
+   <td style="text-align:right;"> 118653 </td>
   </tr>
 </tbody>
 </table>
@@ -206,7 +206,7 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> 30D </td>
    <td style="text-align:left;"> 30 Day </td>
-   <td style="text-align:right;"> 145 </td>
+   <td style="text-align:right;"> 146 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 90D </td>
@@ -216,7 +216,7 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> ADJ </td>
    <td style="text-align:left;"> Adjustment </td>
-   <td style="text-align:right;"> 104447 </td>
+   <td style="text-align:right;"> 104451 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> AML </td>
@@ -226,7 +226,7 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> ASN </td>
    <td style="text-align:left;"> Termination of Assignment </td>
-   <td style="text-align:right;"> 12072 </td>
+   <td style="text-align:right;"> 12074 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> BAC </td>
@@ -236,7 +236,7 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> BEC </td>
    <td style="text-align:left;"> Ben Elig Change (SYS) </td>
-   <td style="text-align:right;"> 52793 </td>
+   <td style="text-align:right;"> 52816 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> BNK </td>
@@ -286,7 +286,7 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> DST </td>
    <td style="text-align:left;"> Distribution Change (SYS) </td>
-   <td style="text-align:right;"> 522445 </td>
+   <td style="text-align:right;"> 522532 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> EAC </td>
@@ -316,12 +316,12 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> EXT </td>
    <td style="text-align:left;"> Extension </td>
-   <td style="text-align:right;"> 2018 </td>
+   <td style="text-align:right;"> 2017 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> FAM </td>
    <td style="text-align:left;"> Family Reasons </td>
-   <td style="text-align:right;"> 147 </td>
+   <td style="text-align:right;"> 149 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> FCA </td>
@@ -331,12 +331,12 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> FLS </td>
    <td style="text-align:left;"> Pay Adj - FLSA Reg(SYS) </td>
-   <td style="text-align:right;"> 577 </td>
+   <td style="text-align:right;"> 578 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> FML </td>
    <td style="text-align:left;"> Family and Medical Leave Act </td>
-   <td style="text-align:right;"> 38680 </td>
+   <td style="text-align:right;"> 38711 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> FTE </td>
@@ -356,22 +356,22 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> FYB </td>
    <td style="text-align:left;"> FY Budget (SYS) </td>
-   <td style="text-align:right;"> 136541 </td>
+   <td style="text-align:right;"> 136527 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> FYB </td>
    <td style="text-align:left;"> Fiscal Year Budget (SYS) </td>
-   <td style="text-align:right;"> 136541 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> FYF </td>
-   <td style="text-align:left;"> FYSC Terms (SYS) </td>
-   <td style="text-align:right;"> 179783 </td>
+   <td style="text-align:right;"> 136527 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> FYF </td>
    <td style="text-align:left;"> FY Increase </td>
-   <td style="text-align:right;"> 179783 </td>
+   <td style="text-align:right;"> 179797 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> FYF </td>
+   <td style="text-align:left;"> FYSC Terms (SYS) </td>
+   <td style="text-align:right;"> 179797 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> FYR </td>
@@ -386,21 +386,21 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> H2U </td>
    <td style="text-align:left;"> Hospital to University </td>
-   <td style="text-align:right;"> 1280 </td>
+   <td style="text-align:right;"> 1281 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> HCJ </td>
    <td style="text-align:left;"> Hire Concurrent Job </td>
-   <td style="text-align:right;"> 32275 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> HEA </td>
-   <td style="text-align:left;"> Medical(Not protected by FMLA) </td>
-   <td style="text-align:right;"> 734 </td>
+   <td style="text-align:right;"> 32277 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> HEA </td>
    <td style="text-align:left;"> Medical LOA Option B </td>
+   <td style="text-align:right;"> 734 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> HEA </td>
+   <td style="text-align:left;"> Medical(Not protected by FMLA) </td>
    <td style="text-align:right;"> 734 </td>
   </tr>
   <tr>
@@ -446,12 +446,12 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> JIN </td>
    <td style="text-align:left;"> Job Information </td>
-   <td style="text-align:right;"> 97839 </td>
+   <td style="text-align:right;"> 97856 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> JIN </td>
    <td style="text-align:left;"> Job Info </td>
-   <td style="text-align:right;"> 97839 </td>
+   <td style="text-align:right;"> 97856 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> JOB </td>
@@ -466,17 +466,17 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> LAT </td>
    <td style="text-align:left;"> Lateral Transfer </td>
-   <td style="text-align:right;"> 30572 </td>
+   <td style="text-align:right;"> 30578 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LOA </td>
    <td style="text-align:left;"> LOA Without Pay </td>
-   <td style="text-align:right;"> 2988 </td>
+   <td style="text-align:right;"> 2991 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LOC </td>
    <td style="text-align:left;"> Location </td>
-   <td style="text-align:right;"> 53 </td>
+   <td style="text-align:right;"> 54 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LTD </td>
@@ -496,7 +496,7 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> LWF </td>
    <td style="text-align:left;"> Leaving the Workforce </td>
-   <td style="text-align:right;"> 110 </td>
+   <td style="text-align:right;"> 111 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> MER </td>
@@ -506,7 +506,7 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> MIL </td>
    <td style="text-align:left;"> Military Service </td>
-   <td style="text-align:right;"> 995 </td>
+   <td style="text-align:right;"> 996 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> MKT </td>
@@ -536,7 +536,7 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> NHR </td>
    <td style="text-align:left;"> New Hire </td>
-   <td style="text-align:right;"> 121056 </td>
+   <td style="text-align:right;"> 121067 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> NRC </td>
@@ -551,12 +551,12 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> OTH </td>
    <td style="text-align:left;"> Other Information </td>
-   <td style="text-align:right;"> 120253 </td>
+   <td style="text-align:right;"> 120289 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> OUC </td>
    <td style="text-align:left;"> Other Uncontrollable </td>
-   <td style="text-align:right;"> 275 </td>
+   <td style="text-align:right;"> 277 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PAR </td>
@@ -581,17 +581,17 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> PLA </td>
    <td style="text-align:left;"> Paid LOA </td>
-   <td style="text-align:right;"> 899 </td>
+   <td style="text-align:right;"> 901 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PRM </td>
    <td style="text-align:left;"> Promotion Opportunities </td>
-   <td style="text-align:right;"> 47 </td>
+   <td style="text-align:right;"> 49 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PRO </td>
    <td style="text-align:left;"> Promotion </td>
-   <td style="text-align:right;"> 30962 </td>
+   <td style="text-align:right;"> 30972 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PSB </td>
@@ -606,12 +606,12 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> REC </td>
    <td style="text-align:left;"> Job Reclassification </td>
-   <td style="text-align:right;"> 7707 </td>
+   <td style="text-align:right;"> 7708 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> REH </td>
    <td style="text-align:left;"> Rehire </td>
-   <td style="text-align:right;"> 66190 </td>
+   <td style="text-align:right;"> 66199 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> REL </td>
@@ -631,7 +631,7 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> RFL </td>
    <td style="text-align:left;"> Return From Leave </td>
-   <td style="text-align:right;"> 27320 </td>
+   <td style="text-align:right;"> 27340 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RFN </td>
@@ -656,12 +656,12 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> RPL </td>
    <td style="text-align:left;"> Return from Paid Leave </td>
-   <td style="text-align:right;"> 9544 </td>
+   <td style="text-align:right;"> 9551 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RWB </td>
    <td style="text-align:left;"> Return from Work Break </td>
-   <td style="text-align:right;"> 49276 </td>
+   <td style="text-align:right;"> 49275 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RWP </td>
@@ -676,7 +676,7 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> SMR </td>
    <td style="text-align:left;"> Summer Assignment </td>
-   <td style="text-align:right;"> 2296 </td>
+   <td style="text-align:right;"> 2299 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> SRP </td>
@@ -691,12 +691,12 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> SWB </td>
    <td style="text-align:left;"> Short Work Break </td>
-   <td style="text-align:right;"> 49162 </td>
+   <td style="text-align:right;"> 49154 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TMP </td>
    <td style="text-align:left;"> End PT/Non-BenefitsEmployment </td>
-   <td style="text-align:right;"> 21170 </td>
+   <td style="text-align:right;"> 21172 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TWP </td>
@@ -731,7 +731,7 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> VOL </td>
    <td style="text-align:left;"> Voluntary Resignation </td>
-   <td style="text-align:right;"> 136814 </td>
+   <td style="text-align:right;"> 136828 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> WC </td>
@@ -761,7 +761,7 @@ Table: Data summary
   <tr>
    <td style="text-align:left;"> XFR </td>
    <td style="text-align:left;"> Transfer </td>
-   <td style="text-align:right;"> 48521 </td>
+   <td style="text-align:right;"> 48546 </td>
   </tr>
 </tbody>
 </table>
@@ -770,12 +770,22 @@ Table: Data summary
 ![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
 
 
-![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-9-1.png)<!-- -->![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-9-2.png)<!-- -->
+![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
 
-I can't calculate head count from this.
-I need the hire date so I can add them.
-I guess I can assume a hire date ... ?
-Can I do that?
+
+
+
+
+![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
+
+
+
+# Count of actions per date
+
+![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-13-1.png)<!-- -->![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-13-2.png)<!-- -->![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-13-3.png)<!-- -->
+
+
+
 
 ### Query
 
