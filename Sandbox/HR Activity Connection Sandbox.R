@@ -231,5 +231,8 @@ ACTION_REASON            ACTION_REASON_DESCR
 
 # let's do a pretty quick EDA, and then work on my headcount formulas.
 
+# Because it's time-stamped, I think I'll call this "journey" data.
+
+
 
 

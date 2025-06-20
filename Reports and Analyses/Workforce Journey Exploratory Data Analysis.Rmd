@@ -1,0 +1,193 @@
+---
+title: "Workforce Journey Exploratory Data Analysis"
+author: "Bill Prisbrey"
+date: "2025-06-19"
+output:
+  html_document:
+    keep_md: true
+---
+
+
+```{r settings, include = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=5, fig.width=7)
+
+# fig.height=6.75, fig.width=12) for ppt
+# fig.height=7, fig.width=10) typical report
+
+
+# adjust graphic parameters
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+# par(oldPar) #restore old parameters # restore old parameters after the plot
+
+```
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+# PREP SCRIPT
+
+source(here::here("Prep scripts","Adjusting prepData and loading things.R"))
+
+# PER PI
+
+piClusters <- lapply(list.files(here::here("Robjects", "Clustering PIs"), full.names = TRUE), readRDS)
+
+###########
+## MERGE ## 
+###########
+
+piEmplid <- Reduce(function(x, y) {
+  merged <- merge(x, y, by = "emplid", all = FALSE)
+  merged <- merged[, !duplicated(sub("\\.x$|\\.y$", "", names(merged)))]  # Remove duplicate columns
+  
+  # Rename columns to remove ".x"
+  names(merged) <- sub("\\.x$", "", names(merged))
+  
+  merged
+}, piClusters)
+# piEmplid <- Reduce(function(x, y) merge(x, y, by = "emplid", all = FALSE), piClusters)
+# piEmplid <- do.call(merge, piClusters)
+
+
+
+prepData <- merge(prepData, piEmplid[,c("emplid","complex_cluster","rate_cluster")], by.x =  "PROPOSAL_PI_EMPLID", by.y = "emplid", all.x = TRUE)
+
+##########
+## PREP ##
+##########
+
+piEmplid$combined_cluster <-  factor(paste(piEmplid$complex_cluster, piEmplid$rate_cluster, sep = ", "))
+
+prepData$combined_cluster <- factor(paste(prepData$complex_cluster, prepData$rate_cluster, sep = ", "))
+
+###############
+## LIBRARIES ##
+###############
+
+library(viridis)
+library(pheatmap)
+
+#########
+## MAP ##
+#########
+
+piMap <- data.frame(college = row.names(piEmplid), abbrv = row.names(piEmplid), color = NA, pch = 19, cex = 0.7 )
+
+# I need the college map of colors
+
+fullEmplid <- calculateWinRates(data = cleanData, categoryColumn = "PROPOSAL_PI_EMPLID") |>
+  (\(x){x[[1]]})()
+
+fullEmplid$count.total <- apply(fullEmplid[,c("win.count","loss.count")],1,sum)
+
+filterTwoCount <- fullEmplid$count.total >= 2
+# filterThreeCount <- piEmplid$count.total > 3
+
+
+```
+
+
+
+```{r}
+
+###########
+## QUERY ##
+###########
+
+# Obtain age data
+
+keyring::keyring_unlock(keyring = "BIPR", password = "Excelsior!")
+
+library(DBI)
+con.ds <- DBI::dbConnect(odbc::odbc(), 
+                         Driver = "oracle", 
+                         Host = "ocm-campus01.it.utah.edu", 
+                         SVC = keyring::key_list(keyring = "BIPR")[1, 1],
+                         UID = keyring::key_list(keyring = "BIPR")[1, 2],
+                         PWD = keyring::key_get(keyring = "BIPR", 
+                         service = keyring::key_list(keyring = "BIPR")[1,1]),
+                         Port = 2080)
+
+journeyQuery <- "select * from ds_hr.EMPL_AGE_RANGE_ACTION_MV_V" # a view of that same query
+
+journeyData <- dbGetQuery(con.ds, journeyQuery)
+
+DBI::dbDisconnect(con.ds)
+
+
+```
+
+```{r}
+
+uniqueActions <- unique(journeyData[,c("ACTION", "ACTION_DESCR")])
+actionCount <- table(journeyData[,c("ACTION")]) 
+actionFrame <- merge(uniqueActions, data.frame(ACTION = names(actionCount), count = as.vector(actionCount)), by = "ACTION")
+
+
+uniqueReasons <- unique(journeyData[, c("ACTION_REASON","ACTION_REASON_DESCR")])
+reasonCount <- table(journeyData[, "ACTION_REASON"])
+reasonFrame <- merge(uniqueReasons, data.frame(ACTION_REASON = names(reasonCount), count = as.vector(reasonCount)), by = "ACTION_REASON")
+
+```
+
+
+**PURPOSE:**  The purpose of this report is 
+
+**OBJECTIVES:**   
+
+  1.  Describe the "Workforce Journey" data.   
+  2.  Summarize data for the target population.    
+  3.  Calculate headcount.
+
+**EXECUTIVE SUMMARY:**
+
+The
+
+**SUMMARY:**   
+
+The
+
+
+## (1) DESCRIBE THE WORKFORCE JOURNEY DATA
+
+### Data summary
+
+```{r}
+
+skim(journeyData)
+
+```
+
+```{r}
+
+actionFrame |>
+  kbl(caption = "Action and descriptions")
+
+
+```
+
+```{r}
+
+reasonFrame |>
+  kbl(caption = "Action reasons")
+
+```
+
+I can't calculate head count from this.
+I need the hire date so I can add them.
+I guess I can assume a hire date ... ?
+Can I do that?
+
+
