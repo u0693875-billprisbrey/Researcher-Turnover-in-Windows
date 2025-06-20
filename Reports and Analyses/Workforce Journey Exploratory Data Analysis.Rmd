@@ -131,6 +131,30 @@ DBI::dbDisconnect(con.ds)
 
 ```{r}
 
+##########
+## PREP ##
+##########
+
+journeyData$AGE_BAND <- factor(journeyData$AGE_BAND, levels = 
+                                 c(
+                                   "Under 20",
+                                   "20s",
+                                   "30s",
+                                   "40s",
+                                   "50s",
+                                   "60s",
+                                   "70s",
+                                   "80s",
+                                   "90 and Above"
+                                 )
+                                 )
+
+
+```
+
+
+```{r}
+
 uniqueActions <- unique(journeyData[,c("ACTION", "ACTION_DESCR")])
 actionCount <- table(journeyData[,c("ACTION")]) 
 actionFrame <- merge(uniqueActions, data.frame(ACTION = names(actionCount), count = as.vector(actionCount)), by = "ACTION")
@@ -185,9 +209,127 @@ reasonFrame |>
 
 ```
 
-I can't calculate head count from this.
-I need the hire date so I can add them.
-I guess I can assume a hire date ... ?
-Can I do that?
+
+```{r}
+
+# Age distribution
+
+journeyData$AGE_BAND |>
+  table() |>
+  barplot(col = viridis::viridis(n=length(levels(journeyData$AGE_BAND)), dir = -1),
+  ylab = "record count",
+  main = "Age distribution of action events")
 
 
+```
+
+
+```{r}
+
+# Action items per PI
+
+eventsPerEmplid <- aggregate(ACTION ~ EMPLID, data = journeyData, length)
+names(eventsPerEmplid) <- c("EMPLID", "eventCount")
+
+
+theHist <- hist(log(eventsPerEmplid$eventCount), plot = FALSE)
+
+
+plot(theHist, col = viridis::mako(n = length(theHist$breaks)),
+     main = "Events per EMPLID (log)",
+     ylab = "count of EMPLID",
+     xlab = "events per EMPLID (log)"
+     )
+
+
+```
+
+
+```{r eval=FALSE}
+
+# termination flag check
+
+table(journeyData[,c("ACTION","VOLUNTARY_FLAG")], useNA = "always") # o.k.
+
+# actions per employee
+
+actionsPerEmplid <- aggregate(count ~ EMPLID + ACTION, 
+          data = transform(journeyData, count = 1), 
+          FUN = sum)
+
+actionsPerEmplid[actionsPerEmplid$ACTION == "TER","count"] |> hist()
+
+# can I align rehire and termination dates?
+# can I see if someone was involuntarily terminated multiple times?
+
+```
+
+
+```{r}
+
+# Termination flag
+
+termFlag <- aggregate(rep(1, nrow(journeyData)) ~ VOLUNTARY_FLAG, data = journeyData, length )
+
+termFlag[,2] |> 
+  barplot(col = c("slateblue4", "saddlebrown"),
+          names = termFlag[,1],
+          main = "Termination flag",
+          ylab = "count"
+          )
+
+
+```
+
+
+
+### Query
+
+The query below is converted to a view, ds_hr.EMPL_AGE_RANGE_ACTION_MV_V.
+
+"SELECT A.EMPLID, A.EMPL_RCD, A.EFFDT, A.EFFSEQ
+    , A.ACTION, B.ACTION_DESCR
+    , A.ACTION_REASON, C.DESCR ACTION_REASON_DESCR
+    , Case when A.ACTION ! = 'TER' then ''
+        when A.ACTION  = ('TER') 
+        AND A.ACTION_REASON not in ('BNK', 'EVW', 'I9', 'INV', 'NER', 'RFN', 'RIF', 'RLS') 
+        then 'Voluntary' else 'Involuntary' end VOLUNTARY_FLAG
+    , Case    when (SYSDATE-D.BIRTHDATE)/365.25 < 20
+        then 'Under 20' 
+    when (SYSDATE-D.BIRTHDATE)/365.25 >= 20  and (SYSDATE-D.BIRTHDATE)/365.25 < 30
+        then '20s'
+    when (SYSDATE-D.BIRTHDATE)/365.25 >= 30  and (SYSDATE-D.BIRTHDATE)/365.25  < 40
+        then '30s'
+    when (SYSDATE-D.BIRTHDATE)/365.25 >= 40  and (SYSDATE-D.BIRTHDATE)/365.25  < 50
+        then '40s'
+    when (SYSDATE-D.BIRTHDATE)/365.25 >= 50  and (SYSDATE-D.BIRTHDATE)/365.25 < 60
+        then '50s'
+    when (SYSDATE-D.BIRTHDATE)/365.25 >= 60  and (SYSDATE-D.BIRTHDATE)/365.25  < 70
+        then '60s'
+    when (SYSDATE-D.BIRTHDATE)/365.25 >= 70  and (SYSDATE-D.BIRTHDATE)/365.25 < 80
+        then '70s'
+    when (SYSDATE-D.BIRTHDATE)/365.25 >= 80  and (SYSDATE-D.BIRTHDATE)/365.25 < 90
+        then '80s'
+    else '90 and Above'
+        end Age_Band
+        
+FROM PS_UU_UNSEC_JOB_VW A
+  JOIN PS_ACTION_TBL B
+    ON (B.ACTION = A.ACTION
+    AND B.EFFDT =
+        (SELECT MAX(B_ED.EFFDT) FROM PS_ACTION_TBL B_ED
+        WHERE B.ACTION = B_ED.ACTION
+          AND B_ED.EFFDT <= SYSDATE))
+  JOIN PS_ACTN_REASON_TBL C
+    ON (C.ACTION = A.ACTION
+     AND C.ACTION_REASON = A.ACTION_REASON
+     AND C.EFFDT =
+        (SELECT MAX(C_ED.EFFDT) FROM PS_ACTN_REASON_TBL C_ED
+        WHERE C.ACTION = C_ED.ACTION
+          AND C.ACTION_REASON = C_ED.ACTION_REASON
+          AND C_ED.EFFDT <= SYSDATE))
+    JOIN ps_personal_dt_fst D
+        ON (D.EMPLID = A.EMPLID)
+        
+WHERE  A.EFFDT > TO_DATE('2010-01-01','YYYY-MM-DD')
+    ORDER BY A.EMPLID, A.EMPL_RCD, A.EFFDT"

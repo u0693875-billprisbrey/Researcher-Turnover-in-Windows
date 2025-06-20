@@ -20,6 +20,9 @@ output:
 
 
 
+
+
+
 **PURPOSE:**  The purpose of this report is 
 
 **OBJECTIVES:**   
@@ -51,7 +54,8 @@ Table: Data summary
 |Number of columns        |10          |
 |_______________________  |            |
 |Column type frequency:   |            |
-|character                |7           |
+|character                |6           |
+|factor                   |1           |
 |numeric                  |2           |
 |POSIXct                  |1           |
 |________________________ |            |
@@ -68,7 +72,13 @@ Table: Data summary
 |ACTION_REASON       |         0|          1.00|   2|   3|     0|      105|          0|
 |ACTION_REASON_DESCR |         0|          1.00|   5|  30|     0|      110|          0|
 |VOLUNTARY_FLAG      |   2257513|          0.08|   9|  11|     0|        2|          0|
-|AGE_BAND            |         0|          1.00|   3|  12|     0|        9|          0|
+
+
+**Variable type: factor**
+
+|skim_variable | n_missing| complete_rate|ordered | n_unique|top_counts                                         |
+|:-------------|---------:|-------------:|:-------|--------:|:--------------------------------------------------|
+|AGE_BAND      |         0|             1|FALSE   |        9|30s: 736244, 40s: 559668, 20s: 431938, 50s: 326439 |
 
 
 **Variable type: numeric**
@@ -355,12 +365,12 @@ Table: Data summary
   </tr>
   <tr>
    <td style="text-align:left;"> FYF </td>
-   <td style="text-align:left;"> FY Increase </td>
+   <td style="text-align:left;"> FYSC Terms (SYS) </td>
    <td style="text-align:right;"> 179783 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> FYF </td>
-   <td style="text-align:left;"> FYSC Terms (SYS) </td>
+   <td style="text-align:left;"> FY Increase </td>
    <td style="text-align:right;"> 179783 </td>
   </tr>
   <tr>
@@ -385,12 +395,12 @@ Table: Data summary
   </tr>
   <tr>
    <td style="text-align:left;"> HEA </td>
-   <td style="text-align:left;"> Medical LOA Option B </td>
+   <td style="text-align:left;"> Medical(Not protected by FMLA) </td>
    <td style="text-align:right;"> 734 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> HEA </td>
-   <td style="text-align:left;"> Medical(Not protected by FMLA) </td>
+   <td style="text-align:left;"> Medical LOA Option B </td>
    <td style="text-align:right;"> 734 </td>
   </tr>
   <tr>
@@ -610,12 +620,12 @@ Table: Data summary
   </tr>
   <tr>
    <td style="text-align:left;"> RET </td>
-   <td style="text-align:left;"> Return to School </td>
+   <td style="text-align:left;"> Regular Retirement </td>
    <td style="text-align:right;"> 3693 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RET </td>
-   <td style="text-align:left;"> Regular Retirement </td>
+   <td style="text-align:left;"> Return to School </td>
    <td style="text-align:right;"> 3693 </td>
   </tr>
   <tr>
@@ -756,9 +766,64 @@ Table: Data summary
 </tbody>
 </table>
 
+
+![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+
+
+![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-9-1.png)<!-- -->![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-9-2.png)<!-- -->
+
 I can't calculate head count from this.
 I need the hire date so I can add them.
 I guess I can assume a hire date ... ?
 Can I do that?
 
+### Query
 
+The query below is converted to a view, ds_hr.EMPL_AGE_RANGE_ACTION_MV_V.
+
+"SELECT A.EMPLID, A.EMPL_RCD, A.EFFDT, A.EFFSEQ
+    , A.ACTION, B.ACTION_DESCR
+    , A.ACTION_REASON, C.DESCR ACTION_REASON_DESCR
+    , Case when A.ACTION ! = 'TER' then ''
+        when A.ACTION  = ('TER') 
+        AND A.ACTION_REASON not in ('BNK', 'EVW', 'I9', 'INV', 'NER', 'RFN', 'RIF', 'RLS') 
+        then 'Voluntary' else 'Involuntary' end VOLUNTARY_FLAG
+    , Case    when (SYSDATE-D.BIRTHDATE)/365.25 < 20
+        then 'Under 20' 
+    when (SYSDATE-D.BIRTHDATE)/365.25 >= 20  and (SYSDATE-D.BIRTHDATE)/365.25 < 30
+        then '20s'
+    when (SYSDATE-D.BIRTHDATE)/365.25 >= 30  and (SYSDATE-D.BIRTHDATE)/365.25  < 40
+        then '30s'
+    when (SYSDATE-D.BIRTHDATE)/365.25 >= 40  and (SYSDATE-D.BIRTHDATE)/365.25  < 50
+        then '40s'
+    when (SYSDATE-D.BIRTHDATE)/365.25 >= 50  and (SYSDATE-D.BIRTHDATE)/365.25 < 60
+        then '50s'
+    when (SYSDATE-D.BIRTHDATE)/365.25 >= 60  and (SYSDATE-D.BIRTHDATE)/365.25  < 70
+        then '60s'
+    when (SYSDATE-D.BIRTHDATE)/365.25 >= 70  and (SYSDATE-D.BIRTHDATE)/365.25 < 80
+        then '70s'
+    when (SYSDATE-D.BIRTHDATE)/365.25 >= 80  and (SYSDATE-D.BIRTHDATE)/365.25 < 90
+        then '80s'
+    else '90 and Above'
+        end Age_Band
+        
+FROM PS_UU_UNSEC_JOB_VW A
+  JOIN PS_ACTION_TBL B
+    ON (B.ACTION = A.ACTION
+    AND B.EFFDT =
+        (SELECT MAX(B_ED.EFFDT) FROM PS_ACTION_TBL B_ED
+        WHERE B.ACTION = B_ED.ACTION
+          AND B_ED.EFFDT <= SYSDATE))
+  JOIN PS_ACTN_REASON_TBL C
+    ON (C.ACTION = A.ACTION
+     AND C.ACTION_REASON = A.ACTION_REASON
+     AND C.EFFDT =
+        (SELECT MAX(C_ED.EFFDT) FROM PS_ACTN_REASON_TBL C_ED
+        WHERE C.ACTION = C_ED.ACTION
+          AND C.ACTION_REASON = C_ED.ACTION_REASON
+          AND C_ED.EFFDT <= SYSDATE))
+    JOIN ps_personal_dt_fst D
+        ON (D.EMPLID = A.EMPLID)
+        
+WHERE  A.EFFDT > TO_DATE('2010-01-01','YYYY-MM-DD')
+    ORDER BY A.EMPLID, A.EMPL_RCD, A.EFFDT"
