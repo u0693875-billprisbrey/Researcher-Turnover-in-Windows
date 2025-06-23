@@ -126,6 +126,29 @@ journeyQuery <- "select * from ds_hr.EMPL_AGE_RANGE_ACTION_MV_V" # a view of tha
 
 journeyData <- dbGetQuery(con.ds, journeyQuery)
 
+
+actionReasonQuery <- "
+SELECT
+  ACTION,
+  ACTION_DESCR,
+  ACTION_REASON,
+  ACTION_REASON_DESCR,
+  COUNT(*) AS count
+FROM
+  ds_hr.EMPL_AGE_RANGE_ACTION_MV_V
+WHERE
+  EFFDT <= DATE '2025-06-01'
+GROUP BY
+  ACTION,
+  ACTION_DESCR,
+  ACTION_REASON,
+  ACTION_REASON_DESCR
+ORDER BY
+  count DESC
+"
+
+actionReasonFrame <- dbGetQuery(con.ds, actionReasonQuery)
+
 DBI::dbDisconnect(con.ds)
 
 
@@ -198,8 +221,13 @@ reasonsPerAction <- aggregate(ACTION_REASON ~ ACTION + ACTION_DESCR, journeyData
 **OBJECTIVES:**   
 
   1.  Describe the "Workforce Journey" data.   
-  2.  Summarize data for the target population.    
-  3.  Calculate headcount.
+  2.  Check internal consistency.
+
+Here or elsewhere:
+
+Summarize data for the target population.
+Calculate headcount.
+
 
 **EXECUTIVE SUMMARY:**
 
@@ -215,6 +243,11 @@ Several of these actions look like they overlap as far as I'm concerned--
 I want a query that just pulls the actions, reasons, and descriptions.
 
 Do I look at the correlation between actions and reasons?
+
+
+I need to develop queries that produce the tables below (like a table for every action, and every action/reason pair.)
+
+Then I'd like to create a table that 
 
 
 ## (1) DESCRIBE THE WORKFORCE JOURNEY DATA
@@ -710,6 +743,209 @@ There seems to be several over-lapping actions and reasons, like a "RET" -and- a
 
 It might be nice to explore these here.   
 
+### Internal Consistency
+
+Identify entries and exits, and see that they align.
+
+
+```{r}
+
+actionReasonFrame$boundary <- NA
+actionReasonFrame$boundary_pair <- NA
+
+# Primary entry or exit
+
+primeEntryFilter <- actionReasonFrame$ACTION %in% c("HIR", "REH")
+primeExitFilter <- actionReasonFrame$ACTION %in% c("TER", "RET", "RWP")
+
+actionReasonFrame$boundary[primeEntryFilter] <- "entry"
+actionReasonFrame$boundary[primeExitFilter] <- "exit"
+actionReasonFrame$boundary_pair[primeEntryFilter|primeExitFilter] <- "primary"
+
+# Break entry or exit
+
+breakEntryFilter <- actionReasonFrame$ACTION %in% c("RWB")
+breakExitFilter <- actionReasonFrame$ACTION %in% c("SWB")
+
+actionReasonFrame$boundary[breakEntryFilter] <- "entry"
+actionReasonFrame$boundary[breakExitFilter] <- "exit"
+actionReasonFrame$boundary_pair[breakEntryFilter|breakExitFilter] <- "break"
+
+# Leave entry or exit
+
+leaveEntryFilter <- actionReasonFrame$ACTION %in% c("RFL")
+leaveExitFilter <- actionReasonFrame$ACTION %in% c("LOA","LTO", "PLA")
+
+actionReasonFrame$boundary[leaveEntryFilter] <- "entry"
+actionReasonFrame$boundary[leaveExitFilter] <- "exit"
+actionReasonFrame$boundary_pair[leaveEntryFilter|leaveExitFilter] <- "leave"
+
+# now I gotta merge this back to the journey data
+
+journeyData <- merge(journeyData, unique(actionReasonFrame[,c("ACTION","boundary","boundary_pair")]), by = "ACTION")
+
+
+```
+
+```{r}
+
+# boundary consistency
+
+# Commencing a series of aggregations and re-shapes
+
+boundaryFrame <- as.data.frame(table(journeyData[,c("EMPLID","boundary_pair","boundary")]))
+
+boundaryList <- lapply(levels(boundaryFrame$boundary_pair), function(x){ 
+  
+  aggregate(Freq~EMPLID + boundary, data = boundaryFrame[boundaryFrame$boundary_pair == x,], sum) |>
+    (\(y){
+      reshape(y,
+              idvar = "EMPLID",
+              timevar = "boundary",
+              v.names = "Freq",
+              direction = "wide")
+    })() |>
+    (\(z){ 
+      names(z) <- c("EMPLID","entry","exit");
+      return(z)
+      })()
+
+  })
+names(boundaryList) <- levels(boundaryFrame$boundary_pair)
+
+# internal consistency
+
+tooManyExits <- lapply(boundaryList, function(x) { x[x[,"exit"] > x[,"entry"],] })
+
+
+tooManyEntries <- lapply(boundaryList, function(x) {x[x[,"entry"] > x[,"exit"]+1, ] })
+
+
+
+```
+
+
+
+
+```{r eval=FALSE}
+
+# boundary consistency sandbox
+
+# checking to see if boundary pairs (exit/entry per type) match
+
+table(journeyData$boundary)
+# entry   exit 
+# 305797 303913 
+
+# I'll need to do this per EMPLID
+
+shobsho <- aggregate(boundary~EMPLID + boundary_pair, data = journeyData, table) |> as.matrix.data.frame()
+
+# that's not it
+
+shobble <- as.data.frame(table(journeyData[, c("EMPLID","boundary_pair","boundary")]))
+
+# that's a lot more like it
+
+# now I wonder if I can filter out the values of 0,
+# and I wonder how to make that brief entry/exit map
+
+# And I wonder if I want to re-shape this
+
+shobble[shobble$EMPLID == monthOneTerm[1],]
+
+# almost there to finding imbalance
+
+# another aggregation, I think, to find them out
+
+
+
+ohbsho <- lapply(levels(shobble$boundary_pair), function(x) {aggregate(Freq ~ EMPLID, data = shobble[shobble$boundary_pair == x,], length(unique(x)) )})
+
+
+shobble[shobble$boundary_pair == "primary",] |> head()
+
+
+shaibo <- aggregate(Freq ~ EMPLID + boundary, data = shobble[shobble$boundary_pair == "primary",], sum) |>
+  (\(x){x[order(x$EMPLID),]})()
+
+# I am going to re-shape this.
+# I need to see where exit > entry
+# or where entry is more than exit + 1
+
+shaibobble <- reshape(shaibo,
+                      idvar = "EMPLID",
+                      timevar = "boundary",
+                      v.names = "Freq",
+                      direction = "wide")
+names(shaibobble) <- c("EMPLID","entry","exit")
+
+# ok, I like this
+# I c/should turn this into a list
+
+shazam <- lapply(levels(shobble$boundary_pair), function(x){ 
+  
+  aggregate(Freq~EMPLID + boundary, data = shobble[shobble$boundary_pair == x,], sum) |>
+    (\(y){
+      reshape(y,
+              idvar = "EMPLID",
+              timevar = "boundary",
+              v.names = "Freq",
+              direction = "wide")
+    })() |>
+    (\(z){ 
+      names(z) <- c("EMPLID","entry","exit");
+      return(z)
+      })()
+
+  })
+names(shazam) <- levels(shobble$boundary_pair)
+
+# ok, now we are getting somewhere!
+
+
+# too many cooks
+
+incongruous <- lapply(shazam, function(x) { x[x[,"exit"] > x[,"entry"],] })
+
+
+tooManyCooks <- lapply(shazam, function(x) {x[x[,"entry"] > x[,"exit"]+1, ] })
+
+# ok now this is interesting
+# check out "00028879", EFFDT == "2010-01-16"
+# They are IDENTICAL except for the EMPL_RCD
+
+# I should just shoot a quick e-mail and see if I can figure this out
+
+# ...or, pick up a few examples of these
+
+# View(journeyData[journeyData$EMPLID == "00029479",])
+
+# check out "00029479", EFFDT == "2011-07-16"
+# They returned from leave twice, were terminated, and transferred all in one day
+# ...and continued employment until they retired on "2022-06-16"
+
+# View(journeyData[journeyData$EMPLID == "00002624",])
+# check out "00002624" on 2021-03-16
+# Looks like this is a "Hire Concurrent Job" which needs some explaining
+
+# let's just write this up and set up a meeting.
+
+
+```
+
+
+
+```{r eval=FALSE}
+
+# print and work with actionReasonFrame in Excel
+
+write.csv(actionReasonFrame, here::here("Robjects", "actionReasonFrame.csv"))
+
+
+```
+
+
 ### Query
 
 The query below is converted to a view, ds_hr.EMPL_AGE_RANGE_ACTION_MV_V.
@@ -760,3 +996,43 @@ FROM PS_UU_UNSEC_JOB_VW A
         
 WHERE  A.EFFDT > TO_DATE('2010-01-01','YYYY-MM-DD')
     ORDER BY A.EMPLID, A.EMPL_RCD, A.EFFDT"
+
+### HEAD COUNT
+
+This is going to need its own sandbox.
+
+I'll want to follow someone, starting with me.
+
+Presumably I have no hire date prior to Jan 1 2010.
+
+There seems to be several actions and reasons that could result in headcount dropping.  How do I handle 30- or 90- day breaks, for example?
+
+And I'll want to check the obvious cases of rehires.
+
+```{r}
+
+# Let's check on people terminated in the first month of the data set
+
+dateCriteria <- journeyData$EFFDT <= as.Date("2010-01-31")
+termCriteria <- journeyData$ACTION == "TER"
+hireCriteria <- journeyData$ACTION == "HIR"
+rehireCriteria <- journeyData$ACTION == "REH"
+
+monthOneTerm <- unique(journeyData$EMPLID[dateCriteria & termCriteria])
+
+dim(journeyData[journeyData$EMPLID == monthOneTerm[1],]) # looks like I found a re-hire.  His last record happened in 2018
+
+journeyData[journeyData$EMPLID == monthOneTerm[1],] |>
+  (\(x){x[order(x$EFFDT),] })()
+
+
+journeyData[journeyData$EMPLID == monthOneTerm[2],] |>
+  (\(x){x[order(x$EFFDT),] })() # see now this is what I'm looking for
+# A termination but no matching hire date
+
+# I need to understand the EFFSEQ, and there's actually value for EMPL_RCD
+
+# 
+
+```
+
