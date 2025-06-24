@@ -216,6 +216,86 @@ reasonsPerAction <- aggregate(ACTION_REASON ~ ACTION + ACTION_DESCR, journeyData
 ```
 
 
+
+```{r}
+
+# Define boundary actions
+
+actionReasonFrame$boundary <- NA
+actionReasonFrame$boundary_type <- NA
+
+# Primary entry or exit
+
+primeEntryFilter <- actionReasonFrame$ACTION %in% c("HIR", "REH")
+primeExitFilter <- actionReasonFrame$ACTION %in% c("TER", "RET", "RWP")
+
+actionReasonFrame$boundary[primeEntryFilter] <- "entry"
+actionReasonFrame$boundary[primeExitFilter] <- "exit"
+actionReasonFrame$boundary_type[primeEntryFilter|primeExitFilter] <- "primary"
+
+# Break entry or exit
+
+breakEntryFilter <- actionReasonFrame$ACTION %in% c("RWB")
+breakExitFilter <- actionReasonFrame$ACTION %in% c("SWB")
+
+actionReasonFrame$boundary[breakEntryFilter] <- "entry"
+actionReasonFrame$boundary[breakExitFilter] <- "exit"
+actionReasonFrame$boundary_type[breakEntryFilter|breakExitFilter] <- "break"
+
+# Leave entry or exit
+
+leaveEntryFilter <- actionReasonFrame$ACTION %in% c("RFL")
+leaveExitFilter <- actionReasonFrame$ACTION %in% c("LOA","LTO", "PLA")
+
+actionReasonFrame$boundary[leaveEntryFilter] <- "entry"
+actionReasonFrame$boundary[leaveExitFilter] <- "exit"
+actionReasonFrame$boundary_type[leaveEntryFilter|leaveExitFilter] <- "leave"
+
+# now I gotta merge this back to the journey data
+
+journeyData <- merge(journeyData, unique(actionReasonFrame[,c("ACTION","boundary","boundary_type")]), by = "ACTION")
+
+
+```
+
+```{r}
+
+# boundary consistency
+
+# Commencing a series of aggregations and re-shapes
+
+boundaryFrame <- as.data.frame(table(journeyData[,c("EMPLID","boundary_type","boundary")]))
+
+boundaryList <- lapply(levels(boundaryFrame$boundary_type), function(x){ 
+  
+  aggregate(Freq~EMPLID + boundary, data = boundaryFrame[boundaryFrame$boundary_type == x,], sum) |>
+    (\(y){
+      reshape(y,
+              idvar = "EMPLID",
+              timevar = "boundary",
+              v.names = "Freq",
+              direction = "wide")
+    })() |>
+    (\(z){ 
+      names(z) <- c("EMPLID","entry","exit");
+      return(z)
+      })()
+
+  })
+names(boundaryList) <- levels(boundaryFrame$boundary_type)
+
+# internal consistency
+
+tooManyExits <- lapply(boundaryList, function(x) { x[x[,"exit"] > x[,"entry"],] })
+
+
+tooManyEntries <- lapply(boundaryList, function(x) {x[x[,"entry"] > x[,"exit"]+1, ] })
+
+
+
+```
+
+
 **PURPOSE:**  The purpose of this report is 
 
 **OBJECTIVES:**   
@@ -263,11 +343,26 @@ skim(journeyData)
 ```{r}
 
 merge(actionFrame, reasonsPerAction[,c("ACTION","ACTION_REASON")], by = "ACTION") |>
-  kbl(caption = "Actions and reasons",
+  kbl(caption = "Actions and unique associated reasons",
       col.names = c("", "description", "count", "unique\nreasons"),
       row.names=FALSE,
       escape = FALSE) |>  
   kable_styling(full_width = FALSE) 
+
+
+incomingPar <- par(mar = c(13,4,3,1), bg = "ivory", fg = "gray10"  )
+
+theBar <- barplot(actionFrame[order(actionFrame$count, decreasing = TRUE) ,"count"],
+        col = "thistle",
+        las =2)
+axis(side = 1, at = theBar, labels = actionFrame[order(actionFrame$count, decreasing = TRUE) ,"ACTION"], las = 2, line = -3, tick = FALSE)
+
+axis(side = 1, at = theBar, labels = actionFrame[order(actionFrame$count, decreasing = TRUE) ,"ACTION_DESCR"], las = 2, line = 1)
+
+mtext(side = 3, font =2, cex = 1.3, "Count of actions", line = 1.319)
+
+par(incomingPar)
+
 
 
 ```
@@ -283,6 +378,55 @@ reasonFrame |>
   scroll_box(height = "1000px")
 
 ```
+
+```{r}
+
+# Reason graphic
+# turn this horizontal?
+
+incomingPar <- par(mar = c(13,4,3,1), bg = "ivory", fg = "gray10"  )
+
+plotFrame <- reasonFrame[order(reasonFrame$count, decreasing = TRUE) ,][1:20,]
+
+theBar <- barplot(plotFrame[,"count"],
+        col = "lemonchiffon",
+        las =2)
+axis(side = 1, at = theBar, labels = plotFrame[,"ACTION_REASON"], las = 2, line = -3, tick = FALSE)
+
+axis(side = 1, at = theBar, labels = plotFrame[,"ACTION_REASON_DESCR"], las = 2, line = 1)
+
+mtext(side = 3, font =2, cex = 1.3, "Top twenty reasons by count", line = 1.319)
+
+par(incomingPar)
+
+
+
+```
+
+```{r fig.height = 7, fig.width = 5}
+
+# Termination reasons
+
+incomingPar <- par(mar = c(4,13,3,1), bg = "ivory", fg = "gray10"  )
+
+plotFrame <- actionReasonFrame[actionReasonFrame$ACTION == "TER",] 
+
+theBar <- barplot(rev(plotFrame[,"COUNT"]),
+        col = "mistyrose",
+        horiz = TRUE,
+        las =2)
+axis(side = 2, at = theBar, labels = rev(plotFrame[,"ACTION_REASON"]), las = 2, line = -3, tick = FALSE)
+
+axis(side = 2, at = theBar, labels = rev(plotFrame[,"ACTION_REASON_DESCR"]), las = 2, line = 1)
+
+mtext(side = 3, font =2, cex = 1.3, "Termination reasons by count", line = 1.319)
+
+par(incomingPar)
+
+
+
+```
+
 
 ```{r}
 
@@ -349,11 +493,13 @@ theHist <- hist(log(eventsPerEmplid$eventCount), plot = FALSE)
 
 
 plot(theHist, col = viridis::mako(n = length(theHist$breaks)),
-     main = "Events per EMPLID (log)",
+     main = "Events per EMPLID\n(log compression)",
      ylab = "count of EMPLID",
-     xlab = "events per EMPLID (log)"
+     xlab = "events per EMPLID",
+     xaxt = "n"
      )
 
+axis(side = 1, at = theHist$breaks, labels = round(exp(theHist$breaks),1)  )
 
 ```
 
@@ -384,11 +530,11 @@ actionsPerEmplid[actionsPerEmplid$ACTION == "TER","count"] |> hist()
 
 termFlag <- aggregate(rep(1, nrow(journeyData)) ~ VOLUNTARY_FLAG, data = journeyData, length )
 
-log(termFlag[,2]) |> 
+(termFlag[,2]) |> 
   barplot(col = c("slateblue4", "saddlebrown"),
           names = termFlag[,1],
-          main = "Termination flag",
-          ylab = "count (log)"
+          main = "Termination action",
+          ylab = "count of records"
           )
 
 
@@ -735,19 +881,13 @@ plotWeeklyActions(cluster=3)
 
 ```
 
-
-
-### Termination 
-
-Explore some of the reasons
-
-### Internal Consistency
+### Defining and investigating "boundary actions"
 
 The actions and action reasons are reviewed, and grouped according to three main boundary types: primary, leave, and break.
 
-These are then tallied per EMPLID to check for inconsistencies.  In particular, the number of exits should never exceed the number of entries for a type, and the number of entries should never be greater than one plus the number of exits.
+These are then tallied per EMPLID to check for inconsistencies.  In particular, the number of exits should never exceed the number of entries for a type, and the number of entries should never be greater than one more than the number of exits.
 
-Many inconsistencies were found, suggesting that I don't understand the data or considerable more processing needs to be done.
+Many inconsistencies were found, suggesting additional processing and refinement of the "boundary" definitions.
 
 For example:    
 
@@ -759,87 +899,14 @@ For example:
 
 ```{r}
 
-actionReasonFrame$boundary <- NA
-actionReasonFrame$boundary_pair <- NA
-
-# Primary entry or exit
-
-primeEntryFilter <- actionReasonFrame$ACTION %in% c("HIR", "REH")
-primeExitFilter <- actionReasonFrame$ACTION %in% c("TER", "RET", "RWP")
-
-actionReasonFrame$boundary[primeEntryFilter] <- "entry"
-actionReasonFrame$boundary[primeExitFilter] <- "exit"
-actionReasonFrame$boundary_pair[primeEntryFilter|primeExitFilter] <- "primary"
-
-# Break entry or exit
-
-breakEntryFilter <- actionReasonFrame$ACTION %in% c("RWB")
-breakExitFilter <- actionReasonFrame$ACTION %in% c("SWB")
-
-actionReasonFrame$boundary[breakEntryFilter] <- "entry"
-actionReasonFrame$boundary[breakExitFilter] <- "exit"
-actionReasonFrame$boundary_pair[breakEntryFilter|breakExitFilter] <- "break"
-
-# Leave entry or exit
-
-leaveEntryFilter <- actionReasonFrame$ACTION %in% c("RFL")
-leaveExitFilter <- actionReasonFrame$ACTION %in% c("LOA","LTO", "PLA")
-
-actionReasonFrame$boundary[leaveEntryFilter] <- "entry"
-actionReasonFrame$boundary[leaveExitFilter] <- "exit"
-actionReasonFrame$boundary_pair[leaveEntryFilter|leaveExitFilter] <- "leave"
-
-# now I gotta merge this back to the journey data
-
-journeyData <- merge(journeyData, unique(actionReasonFrame[,c("ACTION","boundary","boundary_pair")]), by = "ACTION")
-
-
-```
-
-```{r}
-
-# boundary consistency
-
-# Commencing a series of aggregations and re-shapes
-
-boundaryFrame <- as.data.frame(table(journeyData[,c("EMPLID","boundary_pair","boundary")]))
-
-boundaryList <- lapply(levels(boundaryFrame$boundary_pair), function(x){ 
-  
-  aggregate(Freq~EMPLID + boundary, data = boundaryFrame[boundaryFrame$boundary_pair == x,], sum) |>
-    (\(y){
-      reshape(y,
-              idvar = "EMPLID",
-              timevar = "boundary",
-              v.names = "Freq",
-              direction = "wide")
-    })() |>
-    (\(z){ 
-      names(z) <- c("EMPLID","entry","exit");
-      return(z)
-      })()
-
-  })
-names(boundaryList) <- levels(boundaryFrame$boundary_pair)
-
-# internal consistency
-
-tooManyExits <- lapply(boundaryList, function(x) { x[x[,"exit"] > x[,"entry"],] })
-
-
-tooManyEntries <- lapply(boundaryList, function(x) {x[x[,"entry"] > x[,"exit"]+1, ] })
-
-
-
-```
-
-```{r}
-
-unique(actionReasonFrame[,c("ACTION", "ACTION_DESCR","boundary", "boundary_pair")]) |>
+unique(actionReasonFrame[,c("ACTION", "ACTION_DESCR","boundary", "boundary_type")]) |>
   (\(x){x <- x[!is.na(x$boundary),] })() |>
-  (\(x){x[order(x$boundary_pair),]  })() |>
+  (\(x){x[order(x$boundary_type),]  })() |>
   
-  kbl(caption = "Boundary actions grouped", row.names=FALSE)
+  kbl(caption = "Boundary actions grouped",
+      col.names = c("","ACTION_DESCR","boundary",""),
+      row.names=FALSE) |>
+  column_spec(2:3, extra_css = "padding-left: 1em;")
 
 
 ```
@@ -847,15 +914,40 @@ unique(actionReasonFrame[,c("ACTION", "ACTION_DESCR","boundary", "boundary_pair"
 
 ```{r}
 
-sapply(tooManyExits, nrow) |> kbl(caption = "Too many exits", row.names=FALSE)
+sapply(tooManyExits, nrow) |> kbl(caption = "Too many exits", col.names = "count of EMPLID's") |>
+  kable_paper("hover", full_width = F)
 
 tooManyExits[[1]][1:10,] |>
-  kbl(caption = "More 'break' exits than entries", row.names=FALSE)
+  kbl(caption = "Sample of EMPLIDs with more 'break' exits than entries", row.names=FALSE) |>
+  kable_paper("hover", full_width = F)
 
-sapply(tooManyEntries, nrow) |> kbl(caption = "Too many entries", row.names=FALSE)
+tooManyExits[[2]][1:10,] |>
+  kbl(caption = "Sample of EMPLIDs with more 'leave' exits than entries", row.names=FALSE) |>
+  kable_paper("hover", full_width = F)
+
+tooManyExits[[3]][1:10,] |>
+  kbl(caption = "Sample of EMPLIDs with more 'primary' exits than entries", row.names=FALSE) |>
+  kable_paper("hover", full_width = F)
+
+```
+
+
+```{r}
+
+sapply(tooManyEntries, nrow) |> kbl(caption = "Too many entries", col.names = "count of EMPLID's") |>
+  kable_paper("hover", full_width = F)
+
+tooManyEntries[[1]][1:10,] |>
+  kbl(caption = "More 'break' entries than exits", row.names=FALSE) |>
+  kable_paper("hover", full_width = F)
+
+tooManyEntries[[2]][1:10,] |>
+  kbl(caption = "More 'leave' entries than exits", row.names=FALSE) |>
+  kable_paper("hover", full_width = F)
 
 tooManyEntries[[3]][1:10,] |>
-  kbl(caption = "More 'primary' entries than exits", row.names=FALSE)
+  kbl(caption = "More 'primary' entries than exits", row.names=FALSE) |>
+  kable_paper("hover", full_width = F)
 
 
 ```
@@ -873,11 +965,11 @@ table(journeyData$boundary)
 
 # I'll need to do this per EMPLID
 
-shobsho <- aggregate(boundary~EMPLID + boundary_pair, data = journeyData, table) |> as.matrix.data.frame()
+shobsho <- aggregate(boundary~EMPLID + boundary_type, data = journeyData, table) |> as.matrix.data.frame()
 
 # that's not it
 
-shobble <- as.data.frame(table(journeyData[, c("EMPLID","boundary_pair","boundary")]))
+shobble <- as.data.frame(table(journeyData[, c("EMPLID","boundary_type","boundary")]))
 
 # that's a lot more like it
 
@@ -894,13 +986,13 @@ shobble[shobble$EMPLID == monthOneTerm[1],]
 
 
 
-ohbsho <- lapply(levels(shobble$boundary_pair), function(x) {aggregate(Freq ~ EMPLID, data = shobble[shobble$boundary_pair == x,], length(unique(x)) )})
+ohbsho <- lapply(levels(shobble$boundary_type), function(x) {aggregate(Freq ~ EMPLID, data = shobble[shobble$boundary_type == x,], length(unique(x)) )})
 
 
-shobble[shobble$boundary_pair == "primary",] |> head()
+shobble[shobble$boundary_type == "primary",] |> head()
 
 
-shaibo <- aggregate(Freq ~ EMPLID + boundary, data = shobble[shobble$boundary_pair == "primary",], sum) |>
+shaibo <- aggregate(Freq ~ EMPLID + boundary, data = shobble[shobble$boundary_type == "primary",], sum) |>
   (\(x){x[order(x$EMPLID),]})()
 
 # I am going to re-shape this.
@@ -917,9 +1009,9 @@ names(shaibobble) <- c("EMPLID","entry","exit")
 # ok, I like this
 # I c/should turn this into a list
 
-shazam <- lapply(levels(shobble$boundary_pair), function(x){ 
+shazam <- lapply(levels(shobble$boundary_type), function(x){ 
   
-  aggregate(Freq~EMPLID + boundary, data = shobble[shobble$boundary_pair == x,], sum) |>
+  aggregate(Freq~EMPLID + boundary, data = shobble[shobble$boundary_type == x,], sum) |>
     (\(y){
       reshape(y,
               idvar = "EMPLID",
@@ -933,7 +1025,7 @@ shazam <- lapply(levels(shobble$boundary_pair), function(x){
       })()
 
   })
-names(shazam) <- levels(shobble$boundary_pair)
+names(shazam) <- levels(shobble$boundary_type)
 
 # ok, now we are getting somewhere!
 

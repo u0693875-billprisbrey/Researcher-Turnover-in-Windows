@@ -23,6 +23,12 @@ output:
 
 
 
+
+
+
+
+
+
 **PURPOSE:**  The purpose of this report is 
 
 **OBJECTIVES:**   
@@ -68,10 +74,10 @@ Table: Data summary
 |:------------------------|:-----------|
 |Name                     |journeyData |
 |Number of rows           |2454825     |
-|Number of columns        |10          |
+|Number of columns        |12          |
 |_______________________  |            |
 |Column type frequency:   |            |
-|character                |6           |
+|character                |8           |
 |factor                   |1           |
 |numeric                  |2           |
 |POSIXct                  |1           |
@@ -83,12 +89,14 @@ Table: Data summary
 
 |skim_variable       | n_missing| complete_rate| min| max| empty| n_unique| whitespace|
 |:-------------------|---------:|-------------:|---:|---:|-----:|--------:|----------:|
-|EMPLID              |         0|          1.00|   8|   8|     0|   158233|          0|
 |ACTION              |         0|          1.00|   3|   3|     0|       17|          0|
+|EMPLID              |         0|          1.00|   8|   8|     0|   158233|          0|
 |ACTION_DESCR        |         0|          1.00|   4|  22|     0|       17|          0|
 |ACTION_REASON       |         0|          1.00|   2|   3|     0|      105|          0|
 |ACTION_REASON_DESCR |         0|          1.00|   5|  30|     0|      110|          0|
 |VOLUNTARY_FLAG      |   2258709|          0.08|   9|  11|     0|        2|          0|
+|boundary            |   1844608|          0.25|   4|   5|     0|        2|          0|
+|boundary_type       |   1844608|          0.25|   5|   7|     0|        3|          0|
 
 
 **Variable type: factor**
@@ -113,7 +121,7 @@ Table: Data summary
 |EFFDT         |         0|             1|2010-01-02 |2027-03-15 |2018-08-27 |     5723|
 
 <table class="table" style="color: black; width: auto !important; margin-left: auto; margin-right: auto;">
-<caption>Actions and reasons</caption>
+<caption>Actions and unique associated reasons</caption>
  <thead>
   <tr>
    <th style="text-align:left;">  </th>
@@ -228,6 +236,8 @@ reasons </th>
   </tr>
 </tbody>
 </table>
+
+![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
 
 <div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:1000px; "><table class="table" style="color: black; width: auto !important; margin-left: auto; margin-right: auto;">
 <caption>Action reasons</caption>
@@ -391,12 +401,12 @@ reasons </th>
   </tr>
   <tr>
    <td style="text-align:left;"> FYB </td>
-   <td style="text-align:left;"> Fiscal Year Budget (SYS) </td>
+   <td style="text-align:left;"> FY Budget (SYS) </td>
    <td style="text-align:right;"> 136465 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> FYB </td>
-   <td style="text-align:left;"> FY Budget (SYS) </td>
+   <td style="text-align:left;"> Fiscal Year Budget (SYS) </td>
    <td style="text-align:right;"> 136465 </td>
   </tr>
   <tr>
@@ -431,12 +441,12 @@ reasons </th>
   </tr>
   <tr>
    <td style="text-align:left;"> HEA </td>
-   <td style="text-align:left;"> Medical LOA Option B </td>
+   <td style="text-align:left;"> Medical(Not protected by FMLA) </td>
    <td style="text-align:right;"> 734 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> HEA </td>
-   <td style="text-align:left;"> Medical(Not protected by FMLA) </td>
+   <td style="text-align:left;"> Medical LOA Option B </td>
    <td style="text-align:right;"> 734 </td>
   </tr>
   <tr>
@@ -656,12 +666,12 @@ reasons </th>
   </tr>
   <tr>
    <td style="text-align:left;"> RET </td>
-   <td style="text-align:left;"> Return to School </td>
+   <td style="text-align:left;"> Regular Retirement </td>
    <td style="text-align:right;"> 3699 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RET </td>
-   <td style="text-align:left;"> Regular Retirement </td>
+   <td style="text-align:left;"> Return to School </td>
    <td style="text-align:right;"> 3699 </td>
   </tr>
   <tr>
@@ -771,12 +781,12 @@ reasons </th>
   </tr>
   <tr>
    <td style="text-align:left;"> WC </td>
-   <td style="text-align:left;"> Worker's Comp-Leave Supplement </td>
+   <td style="text-align:left;"> Workers Compensation Leave </td>
    <td style="text-align:right;"> 379 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> WC </td>
-   <td style="text-align:left;"> Workers Compensation Leave </td>
+   <td style="text-align:left;"> Worker's Comp-Leave Supplement </td>
    <td style="text-align:right;"> 379 </td>
   </tr>
   <tr>
@@ -801,6 +811,11 @@ reasons </th>
   </tr>
 </tbody>
 </table></div>
+
+![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+
+![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
+
 
 <div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:1000px; "><table class="table" style="color: black; width: auto !important; margin-left: auto; margin-right: auto;">
 <caption>Actions and reasons</caption>
@@ -2738,24 +2753,24 @@ reasons </th>
 </table></div>
 
 
-![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
 
 
-![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
 
 
 
 
 
-![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
+![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
 
 
 
 ### Count of actions per date
 
-![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-14-1.png)<!-- -->![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-14-2.png)<!-- -->
+![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-18-1.png)<!-- -->![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-18-2.png)<!-- -->
 
-![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
+![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-19-1.png)<!-- -->
 
 
 
@@ -2764,23 +2779,17 @@ reasons </th>
 
 
 
-![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-18-1.png)<!-- -->![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-18-2.png)<!-- -->
+![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-22-1.png)<!-- -->![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-22-2.png)<!-- -->
 
-![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-19-1.png)<!-- -->
+![](Workforce-Journey-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-23-1.png)<!-- -->
 
-
-
-### Termination 
-
-Explore some of the reasons
-
-### Internal Consistency
+### Defining and investigating "boundary actions"
 
 The actions and action reasons are reviewed, and grouped according to three main boundary types: primary, leave, and break.
 
-These are then tallied per EMPLID to check for inconsistencies.  In particular, the number of exits should never exceed the number of entries for a type, and the number of entries should never be greater than one plus the number of exits.
+These are then tallied per EMPLID to check for inconsistencies.  In particular, the number of exits should never exceed the number of entries for a type, and the number of entries should never be greater than one more than the number of exits.
 
-Many inconsistencies were found, suggesting that I don't understand the data or considerable more processing needs to be done.
+Many inconsistencies were found, suggesting additional processing and refinement of the "boundary" definitions.
 
 For example:    
 
@@ -2790,113 +2799,113 @@ For example:
 
 
 
-
-
-
-
 <table>
 <caption>Boundary actions grouped</caption>
  <thead>
   <tr>
-   <th style="text-align:left;"> ACTION </th>
+   <th style="text-align:left;">  </th>
    <th style="text-align:left;"> ACTION_DESCR </th>
    <th style="text-align:left;"> boundary </th>
-   <th style="text-align:left;"> boundary_pair </th>
+   <th style="text-align:left;">  </th>
   </tr>
  </thead>
 <tbody>
   <tr>
    <td style="text-align:left;"> SWB </td>
-   <td style="text-align:left;"> Short Work Break </td>
-   <td style="text-align:left;"> exit </td>
+   <td style="text-align:left;padding-left: 1em;"> Short Work Break </td>
+   <td style="text-align:left;padding-left: 1em;"> exit </td>
    <td style="text-align:left;"> break </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RWB </td>
-   <td style="text-align:left;"> Return from Work Break </td>
-   <td style="text-align:left;"> entry </td>
+   <td style="text-align:left;padding-left: 1em;"> Return from Work Break </td>
+   <td style="text-align:left;padding-left: 1em;"> entry </td>
    <td style="text-align:left;"> break </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PLA </td>
-   <td style="text-align:left;"> Paid Leave of Absence </td>
-   <td style="text-align:left;"> exit </td>
+   <td style="text-align:left;padding-left: 1em;"> Paid Leave of Absence </td>
+   <td style="text-align:left;padding-left: 1em;"> exit </td>
    <td style="text-align:left;"> leave </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RFL </td>
-   <td style="text-align:left;"> Return from Leave </td>
-   <td style="text-align:left;"> entry </td>
+   <td style="text-align:left;padding-left: 1em;"> Return from Leave </td>
+   <td style="text-align:left;padding-left: 1em;"> entry </td>
    <td style="text-align:left;"> leave </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LOA </td>
-   <td style="text-align:left;"> Leave of Absence </td>
-   <td style="text-align:left;"> exit </td>
+   <td style="text-align:left;padding-left: 1em;"> Leave of Absence </td>
+   <td style="text-align:left;padding-left: 1em;"> exit </td>
    <td style="text-align:left;"> leave </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LTO </td>
-   <td style="text-align:left;"> Long Term Disability </td>
-   <td style="text-align:left;"> exit </td>
+   <td style="text-align:left;padding-left: 1em;"> Long Term Disability </td>
+   <td style="text-align:left;padding-left: 1em;"> exit </td>
    <td style="text-align:left;"> leave </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
-   <td style="text-align:left;"> Termination </td>
-   <td style="text-align:left;"> exit </td>
+   <td style="text-align:left;padding-left: 1em;"> Termination </td>
+   <td style="text-align:left;padding-left: 1em;"> exit </td>
    <td style="text-align:left;"> primary </td>
   </tr>
   <tr>
    <td style="text-align:left;"> HIR </td>
-   <td style="text-align:left;"> Hire </td>
-   <td style="text-align:left;"> entry </td>
+   <td style="text-align:left;padding-left: 1em;"> Hire </td>
+   <td style="text-align:left;padding-left: 1em;"> entry </td>
    <td style="text-align:left;"> primary </td>
   </tr>
   <tr>
    <td style="text-align:left;"> REH </td>
-   <td style="text-align:left;"> Rehire </td>
-   <td style="text-align:left;"> entry </td>
+   <td style="text-align:left;padding-left: 1em;"> Rehire </td>
+   <td style="text-align:left;padding-left: 1em;"> entry </td>
    <td style="text-align:left;"> primary </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RET </td>
-   <td style="text-align:left;"> Retirement </td>
-   <td style="text-align:left;"> exit </td>
+   <td style="text-align:left;padding-left: 1em;"> Retirement </td>
+   <td style="text-align:left;padding-left: 1em;"> exit </td>
    <td style="text-align:left;"> primary </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RWP </td>
-   <td style="text-align:left;"> Retirement with Pay </td>
-   <td style="text-align:left;"> exit </td>
+   <td style="text-align:left;padding-left: 1em;"> Retirement with Pay </td>
+   <td style="text-align:left;padding-left: 1em;"> exit </td>
    <td style="text-align:left;"> primary </td>
   </tr>
 </tbody>
 </table>
 
 
-<table>
+<table class=" lightable-paper lightable-hover" style='color: black; font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
 <caption>Too many exits</caption>
  <thead>
   <tr>
-   <th style="text-align:right;"> x </th>
+   <th style="text-align:left;">   </th>
+   <th style="text-align:right;"> count of EMPLID's </th>
   </tr>
  </thead>
 <tbody>
   <tr>
+   <td style="text-align:left;"> break </td>
    <td style="text-align:right;"> 2044 </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> leave </td>
    <td style="text-align:right;"> 9122 </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> primary </td>
    <td style="text-align:right;"> 23300 </td>
   </tr>
 </tbody>
 </table>
 
-<table>
-<caption>More 'break' exits than entries</caption>
+<table class=" lightable-paper lightable-hover" style='color: black; font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
+<caption>Sample of EMPLIDs with more 'break' exits than entries</caption>
  <thead>
   <tr>
    <th style="text-align:left;"> EMPLID </th>
@@ -2958,27 +2967,284 @@ For example:
 </tbody>
 </table>
 
-<table>
-<caption>Too many entries</caption>
+<table class=" lightable-paper lightable-hover" style='color: black; font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
+<caption>Sample of EMPLIDs with more 'leave' exits than entries</caption>
  <thead>
   <tr>
-   <th style="text-align:right;"> x </th>
+   <th style="text-align:left;"> EMPLID </th>
+   <th style="text-align:right;"> entry </th>
+   <th style="text-align:right;"> exit </th>
   </tr>
  </thead>
 <tbody>
   <tr>
+   <td style="text-align:left;"> 00000133 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 2 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00000441 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 5 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00000750 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 2 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00000880 </td>
+   <td style="text-align:right;"> 0 </td>
+   <td style="text-align:right;"> 1 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00001233 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 2 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00001756 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 3 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00001954 </td>
+   <td style="text-align:right;"> 0 </td>
+   <td style="text-align:right;"> 1 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00002040 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 2 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00002760 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 2 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00002908 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 3 </td>
+  </tr>
+</tbody>
+</table>
+
+<table class=" lightable-paper lightable-hover" style='color: black; font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
+<caption>Sample of EMPLIDs with more 'primary' exits than entries</caption>
+ <thead>
+  <tr>
+   <th style="text-align:left;"> EMPLID </th>
+   <th style="text-align:right;"> entry </th>
+   <th style="text-align:right;"> exit </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:left;"> 00000008 </td>
+   <td style="text-align:right;"> 0 </td>
+   <td style="text-align:right;"> 1 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00000395 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 3 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00000396 </td>
+   <td style="text-align:right;"> 0 </td>
+   <td style="text-align:right;"> 1 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00000496 </td>
+   <td style="text-align:right;"> 0 </td>
+   <td style="text-align:right;"> 1 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00000519 </td>
+   <td style="text-align:right;"> 0 </td>
+   <td style="text-align:right;"> 1 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00000579 </td>
+   <td style="text-align:right;"> 0 </td>
+   <td style="text-align:right;"> 2 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00000965 </td>
+   <td style="text-align:right;"> 0 </td>
+   <td style="text-align:right;"> 1 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00001007 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 2 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00001072 </td>
+   <td style="text-align:right;"> 0 </td>
+   <td style="text-align:right;"> 1 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00001211 </td>
+   <td style="text-align:right;"> 0 </td>
+   <td style="text-align:right;"> 1 </td>
+  </tr>
+</tbody>
+</table>
+
+
+<table class=" lightable-paper lightable-hover" style='color: black; font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
+<caption>Too many entries</caption>
+ <thead>
+  <tr>
+   <th style="text-align:left;">   </th>
+   <th style="text-align:right;"> count of EMPLID's </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:left;"> break </td>
    <td style="text-align:right;"> 59 </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> leave </td>
    <td style="text-align:right;"> 11 </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> primary </td>
    <td style="text-align:right;"> 3362 </td>
   </tr>
 </tbody>
 </table>
 
-<table>
+<table class=" lightable-paper lightable-hover" style='color: black; font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
+<caption>More 'break' entries than exits</caption>
+ <thead>
+  <tr>
+   <th style="text-align:left;"> EMPLID </th>
+   <th style="text-align:right;"> entry </th>
+   <th style="text-align:right;"> exit </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:left;"> 00028441 </td>
+   <td style="text-align:right;"> 16 </td>
+   <td style="text-align:right;"> 14 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00028879 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 0 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00029116 </td>
+   <td style="text-align:right;"> 36 </td>
+   <td style="text-align:right;"> 34 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00031054 </td>
+   <td style="text-align:right;"> 31 </td>
+   <td style="text-align:right;"> 29 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00031446 </td>
+   <td style="text-align:right;"> 13 </td>
+   <td style="text-align:right;"> 11 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00031770 </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 1 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00032225 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 0 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00032344 </td>
+   <td style="text-align:right;"> 24 </td>
+   <td style="text-align:right;"> 22 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00033357 </td>
+   <td style="text-align:right;"> 8 </td>
+   <td style="text-align:right;"> 6 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00034040 </td>
+   <td style="text-align:right;"> 53 </td>
+   <td style="text-align:right;"> 51 </td>
+  </tr>
+</tbody>
+</table>
+
+<table class=" lightable-paper lightable-hover" style='color: black; font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
+<caption>More 'leave' entries than exits</caption>
+ <thead>
+  <tr>
+   <th style="text-align:left;"> EMPLID </th>
+   <th style="text-align:right;"> entry </th>
+   <th style="text-align:right;"> exit </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:left;"> 00028642 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 0 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00029479 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 0 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00030202 </td>
+   <td style="text-align:right;"> 8 </td>
+   <td style="text-align:right;"> 6 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00031663 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 0 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00033446 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 0 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00050411 </td>
+   <td style="text-align:right;"> 12 </td>
+   <td style="text-align:right;"> 10 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00123962 </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 1 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00417534 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 0 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00532825 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 0 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 00556762 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 0 </td>
+  </tr>
+</tbody>
+</table>
+
+<table class=" lightable-paper lightable-hover" style='color: black; font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
 <caption>More 'primary' entries than exits</caption>
  <thead>
   <tr>
