@@ -739,13 +739,22 @@ plotWeeklyActions(cluster=3)
 
 ### Termination 
 
-There seems to be several over-lapping actions and reasons, like a "RET" -and- a "TERM". 
-
-It might be nice to explore these here.   
+Explore some of the reasons
 
 ### Internal Consistency
 
-Identify entries and exits, and see that they align.
+The actions and action reasons are reviewed, and grouped according to three main boundary types: primary, leave, and break.
+
+These are then tallied per EMPLID to check for inconsistencies.  In particular, the number of exits should never exceed the number of entries for a type, and the number of entries should never be greater than one plus the number of exits.
+
+Many inconsistencies were found, suggesting that I don't understand the data or considerable more processing needs to be done.
+
+For example:    
+
+  * EMPLID "00028879" on EFFDT == "2010-01-16" shows identical rows except for the EMPL_RCD field.   
+  * EMPLID "00029479" on EFFDT == "2011-07-16" show them returning from leave twice, were terminated, and transferred all in one day (and the employment records continue until they retired in 2022.)   
+  * EMPLID "00002624" on EFFDT == "2021-03-16" added a "Hire Concurrent Job", which suggests I should not consider this action as a boundary action.
+
 
 
 ```{r}
@@ -824,7 +833,32 @@ tooManyEntries <- lapply(boundaryList, function(x) {x[x[,"entry"] > x[,"exit"]+1
 
 ```
 
+```{r}
 
+unique(actionReasonFrame[,c("ACTION", "ACTION_DESCR","boundary", "boundary_pair")]) |>
+  (\(x){x <- x[!is.na(x$boundary),] })() |>
+  (\(x){x[order(x$boundary_pair),]  })() |>
+  
+  kbl(caption = "Boundary actions grouped", row.names=FALSE)
+
+
+```
+
+
+```{r}
+
+sapply(tooManyExits, nrow) |> kbl(caption = "Too many exits", row.names=FALSE)
+
+tooManyExits[[1]][1:10,] |>
+  kbl(caption = "More 'break' exits than entries", row.names=FALSE)
+
+sapply(tooManyEntries, nrow) |> kbl(caption = "Too many entries", row.names=FALSE)
+
+tooManyEntries[[3]][1:10,] |>
+  kbl(caption = "More 'primary' entries than exits", row.names=FALSE)
+
+
+```
 
 
 ```{r eval=FALSE}
@@ -1009,7 +1043,7 @@ There seems to be several actions and reasons that could result in headcount dro
 
 And I'll want to check the obvious cases of rehires.
 
-```{r}
+```{r eval = FALSE}
 
 # Let's check on people terminated in the first month of the data set
 
