@@ -216,6 +216,19 @@ reasonsPerAction <- aggregate(ACTION_REASON ~ ACTION + ACTION_DESCR, journeyData
 ```
 
 
+```{r}
+
+# Action items per PI
+
+eventsPerEmplid <- aggregate(ACTION ~ EMPLID, data = journeyData, length)
+names(eventsPerEmplid) <- c("EMPLID", "eventCount")
+
+
+
+```
+
+
+
 
 ```{r}
 
@@ -301,13 +314,7 @@ tooManyEntries <- lapply(boundaryList, function(x) {x[x[,"entry"] > x[,"exit"]+1
 **OBJECTIVES:**   
 
   1.  Describe the "Workforce Journey" data.   
-  2.  Check internal consistency.
-
-Here or elsewhere:
-
-Summarize data for the target population.
-Calculate headcount.
-
+  2.  Define "boundary" actions and check for internal consistency.   
 
 **EXECUTIVE SUMMARY:**
 
@@ -315,19 +322,15 @@ The
 
 **SUMMARY:**   
 
+`r nrow(journeyData) |> (\(x){x+1})() |> format(big.mark=",")` rows covering dates between `r min(journeyData$EFFDT)` and `r max(journeyData$EFFDT)` are queried.
+
 One row with a bad date ("2202-11-21") is filtered out.
 
-Several of these actions look like they overlap as far as I'm concerned--
-"RET" or "TERM"
+The remaining data describes `r length(unique(journeyData$EMPLID) |> format(big.mark = ",")` employees and every employment "action" that defines their experience (such as transfers, pay raises, leave of absence, and eventual termination or retirement.)  `r length(unique(journeyData$ACTION))` distinct actions are further explained with `r length(unique(journeyData$ACTION_REASON))` unique "action reasons." Employees have a median count of `r median(eventsPerEmplid$eventCount)` of these "actions" in their employment history. (At an extreme, one employee (`r eventsPerEmplid$EMPLID[eventsPerEmplid$eventCount == max(eventsPerEmplid$eventCount)]`)  has `r max(eventsPerEmplid$eventCount)` actions.)    
 
-I want a query that just pulls the actions, reasons, and descriptions.
+Overwhelmingly, an action of "Data Change" ("DTA") is the most common, followed by "Pay Rate Change" ("PAY") and distantly "Termination" ("TER"), "Hire" ("HIR"), and "Transfer" ("XFR").  The "Termination" ("TER") action has the most "action reasons" (`r length(unique(journeyData$ACTION_REASON[journeyData$ACTION == "TER"]))`) of the actions.
 
-Do I look at the correlation between actions and reasons?
-
-
-I need to develop queries that produce the tables below (like a table for every action, and every action/reason pair.)
-
-Then I'd like to create a table that 
+An age band of the employee at the time of the action is provided. The most frequent band is the decade of the thirties.
 
 
 ## (1) DESCRIBE THE WORKFORCE JOURNEY DATA
@@ -342,14 +345,6 @@ skim(journeyData)
 
 ```{r}
 
-merge(actionFrame, reasonsPerAction[,c("ACTION","ACTION_REASON")], by = "ACTION") |>
-  kbl(caption = "Actions and unique associated reasons",
-      col.names = c("", "description", "count", "unique\nreasons"),
-      row.names=FALSE,
-      escape = FALSE) |>  
-  kable_styling(full_width = FALSE) 
-
-
 incomingPar <- par(mar = c(13,4,3,1), bg = "ivory", fg = "gray10"  )
 
 theBar <- barplot(actionFrame[order(actionFrame$count, decreasing = TRUE) ,"count"],
@@ -363,6 +358,20 @@ mtext(side = 3, font =2, cex = 1.3, "Count of actions", line = 1.319)
 
 par(incomingPar)
 
+
+
+
+```
+
+
+```{r}
+
+merge(actionFrame, reasonsPerAction[,c("ACTION","ACTION_REASON")], by = "ACTION") |>
+  kbl(caption = "Actions and unique associated reasons",
+      col.names = c("", "description", "count", "unique\nreasons"),
+      row.names=FALSE,
+      escape = FALSE) |>  
+  kable_styling(full_width = FALSE) 
 
 
 ```
@@ -402,31 +411,6 @@ par(incomingPar)
 
 
 ```
-
-```{r fig.height = 7, fig.width = 5}
-
-# Termination reasons
-
-incomingPar <- par(mar = c(4,13,3,1), bg = "ivory", fg = "gray10"  )
-
-plotFrame <- actionReasonFrame[actionReasonFrame$ACTION == "TER",] 
-
-theBar <- barplot(rev(plotFrame[,"COUNT"]),
-        col = "mistyrose",
-        horiz = TRUE,
-        las =2)
-axis(side = 2, at = theBar, labels = rev(plotFrame[,"ACTION_REASON"]), las = 2, line = -3, tick = FALSE)
-
-axis(side = 2, at = theBar, labels = rev(plotFrame[,"ACTION_REASON_DESCR"]), las = 2, line = 1)
-
-mtext(side = 3, font =2, cex = 1.3, "Termination reasons by count", line = 1.319)
-
-par(incomingPar)
-
-
-
-```
-
 
 ```{r}
 
@@ -485,9 +469,8 @@ journeyData$AGE_BAND |>
 
 # Action items per PI
 
-eventsPerEmplid <- aggregate(ACTION ~ EMPLID, data = journeyData, length)
-names(eventsPerEmplid) <- c("EMPLID", "eventCount")
-
+# eventsPerEmplid <- aggregate(ACTION ~ EMPLID, data = journeyData, length)
+# names(eventsPerEmplid) <- c("EMPLID", "eventCount")
 
 theHist <- hist(log(eventsPerEmplid$eventCount), plot = FALSE)
 
@@ -539,6 +522,34 @@ termFlag <- aggregate(rep(1, nrow(journeyData)) ~ VOLUNTARY_FLAG, data = journey
 
 
 ```
+
+
+```{r fig.height = 7, fig.width = 5}
+
+# Termination reasons
+
+incomingPar <- par(mar = c(5,17,2,1), bg = "ivory", fg = "gray10"  )
+
+plotFrame <- actionReasonFrame[actionReasonFrame$ACTION == "TER",][1:20,] 
+
+theBar <- barplot(rev(plotFrame[,"COUNT"]),
+        col = "mistyrose",
+        horiz = TRUE,
+        las =2)
+axis(side = 2, at = theBar, labels = rev(plotFrame[,"ACTION_REASON"]), las = 2, line = -3, tick = FALSE)
+
+axis(side = 2, at = theBar, labels = rev(plotFrame[,"ACTION_REASON_DESCR"]), las = 2, line = 1)
+
+mtext(side = 3, font =2, cex = 1.3, "Top twenty termination reasons by count", line = .681)
+
+par(incomingPar)
+
+
+
+```
+
+
+
 
 ```{r}
 
@@ -881,7 +892,7 @@ plotWeeklyActions(cluster=3)
 
 ```
 
-### Defining and investigating "boundary actions"
+## (2) DEFINE "BOUNDARY" ACTIONS AND CHECK FOR INTERNAL CONSISTENCY
 
 The actions and action reasons are reviewed, and grouped according to three main boundary types: primary, leave, and break.
 
@@ -1122,18 +1133,6 @@ FROM PS_UU_UNSEC_JOB_VW A
         
 WHERE  A.EFFDT > TO_DATE('2010-01-01','YYYY-MM-DD')
     ORDER BY A.EMPLID, A.EMPL_RCD, A.EFFDT"
-
-### HEAD COUNT
-
-This is going to need its own sandbox.
-
-I'll want to follow someone, starting with me.
-
-Presumably I have no hire date prior to Jan 1 2010.
-
-There seems to be several actions and reasons that could result in headcount dropping.  How do I handle 30- or 90- day breaks, for example?
-
-And I'll want to check the obvious cases of rehires.
 
 ```{r eval = FALSE}
 
