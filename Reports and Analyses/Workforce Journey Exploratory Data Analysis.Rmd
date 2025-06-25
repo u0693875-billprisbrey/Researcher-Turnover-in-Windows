@@ -309,6 +309,132 @@ tooManyEntries <- lapply(boundaryList, function(x) {x[x[,"entry"] > x[,"exit"]+1
 ```
 
 
+```{r}
+
+# Actions per date
+
+actionsPerDate <- aggregate(ACTION ~ EFFDT, journeyData, length)
+
+actionsPerWeek <- aggregate(ACTION ~ week(EFFDT), actionsPerDate, sum)
+
+# nice seasonality graphic
+
+actionsPerDate_EMPLID <- aggregate(ACTION ~ EFFDT + EMPLID, journeyData, length)
+
+# a hist(log()) of this one is kinda nice.
+
+```
+
+```{r}
+
+# investigating more than one EMPL_RCD
+
+rcdPerDate_EMPLID <- aggregate(EMPL_RCD ~ EFFDT+EMPLID, data = journeyData, length)
+
+rcdPerDate_EMPLID_Multiple <- rcdPerDate_EMPLID[rcdPerDate_EMPLID[,3]>1,]
+
+
+nrow(rcdPerDate_EMPLID_Multiple)/nrow(rcdPerDate_EMPLID) # 0.14
+
+# Identifying duplicates other than EMPL_RCD (otherwise everything else is the same)
+startTime <- Sys.time()
+RCD_otherwiseDupe <- mapply(function(x,y){ 
+  filterCondition <- journeyData$EFFDT == x & journeyData$EMPLID == y
+  theDiff <- nrow(unique(journeyData[filterCondition,])) -
+    nrow(unique(journeyData[filterCondition, -which(colnames(journeyData) %in% "EMPL_RCD")]))
+  return(data.frame(EFFDT = x, EMPLID = y, diff = theDiff))
+  
+  },
+  x = rcdPerDate_EMPLID_Multiple[,1],
+  y = rcdPerDate_EMPLID_Multiple[,2],
+  SIMPLIFY = FALSE) |>
+  (\(x){do.call(rbind, x)})()
+endTime <- Sys.time()
+
+# this actually will take ten hours
+# chatGPT says I can do this with "data.table" and it will take minutes.
+
+# but I'll just run it overnight, why not?
+
+```
+
+
+```{r}
+
+# investigating more than one EFFSEQ
+
+seqPerDate_EMPLID <- aggregate(EFFSEQ ~ EFFDT+EMPLID, data = journeyData, length)
+
+seqPerDate_EMPLID_Multiple <- seqPerDate_EMPLID[seqPerDate_EMPLID[,3]>1,]
+
+
+nrow(seqPerDate_EMPLID_Multiple)/nrow(seqPerDate_EMPLID) # 
+
+# Identifying duplicates other than seqPerDate (otherwise everything else is the same)
+
+startTime <- Sys.time()
+seq_otherwiseDupe <- mapply(function(x,y){ 
+  filterCondition <- journeyData$EFFDT == x & journeyData$EMPLID == y
+  theDiff <- nrow(unique(journeyData[filterCondition,])) -
+    nrow(unique(journeyData[filterCondition, -which(colnames(journeyData) %in% "EFFSEQ")]))
+  return(data.frame(EFFDT = x, EMPLID = y, diff = theDiff))
+  
+  },
+  x = rcdPerDate_EMPLID_Multiple[,1],
+  y = rcdPerDate_EMPLID_Multiple[,2],
+  SIMPLIFY = FALSE) |>
+  (\(x){do.call(rbind, x)})()
+endTime <- Sys.time()
+
+```
+
+
+```{r eval = FALSE}
+
+# Sandbox for seeing duplicate rows for everything BUT EMPL_RCD
+
+# let's see how many of these have duplicate rows except for the EMPL_RCD
+
+otherwiseDupe <- apply(rcdPerDate_EMPLID_Multiple[1:10,1:2], 1,
+                       function(x,y){print(data.frame(c(x,y)))})
+
+
+
+# seems like this should work
+mapply(
+  function(x, y) {
+    print(data.frame(col1 = x, col2 = y))
+  },
+  x = rcdPerDate_EMPLID_Multiple[1:10, 1],
+  y = rcdPerDate_EMPLID_Multiple[1:10, 2],
+  SIMPLIFY = FALSE
+)
+
+otherwise_RCD_Dupe <- mapply(function(x,y){ 
+  filterCondition <- journeyData$EFFDT == x & journeyData$EMPLID == y
+  theDiff <- nrow(unique(journeyData[filterCondition,])) -
+    nrow(unique(journeyData[filterCondition, -which(colnames(journeyData) %in% "EMPL_RCD")]))
+  return(data.frame(EFFDT = x, EMPLID = y, diff = theDiff))
+  
+  },
+  x = rcdPerDate_EMPLID_Multiple[,1],
+  y = rcdPerDate_EMPLID_Multiple[,2],
+  SIMPLIFY = FALSE) |>
+  (\(x){do.call(rbind, x)})()
+  
+# let's check that
+
+View(journeyData[journeyData$EFFDT == "2022-10-16" & journeyData$EMPLID == "00000133",]) # looks like "EFFSEQ" is different for 2 rows, and third row is completely different
+
+View(journeyData[journeyData$EFFDT == "2010-07-01" & journeyData$EMPLID == "00000395",]) # the onlyh thing that changes is EMPL_RCD
+
+View(journeyData[journeyData$EFFDT == "2010-09-01" & journeyData$EMPLID == "00000395",]) # only change is EMPL_RCD
+
+# Let's do that over all of them and see where we are
+
+```
+
+
 **PURPOSE:**  The purpose of this report is 
 
 **OBJECTIVES:**   
@@ -330,7 +456,7 @@ The remaining data describes `r length(unique(journeyData$EMPLID) |> format(big.
 
 Overwhelmingly, an action of "Data Change" ("DTA") is the most common, followed by "Pay Rate Change" ("PAY") and distantly "Termination" ("TER"), "Hire" ("HIR"), and "Transfer" ("XFR").  The "Termination" ("TER") action has the most "action reasons" (`r length(unique(journeyData$ACTION_REASON[journeyData$ACTION == "TER"]))`) of the actions.
 
-An age band of the employee at the time of the action is provided. The most frequent band is the decade of the thirties.
+An age band of the employee is provided providing the decade of their age at the time of the query.  Each employee has one un-changing age band. The most frequent band is the decade of the thirties.
 
 
 ## (1) DESCRIBE THE WORKFORCE JOURNEY DATA
