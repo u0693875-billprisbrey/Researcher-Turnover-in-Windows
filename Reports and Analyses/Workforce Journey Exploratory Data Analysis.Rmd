@@ -42,6 +42,7 @@ library(kableExtra)
 
 source(here::here("Prep scripts","Adjusting prepData and loading things.R"))
 
+
 # PER PI
 
 piClusters <- lapply(list.files(here::here("Robjects", "Clustering PIs"), full.names = TRUE), readRDS)
@@ -97,6 +98,11 @@ fullEmplid$count.total <- apply(fullEmplid[,c("win.count","loss.count")],1,sum)
 filterTwoCount <- fullEmplid$count.total >= 2
 # filterThreeCount <- piEmplid$count.total > 3
 
+##################################
+## EMPL_RCD otherwise duplicate ##
+##################################
+
+RCD_otherwiseDupe <- readRDS(here::here("Robjects", "RCD_otherwiseDupe from Workforced Journey EDA.R"))
 
 ```
 
@@ -313,9 +319,9 @@ tooManyEntries <- lapply(boundaryList, function(x) {x[x[,"entry"] > x[,"exit"]+1
 
 # Actions per date
 
-actionsPerDate <- aggregate(ACTION ~ EFFDT, journeyData, length)
+actionsPerDate_all <- aggregate(ACTION ~ EFFDT, journeyData, length)
 
-actionsPerWeek <- aggregate(ACTION ~ week(EFFDT), actionsPerDate, sum)
+actionsPerWeek_all <- aggregate(ACTION ~ week(EFFDT), actionsPerDate_all, sum)
 
 # nice seasonality graphic
 
@@ -334,7 +340,7 @@ rcdPerDate_EMPLID <- aggregate(EMPL_RCD ~ EFFDT+EMPLID, data = journeyData, leng
 rcdPerDate_EMPLID_Multiple <- rcdPerDate_EMPLID[rcdPerDate_EMPLID[,3]>1,]
 
 
-nrow(rcdPerDate_EMPLID_Multiple)/nrow(rcdPerDate_EMPLID) # 0.14
+# nrow(rcdPerDate_EMPLID_Multiple)/nrow(rcdPerDate_EMPLID) # 0.14
 
 
 ```
@@ -368,7 +374,7 @@ saveRDS(RCD_otherwiseDupe, here::here("Robjects", "RCD_otherwiseDupe from Workfo
 ```
 
 
-```{r}
+```{r eval=FALSE}
 
 # investigating more than one EFFSEQ
 
@@ -380,6 +386,12 @@ seqPerDate_EMPLID_Multiple <- seqPerDate_EMPLID[seqPerDate_EMPLID[,3]>1,]
 nrow(seqPerDate_EMPLID_Multiple)/nrow(seqPerDate_EMPLID) # 
 
 # Identifying duplicates other than seqPerDate (otherwise everything else is the same)
+
+
+```
+
+
+```{r eval=FALSE}
 
 startTime <- Sys.time()
 seq_otherwiseDupe <- mapply(function(x,y){ 
@@ -444,7 +456,7 @@ View(journeyData[journeyData$EFFDT == "2010-09-01" & journeyData$EMPLID == "0000
 ```
 
 
-**PURPOSE:**  The purpose of this report is 
+**PURPOSE:**  The purpose of this report is to describe the "workforce journey" data and highlight possible inconsistencies for further clarification with HR. 
 
 **OBJECTIVES:**   
 
@@ -453,7 +465,19 @@ View(journeyData[journeyData$EFFDT == "2010-09-01" & journeyData$EMPLID == "0000
 
 **EXECUTIVE SUMMARY:**
 
-The
+The "workforce journey" data is examined.  Some `r nrow(journeyData) |> (\(x){x+1})() |> format(big.mark=",")` rows use `r length(unique(journeyData$ACTION))` distinct actions to describe the employment experience of `r length(unique(journeyData$EMPLID)) |> format(big.mark = ",")` employees since `r year(min(journeyData$EFFDT))`.
+
+Of particular interest are the so-called "boundary actions" that define entry and exit into the workforce.  These include "primary" actions like hiring and retiring; "break" actions that describe a "short work break"; and "leave" actions for long term disability or a paid leave of absence.   
+
+When these boundary actions are so simply defined, there are inconsistencies in the respective tallies.  These need to be clarified with HR.
+
+Possible improvements and points for additional clarity include:    
+
+  * Anchor the age bands to a specific date rather than the time of the query.   
+  * Clarify the actions and reasons that define boundary entry and exits.   
+  * Clarify the fields "EMPL_RCD" and "EFFSEQ".   
+  * Clarify edge cases and complex cases (like the employment history of "00028073" and the records of “00029479” on EFFDT == “2011-07-16”).  
+  * Review the definition of "voluntary" vs "involuntary" termination and discuss specific cases.   
 
 **SUMMARY:**   
 
@@ -461,12 +485,24 @@ The
 
 One row with a bad date ("2202-11-21") is filtered out.
 
-The remaining data describes `r length(unique(journeyData$EMPLID) |> format(big.mark = ",")` employees and every employment "action" that defines their experience (such as transfers, pay raises, leave of absence, and eventual termination or retirement.)  `r length(unique(journeyData$ACTION))` distinct actions are further explained with `r length(unique(journeyData$ACTION_REASON))` unique "action reasons." Employees have a median count of `r median(eventsPerEmplid$eventCount)` of these "actions" in their employment history. (At an extreme, one employee (`r eventsPerEmplid$EMPLID[eventsPerEmplid$eventCount == max(eventsPerEmplid$eventCount)]`)  has `r max(eventsPerEmplid$eventCount)` actions.)    
+The remaining data describes `r length(unique(journeyData$EMPLID)) |> format(big.mark = ",")` employees and every employment "action" that defines their experience (such as transfers, pay raises, leave of absence, and eventual termination or retirement.)  `r length(unique(journeyData$ACTION))` distinct actions are further explained with `r length(unique(journeyData$ACTION_REASON))` unique "action reasons." Employees have a median count of `r median(eventsPerEmplid$eventCount)` of these "actions" in their employment history. (At an extreme, one employee (`r eventsPerEmplid$EMPLID[eventsPerEmplid$eventCount == max(eventsPerEmplid$eventCount)]`)  has `r max(eventsPerEmplid$eventCount)` actions.)    
 
-Overwhelmingly, an action of "Data Change" ("DTA") is the most common, followed by "Pay Rate Change" ("PAY") and distantly "Termination" ("TER"), "Hire" ("HIR"), and "Transfer" ("XFR").  The "Termination" ("TER") action has the most "action reasons" (`r length(unique(journeyData$ACTION_REASON[journeyData$ACTION == "TER"]))`) of the actions.
+Overwhelmingly, an action of "Data Change" ("DTA") is the most common, followed by "Pay Rate Change" ("PAY") and distantly "Termination" ("TER"), "Hire" ("HIR"), and "Transfer" ("XFR").  The "Termination" ("TER") action has the most "action reasons" (`r length(unique(journeyData$ACTION_REASON[journeyData$ACTION == "TER"]))`).
 
-An age band of the employee is provided providing the decade of their age at the time of the query.  Each employee has one un-changing age band. The most frequent band is the decade of the thirties.
+An age band of the employee is provided of the decade of their age at the time of the query.  Each employee has one un-changing age band. The most frequent band is the decade of the thirties.
 
+Termination is almost exclusively flagged as "voluntary", with only `r proportions(table(journeyData$VOLUNTARY_FLAG))["Involuntary"] |> (\(x){round(100*x,1)})()`% of the flagged rows described as "involuntary."    
+
+A strong seasonal spike in actions is seen around July 1st.  A consistent bi-weekly pattern in actions is also noted.    
+
+Boundary actions are defined as actions that signify entering or leaving the workforce.  This includes "primary" actions of hire or rehire, and terminate or retire; "break" actions of a "short work break"; and "leave" actions of paid leave of absence, leave of absence, or long-term disability and "return from leave."    
+
+These are tallied per employee and found to have inconsistent results, where an employee has "exited" the workforce without a prior "entry" action, for example.  This appears to  be due to:    
+  (1) simplistic definitions of boundary actions (for example, "rehire" could be ignored if  "Hire Concurrent Job" is the supplied action reason)   
+  (2) incomplete understanding of the use of the "EMPL_RCD" field causing duplication that needs to be managed       
+  (3) complicated dates where multiple actions are entered that may be contradictory   
+  
+  
 
 ## (1) DESCRIBE THE WORKFORCE JOURNEY DATA
 
@@ -621,6 +657,22 @@ axis(side = 1, at = theHist$breaks, labels = round(exp(theHist$breaks),1)  )
 
 ```
 
+```{r}
+
+# Actions per day per EMPLID
+
+#theHist <- hist(actionsPerDate_EMPLID$ACTION, breaks = c(0:5,35), plot=FALSE)
+
+theHist <- hist(actionsPerDate_EMPLID$ACTION, plot = FALSE) #, breaks = c(0:5,35), plot=FALSE)
+
+plot(theHist, col = viridis::mako(n = 3, direction =-1),
+     main = "Events per EMPLID per date",
+     ylab = "count of EMPLID",
+     xlab = "events per EMPLID per date"
+     )
+
+
+```
 
 ```{r eval=FALSE}
 
@@ -938,6 +990,22 @@ legend("topright",
 
 ### Seasonality
 
+
+```{r}
+
+plot(actionsPerWeek_all,
+     xlab = "Week of year",
+     ylab = "count of actions",
+     type = "l",
+     lty = 1,
+     lwd = 0.619,
+     col = "dodgerblue",
+     main = "Weekly actions, all"
+)
+
+```
+
+
 ```{r}
 
 # let's do week of year
@@ -1042,8 +1110,16 @@ For example:
   * EMPLID "00002624" on EFFDT == "2021-03-16" added a "Hire Concurrent Job", which suggests I should not consider this action as a boundary action.
 
 
-
 ```{r}
+
+explainHeadCount()
+
+```
+
+
+```{r eval = FALSE}
+
+# Table describing boundary actions
 
 unique(actionReasonFrame[,c("ACTION", "ACTION_DESCR","boundary", "boundary_type")]) |>
   (\(x){x <- x[!is.na(x$boundary),] })() |>
@@ -1097,6 +1173,10 @@ tooManyEntries[[3]][1:10,] |>
 
 
 ```
+
+### Investigating "EMPL_RCD" field
+
+Out of `r nrow(rcdPerDate_EMPLID) |> format(big.mark=",")` dates per EMPLID, some `r nrow(rcdPerDate_EMPLID_Multiple) |> format(big.mark=",")` (`r (nrow(rcdPerDate_EMPLID_Multiple)/nrow(rcdPerDate_EMPLID)) |> (\(x){round(100*x,0)})()`)% have multiple values for the "EMPL_RCD" field.  Of these, `r nrow(RCD_otherwiseDupe[RCD_otherwiseDupe$diff > 0,]) |> format(big.mark=",")` (`r (nrow(RCD_otherwiseDupe[RCD_otherwiseDupe$diff > 0,])/nrow(RCD_otherwiseDupe)) |> (\(x){round(100*x,0)})()`)%  are otherwise identical in every field except for "EMPL_RCD".  
 
 
 ```{r eval=FALSE}

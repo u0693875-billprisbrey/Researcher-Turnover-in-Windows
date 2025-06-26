@@ -31,8 +31,9 @@ explainHeadCount <- function(breakColors = c("aliceblue", "steelblue"),
                              leave_entry_action_text_args = list(),
                              leave_exit_arrow1_args = list(),
                              leave_exit_arrow2_args = list(),
-                             leave_exit_action_text_args = list()
+                             leave_exit_action_text_args = list(),
                              
+                             mtext_title_args = list()
                              
 ) {
   
@@ -102,10 +103,10 @@ explainHeadCount <- function(breakColors = c("aliceblue", "steelblue"),
   # Primary Entry arrows
   
   default_primary_entry_arrow1_args <- list(
-    x0 = rect_args$xright*1.1,
-    y0 = rect_args$ytop*0.95,
-    x1 = rect_args$xright*1.01,
-    y1 = rect_args$ytop*0.95,
+    x0 = rect_args$xleft-0.1, #rect_args$xright*1.1, #
+    y0 = rect_args$ytop-0.056,
+    x1 = rect_args$xleft-0.01,  #rect_args$xright*1.01,
+    y1 = rect_args$ytop-0.056,
     col = primaryColors[2],
     lty = 1,
     lwd = 20
@@ -115,10 +116,10 @@ explainHeadCount <- function(breakColors = c("aliceblue", "steelblue"),
   do.call("arrows", primary_entry_arrow1_args)
   
   default_primary_entry_arrow2_args <- list(
-    x0 = rect_args$xright*1.1,
-    y0 = rect_args$ytop*0.95,
-    x1 = rect_args$xright*1.01,
-    y1 = rect_args$ytop*0.95,
+    x0 = rect_args$xleft-0.1, #rect_args$xright*1.1,
+    y0 = rect_args$ytop-0.056, #rect_args$ytop*0.95,
+    x1 = rect_args$xleft-0.01, #rect_args$xright*1.01,
+    y1 = rect_args$ytop-0.056, #rect_args$ytop*0.95,
     col = primaryColors[1],
     lty = 1,
     lwd = 10
@@ -129,10 +130,10 @@ explainHeadCount <- function(breakColors = c("aliceblue", "steelblue"),
   
   # Primary entry text  
   default_primary_entry_text_args <- list(
-    x = rect_args$xright*1.035,
-    y = rect_args$ytop*0.99,
+    x = mean(c(rect_args$xleft-0.1, rect_args$xleft-0.01)), #rect_args$xright*1.035,
+    y = rect_args$ytop, #rect_args$ytop*0.99,
     label = "PRIMARY",
-    adj = c(0,0.5),
+    adj = c(0.5,0),
     col = primaryColors[2],
     font = 2
   )  
@@ -143,10 +144,10 @@ explainHeadCount <- function(breakColors = c("aliceblue", "steelblue"),
   # Primary entry action texts
   
   default_primary_entry_action_text_args <- list(
-    x = rect_args$xright*1.07,
-    y = rect_args$ytop*0.9,
+    x = mean(c(rect_args$xleft-0.1, rect_args$xleft-0.01)), #rect_args$xright*1.07,
+    y = rect_args$ytop-0.125, #rect_args$ytop*0.9,
     label = "HIR\nREH",
-    adj = c(0,0.5),
+    adj = c(0.5,0.5),
     col = primaryColors[2],
     font = 2
   )  
@@ -160,26 +161,28 @@ explainHeadCount <- function(breakColors = c("aliceblue", "steelblue"),
   # Primary exit arrows
   
   default_primary_exit_arrow1_args <- list(
-    x0 = rect_args$xleft*0.99,
-    y0 = rect_args$ybottom*1.05,
-    x1 = rect_args$xleft*0.99 - abs(primary_entry_arrow1_args$x0 - primary_entry_arrow1_args$x1),
-    y1 = rect_args$ybottom*1.05,
+    x0 = rect_args$xright+0.1, #  rect_args$xright*1.1, #rect_args$xleft*0.99,
+    y0 = rect_args$ybottom+0.056, #rect_args$ybottom*1.05,
+    x1 = rect_args$xright+0.01,  #rect_args$xleft*0.99 - abs(primary_entry_arrow1_args$x0 - primary_entry_arrow1_args$x1),
+    y1 = rect_args$ybottom+0.056, #rect_args$ybottom*1.05,
     col = primaryColors[2],
     lty = 1,
-    lwd = 20
+    lwd = 20,
+    code = 1
   )
   
   primary_exit_arrow1_args <- modifyList(default_primary_exit_arrow1_args, primary_exit_arrow1_args)
   do.call("arrows", primary_exit_arrow1_args)
   
   default_primary_exit_arrow2_args <- list(
-    x0 = rect_args$xleft*0.99,
-    y0 = rect_args$ybottom*1.05,
-    x1 = rect_args$xleft*0.99 - abs(primary_entry_arrow1_args$x0 - primary_entry_arrow1_args$x1),
-    y1 = rect_args$ybottom*1.05,
+    x0 = rect_args$xright+0.1, #rect_args$xleft*0.99,
+    y0 = rect_args$ybottom+0.056, #rect_args$ybottom*1.05,
+    x1 = rect_args$xright+0.01, #rect_args$xleft*0.99 - abs(primary_entry_arrow1_args$x0 - primary_entry_arrow1_args$x1),
+    y1 = rect_args$ybottom+0.056, #rect_args$ybottom*1.05,
     col = primaryColors[1],
     lty = 1,
-    lwd = 10
+    lwd = 10,
+    code = 1
   )
   
   primary_exit_arrow2_args <- modifyList(default_primary_exit_arrow2_args, primary_exit_arrow2_args)
@@ -187,13 +190,20 @@ explainHeadCount <- function(breakColors = c("aliceblue", "steelblue"),
   
   # Primary exit text  
   default_primary_exit_text_args <- list(
-    x = primary_exit_arrow1_args$x1+0.03,
-    y = rect_args$ybottom*1.05+0.05,
+    x = mean(c(rect_args$xright+0.1, rect_args$xright+0.01)), #primary_exit_arrow1_args$x1+0.03,
+    y = rect_args$ybottom+0.1, #rect_args$ybottom*1.05+0.05,
     label = "PRIMARY",
-    adj = c(0,1),
+    adj = c(0.5,0),
     col = primaryColors[2],
     font = 2
   )  
+  
+#  x = mean(c(rect_args$xleft-0.1, rect_args$xleft-0.01)), #rect_args$xright*1.035,
+#  y = rect_args$ytop, #rect_args$ytop*0.99,
+#  label = "PRIMARY",
+#  adj = c(0.5,0),
+#  col = primaryColors[2],
+#  font = 2
   
   primary_exit_text_args <- modifyList(default_primary_exit_text_args, primary_exit_text_args) 
   do.call("text",primary_exit_text_args)
@@ -421,8 +431,21 @@ explainHeadCount <- function(breakColors = c("aliceblue", "steelblue"),
   
   
   # Title
+  default_mtext_title_args <- list(
+    side = 3,
+    cex = 2,
+    font = 2,
+    line =0.319,
+    outer = TRUE,
+    text = "Actions affecting headcount"
+    
+  )
   
-  mtext("Actions affecting headcount", cex = 2, font = 2, line = 0.319, outer = TRUE)
+  
+  mtext_title_args <- modifyList(default_mtext_title_args, mtext_title_args)
+  do.call("mtext", mtext_title_args)
+  
+  # mtext("Actions affecting headcount", cex = 2, font = 2, line = 0.319, outer = TRUE)
   
   
 }
