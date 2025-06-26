@@ -336,6 +336,12 @@ rcdPerDate_EMPLID_Multiple <- rcdPerDate_EMPLID[rcdPerDate_EMPLID[,3]>1,]
 
 nrow(rcdPerDate_EMPLID_Multiple)/nrow(rcdPerDate_EMPLID) # 0.14
 
+
+```
+
+
+```{r eval=FALSE}
+
 # Identifying duplicates other than EMPL_RCD (otherwise everything else is the same)
 startTime <- Sys.time()
 RCD_otherwiseDupe <- mapply(function(x,y){ 
@@ -355,6 +361,9 @@ endTime <- Sys.time()
 # chatGPT says I can do this with "data.table" and it will take minutes.
 
 # but I'll just run it overnight, why not?
+# endTime - startTime # Time difference of 10.66296 hours
+saveRDS(RCD_otherwiseDupe, here::here("Robjects", "RCD_otherwiseDupe from Workforced Journey EDA.R"))
+
 
 ```
 
