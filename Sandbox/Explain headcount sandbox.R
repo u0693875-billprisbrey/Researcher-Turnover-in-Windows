@@ -293,7 +293,29 @@ explainHeadCount <- function(breakColors = c("aliceblue", "steelblue"),
   break_text_args <- modifyList(default_break_text_args, break_text_args)
   do.call("text", break_text_args)
   
+  # Break exit actions text
+  default_break_exit_action_text_args <- list(
+    x = break_exit_arrow1_args$x0 - 0.04,
+    y = mean(c(break_exit_arrow1_args$y0, break_exit_arrow1_args$y1 )),
+    label = "SWB",
+    col = breakColors[2],
+    font = 2
+  )
   
+  break_exit_action_text_args <- modifyList(default_break_exit_action_text_args, break_exit_action_text_args)
+  do.call("text", break_exit_action_text_args)
+  
+  # Break entry actions text
+  default_break_entry_action_text_args <- list(
+    x = break_entry_arrow1_args$x0 + 0.04,
+    y = mean(c(break_exit_arrow1_args$y0, break_exit_arrow1_args$y1 )),
+    label = "RWB",
+    col = breakColors[2],
+    font = 2
+  )
+  
+  break_entry_action_text_args <- modifyList(default_break_entry_action_text_args, break_entry_action_text_args)
+  do.call("text", break_entry_action_text_args)
   
   ###
   ###
@@ -301,9 +323,9 @@ explainHeadCount <- function(breakColors = c("aliceblue", "steelblue"),
   # Leave Entry Arrow
   
   default_leave_entry_arrow1_args <- list(
-    x0 = rect_args$xright - 0.1,
+    x0 = rect_args$xright - 0.075,
     y0 = rect_args$ytop + 0.01,
-    x1 = rect_args$xright - 0.1,
+    x1 = rect_args$xright - 0.075,
     y1 = rect_args$ytop + 0.2,
     col = leaveColors[2],
     lty = 1,
@@ -315,9 +337,9 @@ explainHeadCount <- function(breakColors = c("aliceblue", "steelblue"),
   do.call("arrows", leave_entry_arrow1_args)
   
   default_leave_entry_arrow2_args <- list(
-    x0 = rect_args$xright - 0.1,
+    x0 = rect_args$xright - 0.075,
     y0 = rect_args$ytop + 0.01,
-    x1 = rect_args$xright - 0.1,
+    x1 = rect_args$xright - 0.075,
     y1 = rect_args$ytop + 0.2,
     col = leaveColors[1],
     lty = 1,
@@ -331,9 +353,9 @@ explainHeadCount <- function(breakColors = c("aliceblue", "steelblue"),
   # Leave Exit Arrow
   
   default_leave_exit_arrow1_args <- list(
-    x0 = rect_args$xright - 0.075,
+    x0 = rect_args$xright - 0.1,
     y0 = rect_args$ytop+0.01,
-    x1 = rect_args$xright - 0.075,
+    x1 = rect_args$xright - 0.1,
     y1 = rect_args$ytop + 0.2,
     col = leaveColors[2],
     lty = 1,
@@ -345,9 +367,9 @@ explainHeadCount <- function(breakColors = c("aliceblue", "steelblue"),
   do.call("arrows", leave_exit_arrow1_args)
   
   default_leave_exit_arrow2_args <- list(
-    x0 = rect_args$xright - 0.075,
+    x0 = rect_args$xright - 0.1,
     y0 = rect_args$ytop+ 0.01,
-    x1 = rect_args$xright - 0.075,
+    x1 = rect_args$xright - 0.1,
     y1 = rect_args$ytop + 0.2,
     col = leaveColors[1],
     lty = 1,
@@ -372,7 +394,30 @@ explainHeadCount <- function(breakColors = c("aliceblue", "steelblue"),
   leave_text_args <- modifyList(default_leave_text_args, leave_text_args)
   do.call("text", leave_text_args)
   
-  # Leave actions
+  # Break exit actions text
+  default_leave_exit_action_text_args <- list(
+    x = leave_exit_arrow1_args$x0 - 0.04,
+    y = mean(c(leave_exit_arrow1_args$y0, leave_exit_arrow1_args$y1 )),
+    label = "PLA\nLOA\nLTO",
+    col = leaveColors[2],
+    font = 2
+  )
+  
+  leave_exit_action_text_args <- modifyList(default_leave_exit_action_text_args, leave_exit_action_text_args)
+  do.call("text", leave_exit_action_text_args)
+  
+  # Break entry actions text
+  default_leave_entry_action_text_args <- list(
+    x = leave_entry_arrow1_args$x0 + 0.04,
+    y = mean(c(leave_exit_arrow1_args$y0, leave_exit_arrow1_args$y1 )),
+    label = "RFL",
+    col = leaveColors[2],
+    font = 2
+  )
+  
+  leave_entry_action_text_args <- modifyList(default_leave_entry_action_text_args, leave_entry_action_text_args)
+  do.call("text", leave_entry_action_text_args)
+  
   
   
   # Title
