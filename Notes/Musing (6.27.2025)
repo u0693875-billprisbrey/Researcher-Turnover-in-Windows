@@ -1,0 +1,21 @@
+Post -meeting musings
+6.27.2025
+
+Maybe I could take a small extract of people and modify my "headcount" formulas.  Then I can slowly increase the target population and deal with mistakes as I come across them?
+
+Another way is to see if I can get a consistent headcount/boundary result with the new information.
+
+It's tricky, because each EMPL_RCD should be completely bounded.
+But I don't think I necessarily want to count a new EMPL_RCD as a boundary.
+There's some thinking here --- do I take the earliest entry and the last exit?  The new job codes will certainly help.  
+
+Employees with multiple EMPL_RCD is definitely a special case.  I can probably extract them to deal with them especially, and focus on the majority that don't have multiples.
+
+I also need to write up my "project risk" document. 
+
+So I'd like to:
+- Update entry and exit definitions
+- Tally and double-check
+- Update the headcount formula
+- Deal with multiple EMPL_RCD employees separately
+- Write up the "project risk" document
