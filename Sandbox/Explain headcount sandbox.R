@@ -445,7 +445,5 @@ explainHeadCount <- function(breakColors = c("aliceblue", "steelblue"),
   mtext_title_args <- modifyList(default_mtext_title_args, mtext_title_args)
   do.call("mtext", mtext_title_args)
   
-  # mtext("Actions affecting headcount", cex = 2, font = 2, line = 0.319, outer = TRUE)
-  
   
 }
