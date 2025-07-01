@@ -9,7 +9,7 @@ output:
 
 Notes to self:
 
-Looks like I need to exclude ACTION_REASON == "HCJ" (Hire Concurrent Job) because somehow three records snuck in.
+Looks like I need to exclude ACTION_REASON == "HCJ" (Hire Concurrent Job) because somehow three records snuck in. # DONE
 
 There's no "Too Many Entries" which is encouraging.  
 
@@ -210,12 +210,11 @@ singleRCD <- unique(journeyData$EMPLID)[!unique(journeyData$EMPLID) %in% dupeRCD
 
 # proportions(c(length(dupeRCD),length(singleRCD))) # 0.181 0.819
 
-journeySingleFilter <- journeyData$EMPLID %in% singleRCD & journeyData$EMPL_RCD == 0
+journeySingleFilter <- journeyData$EMPLID %in% singleRCD & journeyData$EMPL_RCD == 0 & (!journeyData$ACTION_REASON %in% "HCJ")
 
-# NEEDS ATTENTION
-journeyZeroFilter <- journeyData$EMPLID %in% singleRCD & journeyData$EMPL_RCD != 0
-
-nonZeroEmplids <- unique(journeyData$EMPLID[journeyZeroFilter])
+# NEEDS ATTENTION if I want to figure this out.  Not sure I really need this
+nonZeroFilter <- (journeyData$EMPLID %in% singleRCD) & journeyData$EMPL_RCD != 0 
+nonZeroEmplids <- unique(journeyData$EMPLID[nonZeroFilter])
 
 # I should figure out how to incorporate this logic into a query
 

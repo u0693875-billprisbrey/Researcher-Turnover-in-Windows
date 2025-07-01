@@ -358,21 +358,23 @@ Tracked)</h1>
 </div>
 
 
-<p><em>ISSUE NAME:</em> Changes in PI not tracked</p>
-<p><em>ISSUE ID:</em> 001</p>
-<p><em>DATE IDENTIFIED:</em> 27 June 2025</p>
-<p><em>DESCRIPTION:</em></p>
-<p>The Office of Sponsored Projects does not track changes to their
-databases. This means that past records are changed to align with the
-present reality, including the principal investigator attached to a
-proposal or a grant. This introduces anomalies (where a PI could listed
-on a proposal before they were hired, for example) and obscures the past
-(where a PI could be replaced on a winning proposal, for example).</p>
+<p><strong><em>STATUS:</em></strong> Resolution in progress</p>
+<p><strong><em>ISSUE NAME:</em></strong> Changes in PI not tracked</p>
+<p><strong><em>ISSUE ID:</em></strong> 001</p>
+<p><strong><em>DATE IDENTIFIED:</em></strong> 27 June 2025</p>
+<p><strong><em>DESCRIPTION:</em></strong></p>
+<p>The Office of Sponsored Projects does not track changes to the
+principal investigator in their data warehouse. This means that past
+records are changed to align with the present reality, including the
+principal investigator attached to a proposal or a grant. This
+introduces anomalies (where a PI could listed on a proposal before they
+were hired, for example) and obscures the past (where a PI could be
+replaced on a winning proposal, for example).</p>
 <p>This is a subset of a larger problem of understanding how principal
 investigators are identified and defined.</p>
-<p><em>IMPACT LEVEL:</em></p>
+<p><strong><em>IMPACT LEVEL:</em></strong></p>
 <p>High/Critical. This threatens project viability.</p>
-<p><em>PROJECT IMPACT:</em></p>
+<p><strong><em>PROJECT IMPACT:</em></strong></p>
 <p>The purpose of the project is to investigate turnover of principal
 investigators in order to improve retention, and consequently improve
 research spending.</p>
@@ -380,25 +382,58 @@ research spending.</p>
 entire population of principal investigators and potential principal
 investigators, currently and historically, including employees who have
 departed the University.</p>
-<p>However, the database used by the Office of Sponsored Projects does
-not track changes. If a principal investigator departs, then their
-employee identification number is replaced with that of a new principal
-investigator. Past records are instantly updated as well, leading to
-anomalies like a principal investigator attached to a proposal before
-they were hired. The former employee would only be identified as a
-member of the target population if they had their ID’s attached to other
-projects in the database that had already ended.</p>
+<p>However, the data warehouse used by the Office of Sponsored Projects
+does not adequately track all changes over time. If a principal
+investigator departs, then their employee identification number is
+replaced with that of a new principal investigator. Past records are
+instantly updated as well, leading to anomalies like a principal
+investigator attached to a proposal before they were hired. The former
+employee would only be identified as a member of the target population
+if they had their ID’s attached to other projects in the database that
+had already ended.</p>
 <p>This obscures the definition of the target population of principal
 investigators. It is possible to fail to identify an employee as a
 principal investigator, because they departed and were replaced in the
 tables listing principal investigators. It could be inflating the
 contribution of other principal investigators as they inherit or absorb
 proposals by departing principal investigators.</p>
+<p>A quick query by Dave Howell revealed about 1.5% of the rows have the
+award change reason identified as a “PI change.” This is large enough to
+affect the accuracy of conclusions involving turnover.</p>
 <p>Because the very phenomena under investigation is being erased,
 confidence in the analysis will be weakened and could lead to false
 conclusions and ineffective recommendations.</p>
-<p><em>ASSIGNED TO:</em> Dave Howell</p>
-<p><em>ACTION PLAN OR RESOLUTION STRATEGY:</em> To be determined.</p>
+<p><strong><em>ASSIGNED TO:</em></strong> Dave Howell and Kaidon
+Spencer</p>
+<p><strong><em>ACTION PLAN OR RESOLUTION STRATEGY:</em></strong></p>
+<ul>
+<li>Dave will modify the OSP data warehouse to track changes in
+principal investigators more thoroughly going forward.<br />
+</li>
+<li>Kaidon will investigate the table “ps_uu_eawd_tbl” as it identifies
+the PI’s over the lifetime of the awards. It is documented in the wiki
+<a href="https://wiki.sys.utah.edu/display/UP/eAward%3A+Database+Tables">here.</a>.</li>
+</ul>
+<p><strong><em>LOG:</em></strong></p>
+<p><em>6 June 2025:</em> Team meets and discusses the issue and
+potential solutions.</p>
+<p><em>7 July 2025:</em> Kaidon provides the following update via
+Teams:</p>
+<p>It looks 901 awards have had a PI Change. I’m going to look at the
+following table to identify the PIs over the lifetime of an award:
+ps_uu_eawd_tbl This has 640/901 of the awards that have had PI Changes.
+I’m not sure it is capturing the date of the PI Change itself, but I
+will check. This table tracks award transactions. Here is some
+documentation <a href="https://wiki.sys.utah.edu/display/UP/eAward%3A+Database+Tables" class="uri">https://wiki.sys.utah.edu/display/UP/eAward%3A+Database+Tables</a></p>
+<p>This is the base table for the eAward application, and I’m still
+trying to figure out why only some awards go through the app. But for
+the ones that did go through eAward, it looks like the PI history is
+recorded. I can see that a PI for an award has changed from transaction
+to transaction, and can provide dates for the transaction itself, but
+that date isn’t the PI Change date. It should be in the same ballpark
+though.</p>
+<p>I haven’t been able to find any data sources that track PI Changes on
+the proposal side, unfortunately.</p>
 
 
 

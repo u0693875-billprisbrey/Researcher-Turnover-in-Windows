@@ -1,0 +1,99 @@
+Defining the population of principal investigators
+6.30.2025
+Meeting notes
+
+PURPOSE:  The purpose of this meeting is to discuss how PI’s are identified, defined and tracked; and to discuss strategies to make sure the entire population is included in the analysis.
+
+Action Items:
+- Kaidon to identify all changes in PI's attached to awards or proposals by investigating changes in "PI_ASSIGNED".  Due to apparently good records this has an ETA of Thursday.
+- Dave Howell to investigate creating a bridge table to manage changes in PI's assigned to proposals and awards going forward.
+- Dave Howell to check a few things with Kristy Thompson:
+	PI's:
+	- Can anyone with the right job code become a PI?  They just have to submit a proposal?
+	- Is there an application process to become a PI?  If so, what is the process and where are the records?  Who is turned down?
+	- If there's no application and it's a self-selecting population (anyone with the right job codes can submit a proposal and call themselves a PI) -- does the Dean or anyone else have gatekeeping ability?  Can they discourage someone from being a PI?  Can they suggest a preference for one employee over another to become a PI?  
+	Grants:
+	- What does the data look like if an employee takes their proposal or award to a new institution?
+
+Summary: 
+
+- PI's are apparently a self-selecting population, where anyone with the right faculty codes can become a PI by submitting a proposal.  There are some exceptions where employees (not faculty) need approval.
+  - Bill wonders:  Is there an application process?  Does the Dean or someone else have some discretion or influence?
+  - Bill wonders:  Who is the population that could have or should have become a PI?  He could use machine learning to identify people that are similar to PI's and take a closer look. 
+- On revising the history of PI's attached to an award or a proposal:
+  - Dave finds that out of 65,000 records about 1000 have a PI change (AWARD_CHANGE_REASON == "PI change".)  At about 1.5%, that's large enough to require an approach where changes are more easily identified.
+- Kaidon finds that the "PI ASSIGNED" table looks fairly complete and rigorous in its record keeping.  He'll look into changes.
+- Although Bill would prefer all PI's and all co-PI's, the co-PI field is an optional entry, resulting in a high error rate.
+- The U allows PI's to depart the U and take their proposal or award with them.  Dave will check on how this is managed by OSP processes and how it shows up in the data. 
+
+PROCESS:  
+  Discuss:  
+      How does an employee get listed as a PI in the database?
+      Could we be missing employees who departed and had their ID’s replaced in the database?
+      How can we identify employees who could have been PI’s or who are nearly PI’s or who could have been PI’s?
+      What are the validate-and-verify strategies of this population definition?
+  Review document: 
+       Project risk:  Changes in PI’s not tracked
+PAYOFF:
+  Develop a plan to rigorously and inclusively define the population of interest.
+
+
+Notes:
+
+PI's get listed because they submitted a proposal.
+
+Some special permissions --
+Have to be a faculty member or Exec Dir above or a special designation.
+
+OTHERWISE --- any faculty can submit a proposal.
+So a PI is a self-selecting population.
+
+Bill:  What if someone was about to submit a proposal, but decided not to, and left?  That's the phenomena we'd like to study.  
+
+Bill:  We could compare Dimensions to all of our former employees --
+
+  Who had a great career after leaving here?
+  Where do people go if they leave here?
+
+Mabye that's a different project.
+
+Bill:  Revising our history.  If they leave, we erased our PI who won the proposal.
+
+Dave:  There is an "org change reason" that is "PI Change".
+
+Kaidon: We could look at PROPOSAL_ID
+
+AWARD_CHANGE_REASON has "PI Change"
+
+Bill:  What's the scope? How many times do we have this reason? --> out of 65,000 rows, it has changed about 1,000 times.  About 1.5%
+
+Bill:  What happens if they take their proposal and grant with them? --> The "end date" is when they leave the institution.
+
+Kaidon:  Says he sees the PI change over time.  
+
+(discuss tracking them)
+
+Dave/Bill:  We could use the bridge table going forward.  But what could we do looking backwards?  We'd have to look at the comments or U-U Version ID's.  
+
+Dave:  Kaidon to do some investigation using the "PI ASSIGNED" table and UU_PI_EMPLID
+
+Kaidon:  What's the minimum information Bill needs? --> Every time a PI, or a co-PI changed, or then -ANY- emplid attached to a proposal or a grant.
+
+co-PI? --> Dave:  Data is bad, so we often don't deal with it.  We can attach a "co-PI" to an award field, but it's optional and has errors.  
+
+
+Discuss:  Leaving "co-PI" in the background for now, it's unreliable.
+
+Thur/Fri or next week? --> Looks like it's pretty well tracked.  
+
+Validate and verify?  How will we know we've got everyone?
+
+Bill:  I could look at the faculty data and see things like who was hired at the same time, promoted at the same time, but one didn't submit a proposal.
+
+Bill:  Who *applied* to become a PI and was turned down?
+
+Dave: I'll check with Kristy Thompson.  Is there a white list?  Or do you just need a job code? She knows the data -and- the business processes really well.  I've asked some tough questions I'm still waiting on, like age discrepancies.
+
+Kaidon:  Awards or proposals? --> Both.
+
+Dave: Also checking with Kristy Thompson on what the data looks like if someone takes their proposal or award to the new place.  
