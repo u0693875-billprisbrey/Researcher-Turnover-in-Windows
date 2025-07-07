@@ -13,7 +13,7 @@
 
 <meta name="date" content="2025-06-27" />
 
-<title>Project Issue (Changes in PI Not Tracked)</title>
+<title>Project Issue (Definition of PI)</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -350,28 +350,32 @@ display: none;
 
 
 
-<h1 class="title toc-ignore">Project Issue (Changes in PI Not
-Tracked)</h1>
+<h1 class="title toc-ignore">Project Issue (Definition of PI)</h1>
 <h4 class="author">Bill Prisbrey</h4>
 <h4 class="date">2025-06-27</h4>
 
 </div>
 
 
-<p><strong><em>STATUS:</em></strong> Resolution in progress</p>
-<p><strong><em>ISSUE NAME:</em></strong> Changes in PI not tracked</p>
-<p><strong><em>ISSUE ID:</em></strong> 001</p>
+<p><strong><em>STATUS:</em></strong> Under investigation</p>
+<p><strong><em>ISSUE NAME:</em></strong> Definition of a PI</p>
+<p><strong><em>ISSUE ID:</em></strong> 002</p>
 <p><strong><em>DATE IDENTIFIED:</em></strong> 27 June 2025</p>
 <p><strong><em>DESCRIPTION:</em></strong></p>
-<p>The Office of Sponsored Projects does not track changes to the
-principal investigator in their data warehouse. This means that past
-records are changed to align with the present reality, including the
-principal investigator attached to a proposal or a grant. This
-introduces anomalies (where a PI could listed on a proposal before they
-were hired, for example) and obscures the past (where a PI could be
-replaced on a winning proposal, for example).</p>
-<p>This is a subset of a larger problem of understanding how principal
-investigators are identified and defined.</p>
+<p>An employee is identified as a principal investigator and attached to
+every proposal and award. They have certain responsibilities as
+described (here)[get the right link.] However, this document doesn’t
+clearly identify how an employee becomes a principal investigator.</p>
+<ul>
+<li>Is the population self-selecting? Can any faculty member submit a
+proposal and designate themselves as a principal investigator?<br />
+</li>
+<li>Is there an application process to become a principal
+investigator?<br />
+</li>
+<li>Are there gatekeepers that can determine or influence the
+designation of a principal investigator? What are their criteria?</li>
+</ul>
 <p><strong><em>IMPACT LEVEL:</em></strong></p>
 <p>High/Critical. This threatens project viability.</p>
 <p><strong><em>PROJECT IMPACT:</em></strong></p>
@@ -382,58 +386,18 @@ research spending.</p>
 entire population of principal investigators and potential principal
 investigators, currently and historically, including employees who have
 departed the University.</p>
-<p>However, the data warehouse used by the Office of Sponsored Projects
-does not adequately track all changes over time. If a principal
-investigator departs, then their employee identification number is
-replaced with that of a new principal investigator. Past records are
-instantly updated as well, leading to anomalies like a principal
-investigator attached to a proposal before they were hired. The former
-employee would only be identified as a member of the target population
-if they had their ID’s attached to other projects in the database that
-had already ended.</p>
-<p>This obscures the definition of the target population of principal
-investigators. It is possible to fail to identify an employee as a
-principal investigator, because they departed and were replaced in the
-tables listing principal investigators. It could be inflating the
-contribution of other principal investigators as they inherit or absorb
-proposals by departing principal investigators.</p>
-<p>A quick query by Dave Howell revealed about 1.5% of the rows have the
-award change reason identified as a “PI change.” This is large enough to
-affect the accuracy of conclusions involving turnover.</p>
-<p>Because the very phenomena under investigation is being erased,
+<p>Unless the phenomena under investigation is clearly defined,
 confidence in the analysis will be weakened and could lead to false
 conclusions and ineffective recommendations.</p>
-<p><strong><em>ASSIGNED TO:</em></strong> Dave Howell and Kaidon
-Spencer</p>
+<p><strong><em>ASSIGNED TO:</em></strong> Dave Howell</p>
 <p><strong><em>ACTION PLAN OR RESOLUTION STRATEGY:</em></strong></p>
 <ul>
-<li>Dave will modify the OSP data warehouse to track changes in
-principal investigators more thoroughly going forward.<br />
-</li>
-<li>Kaidon will investigate the table “ps_uu_eawd_tbl” as it identifies
-the PI’s over the lifetime of the awards. It is documented in the wiki
-<a href="https://wiki.sys.utah.edu/display/UP/eAward%3A+Database+Tables">here.</a>.</li>
+<li>Dave will consult with Kristy Thompson for clarification on the
+process to designate an employee as a PI.</li>
 </ul>
 <p><strong><em>LOG:</em></strong></p>
 <p><em>30 June 2025:</em> Team meets and discusses the issue and
 potential solutions.</p>
-<p><em>1 July 2025:</em> Kaidon provides the following update via
-Teams:</p>
-<p>It looks like 901 awards have had a PI Change. I’m going to look at
-the following table to identify the PIs over the lifetime of an award:
-ps_uu_eawd_tbl This has 640/901 of the awards that have had PI Changes.
-I’m not sure it is capturing the date of the PI Change itself, but I
-will check. This table tracks award transactions. Here is some
-documentation <a href="https://wiki.sys.utah.edu/display/UP/eAward%3A+Database+Tables" class="uri">https://wiki.sys.utah.edu/display/UP/eAward%3A+Database+Tables</a></p>
-<p>This is the base table for the eAward application, and I’m still
-trying to figure out why only some awards go through the app. But for
-the ones that did go through eAward, it looks like the PI history is
-recorded. I can see that a PI for an award has changed from transaction
-to transaction, and can provide dates for the transaction itself, but
-that date isn’t the PI Change date. It should be in the same ballpark
-though.</p>
-<p>I haven’t been able to find any data sources that track PI Changes on
-the proposal side, unfortunately.</p>
 
 
 

@@ -48,11 +48,11 @@ output:
 
 ***LOG:***    
 
-*6 June 2025:*  Team meets and discusses the issue and potential solutions.    
+*30 June 2025:*  Team meets and discusses the issue and potential solutions.    
 
-*7 July 2025:*  Kaidon provides the following update via Teams:    
+*1 July 2025:*  Kaidon provides the following update via Teams:    
 
-  It looks 901 awards have had a PI Change. I'm going to look at the following table to identify the PIs over the lifetime of an award:
+  It looks like 901 awards have had a PI Change. I'm going to look at the following table to identify the PIs over the lifetime of an award:
 ps_uu_eawd_tbl
 This has 640/901 of the awards that have had PI Changes. I'm not sure it is capturing the date of the PI Change itself, but I will check. This table tracks award transactions. Here is some documentation
 https://wiki.sys.utah.edu/display/UP/eAward%3A+Database+Tables
