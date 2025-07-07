@@ -60,3 +60,5 @@ https://wiki.sys.utah.edu/display/UP/eAward%3A+Database+Tables
   This is the base table for the eAward application, and I'm still trying to figure out why only some awards go through the app. But for the ones that did go through eAward, it looks like the PI history is recorded. I can see that a PI for an award has changed from transaction to transaction, and can provide dates for the transaction itself, but that date isn't the PI Change date. It should be in the same ballpark though.
 
   I haven't been able to find any data sources that track PI Changes on the proposal side, unfortunately. 
+
+*7 July 2025:*  Team meets and reviews Kaidon's work.  Kaidon and Dave determine that eAwards shouldn't be used to identify changes in PI due to incompleteness and discrepancies with the OSP data warehouse.  Rather, a "system of record" used by Finance should be used, and Dave identifies the table "FSPROD.PS_PROJECT_TEAM" that appears to have the changes.  Kaidon is investigating and requesting access for Bill from the data stewards Steven Phillips, Terri O'Toole, and John Nilsson.
