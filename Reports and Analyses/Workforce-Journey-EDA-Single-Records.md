@@ -1,5 +1,5 @@
 ---
-title: "Workforce Journey Exploratory Data Analysis"
+title: "Workforce Journey Exploratory Data Analysis(No Concurrent Jobs)"
 author: "Bill Prisbrey"
 date: "2025-06-19"
 output:
@@ -7,13 +7,8 @@ output:
     keep_md: true
 ---
 
-Notes to self:
 
-Looks like I need to exclude ACTION_REASON == "HCJ" (Hire Concurrent Job) because somehow three records snuck in. # DONE
 
-There's no "Too Many Entries" which is encouraging.  
-
-I haven't attempted to see how many of the "Too Many Exits" are due to pre-query hires.  It could be a large number of these.  However figuring that out, opposed to an error, could be tricky.
 
 
 
@@ -62,62 +57,36 @@ I haven't attempted to see how many of the "Too Many Exits" are due to pre-query
 
 **PURPOSE:**  The purpose of this report is to describe the "workforce journey" data for employees that only have had one employee record value of zero, meaning no concurrent jobs or possible mis-use of the "EMPL_RCD" field.
 
-It will highlight possible inconsistencies for further clarification with HR. 
-
 **OBJECTIVES:**   
 
-  1.  Describe the "Workforce Journey" data.   
+  1.  Describe the "Workforce Journey" data for employees who never had a concurrent job in the defined period.    
   2.  Define "boundary" actions and check for internal consistency.   
 
 **EXECUTIVE SUMMARY:**
 
-The "workforce journey" data is examined. It is filtered according to the condition of no concurrent jobs, or more specifically, that the employee only ever had a EMPL_RCD value of zero.  Some 1,555,045 rows use 17 distinct actions to describe the employment experience of 128,952 employees since 2010.  This filtered out the employment history of  29,220 employees with more than one employee record.
+The "workforce journey" data is examined. The records are queried after 2010-01-02 and before 2025-08-01, then filtered according to the condition of no concurrent jobs.  (More specifically, that the employee only ever had a EMPL_RCD value of zero and never had an action reason of "HCJ" ("Hire Concurrent Job") during the query period.)  Some 1,591,061 rows use 17 distinct actions to describe the employment experience of 129,320 employees.
 
 Of particular interest are the so-called "boundary actions" that define entry and exit into the workforce.  These include "primary" actions like hiring and retiring; "break" actions that describe a "short work break"; and "leave" actions for long term disability or a paid leave of absence.   
 
-==
-
-Old version; these were pretty much cleared up.  Fields were clarified and a new query is being written.
-
-When these boundary actions are so simply defined, there are inconsistencies in the respective tallies.  These need to be clarified with HR.
-
-Possible improvements and points for additional clarity include:    
-
-  * Anchor the age bands to a specific date rather than the time of the query.   
-  * Clarify the actions and reasons that define boundary entry and exits.   
-  * Clarify the fields "EMPL_RCD" and "EFFSEQ".   
-  * Clarify edge cases and complex cases (like the employment history of "00028073" and the records of “00029479” on EFFDT == “2011-07-16”).  
-  * Review the definition of "voluntary" vs "involuntary" termination and discuss specific cases.   
-
 **SUMMARY:**   
 
-1,555,045 rows covering dates between 2010-01-02 and 2025-06-29 are queried.
+1,591,062 rows covering dates between 2010-01-02 and 2025-07-31 are queried.
 
-One row with a bad date ("2202-11-21") is filtered out.
+All employees that had employee record values other than zero, or action reasons of "HCJ" ("Hire Concurrent Job"), are filtered out.  This removes employees who had concurrent positions or erroneous data entry. These employees will be treated separately due to their more complex work journeys.        
 
-All employees that had employee record values other than zero are filtered out.  This removes employees who had concurrent positions or erroneous data entry.  These `r(length(dupeRCD) + length(nonZeroEmplids)) |> format(big.mark=",")` employees will be treated separately.     
+The remaining data describes 129,320 employees in 3,167 job codes in 2,088 departments, and every employment "action" that defines their experience (such as transfers, pay raises, leave of absence, and eventual termination or retirement.)  17 distinct actions are further explained with 104 unique "action reasons." Employees have a median count of 8 of these "actions" in their employment history. (At an extreme, one employee (00031235)  has 246 actions.)    
 
-The remaining data describes 128,952 employees and every employment "action" that defines their experience (such as transfers, pay raises, leave of absence, and eventual termination or retirement.)  17 distinct actions are further explained with 103 unique "action reasons." Employees have a median count of 7 of these "actions" in their employment history. (At an extreme, one employee (00031235)  has 245 actions.)    
+Overwhelmingly, an action of "Data Change" ("DTA") is the most common, followed by "Pay Rate Change" ("PAY") and distantly "Termination" ("TER"), "Hire" ("HIR"), and "Transfer" ("XFR").  The "Termination" ("TER") action has the most "action reasons" (43).
 
-Overwhelmingly, an action of "Data Change" ("DTA") is the most common, followed by "Pay Rate Change" ("PAY") and distantly "Termination" ("TER"), "Hire" ("HIR"), and "Transfer" ("XFR").  The "Termination" ("TER") action has the most "action reasons" (42).
+An age band of the employee is provided of the decade of their age at the time of the action. The most frequent band is the decade of the twenties.   
 
-An age band of the employee is provided of the decade of their age at the time of the query.  Each employee has one un-changing age band. The most frequent band is the decade of the thirties.
-
-Termination is almost exclusively flagged as "voluntary", with only 5.4% of the flagged rows described as "involuntary."    
+Termination is almost exclusively flagged as "voluntary", with only 5.3% of the flagged rows described as "involuntary."    
 
 A strong seasonal spike in actions is seen around July 1st.  A consistent bi-weekly pattern in actions is also noted.    
 
 Boundary actions are defined as actions that signify entering or leaving the workforce.  This includes "primary" entry actions of hire or rehire, and exit actions of terminate or retire; "break" actions of a "short work break" or "return from work break"; and "leave" actions of paid leave of absence, leave of absence, or long-term disability, and "return from leave."  Leave of absence actions that are explained with the action reason of "extension" are excluded as they do not signify a new boundary event.     
 
-
-== Let's see 
-These are tallied per employee and found to have inconsistent results, where an employee has "exited" the workforce without a prior "entry" action, for example.  This appears to  be due to:    
-  (1) simplistic definitions of boundary actions (for example, "rehire" could be ignored if  "Hire Concurrent Job" is the supplied action reason)   
-  (2) incomplete understanding of the use of the "EMPL_RCD" field causing duplication that needs to be managed       
-  (3) complicated dates where multiple actions are entered that may be contradictory   
-  
-  
-
+ 
 ## (1) DESCRIBE THE WORKFORCE JOURNEY DATA
 
 ### Data summary
@@ -128,11 +97,11 @@ Table: Data summary
 |                         |            |
 |:------------------------|:-----------|
 |Name                     |journeyData |
-|Number of rows           |1555044     |
-|Number of columns        |12          |
+|Number of rows           |1591061     |
+|Number of columns        |17          |
 |_______________________  |            |
 |Column type frequency:   |            |
-|character                |8           |
+|character                |13          |
 |factor                   |1           |
 |numeric                  |2           |
 |POSIXct                  |1           |
@@ -142,23 +111,28 @@ Table: Data summary
 
 **Variable type: character**
 
-|skim_variable       | n_missing| complete_rate| min| max| empty| n_unique| whitespace|
-|:-------------------|---------:|-------------:|---:|---:|-----:|--------:|----------:|
-|ACTION              |         0|          1.00|   3|   3|     0|       17|          0|
-|EMPLID              |         0|          1.00|   8|   8|     0|   128952|          0|
-|ACTION_DESCR        |         0|          1.00|   4|  22|     0|       17|          0|
-|ACTION_REASON       |         0|          1.00|   2|   3|     0|      103|          0|
-|ACTION_REASON_DESCR |         0|          1.00|   5|  30|     0|      108|          0|
-|VOLUNTARY_FLAG      |   1443872|          0.07|   9|  11|     0|        2|          0|
-|boundary            |   1197792|          0.23|   4|   5|     0|        2|          0|
-|boundary_type       |   1197792|          0.23|   5|   7|     0|        3|          0|
+|skim_variable        | n_missing| complete_rate| min| max| empty| n_unique| whitespace|
+|:--------------------|---------:|-------------:|---:|---:|-----:|--------:|----------:|
+|ACTION               |         0|          1.00|   3|   3|     0|       17|          0|
+|EMPLID               |         0|          1.00|   8|   8|     0|   129320|          0|
+|ACTION_DESCR         |         0|          1.00|   4|  22|     0|       17|          0|
+|ACTION_REASON        |         0|          1.00|   2|   3|     0|      104|          0|
+|ACTION_REASON_DESCR  |         0|          1.00|   5|  30|     0|      109|          0|
+|JOBCODE              |         0|          1.00|   4|   6|     0|     3167|          0|
+|JOB_TITLE            |         0|          1.00|   3|  30|     0|     2994|          0|
+|DEPTID               |         0|          1.00|   5|   5|     0|     2088|          0|
+|DEPT_NAME            |         0|          1.00|   2|  30|     0|     2080|          0|
+|VOLUNTARY_FLAG       |   1479074|          0.07|   9|  11|     0|        2|          0|
+|UCAREER_JOBCODE_FLAG |   1590249|          0.00|  16|  16|     0|        1|          0|
+|boundary             |   1232149|          0.23|   4|   5|     0|        2|          0|
+|boundary_type        |   1232149|          0.23|   5|   7|     0|        3|          0|
 
 
 **Variable type: factor**
 
 |skim_variable | n_missing| complete_rate|ordered | n_unique|top_counts                                         |
 |:-------------|---------:|-------------:|:-------|--------:|:--------------------------------------------------|
-|AGE_BAND      |         0|             1|FALSE   |        9|30s: 477938, 40s: 371808, 20s: 244332, 50s: 217480 |
+|AGE_BAND      |         0|             1|FALSE   |        9|20s: 556207, 30s: 423465, 40s: 257214, 50s: 184266 |
 
 
 **Variable type: numeric**
@@ -173,10 +147,58 @@ Table: Data summary
 
 |skim_variable | n_missing| complete_rate|min        |max        |median     | n_unique|
 |:-------------|---------:|-------------:|:----------|:----------|:----------|--------:|
-|EFFDT         |         0|             1|2010-01-02 |2025-06-29 |2018-10-16 |     5658|
+|EFFDT         |         0|             1|2010-01-02 |2025-07-31 |2019-02-06 |     5688|
 
-![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
+![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-17-1.png)<!-- -->
 
+![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-18-1.png)<!-- -->
+
+![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-19-1.png)<!-- -->
+
+
+![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-20-1.png)<!-- -->
+
+![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-21-1.png)<!-- -->
+
+
+
+
+
+
+
+
+![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-24-1.png)<!-- -->
+
+
+![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-25-1.png)<!-- -->
+
+
+
+
+
+
+### Count of actions per date
+
+![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-27-1.png)<!-- -->![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-27-2.png)<!-- -->
+
+![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-28-1.png)<!-- -->
+
+
+
+
+### Seasonality
+
+
+![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-30-1.png)<!-- -->
+
+
+
+
+![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-32-1.png)<!-- -->![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-32-2.png)<!-- -->
+
+![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-33-1.png)<!-- -->
+
+### Tables
 
 <table class="table" style="color: black; width: auto !important; margin-left: auto; margin-right: auto;">
 <caption>Actions and unique associated reasons</caption>
@@ -193,25 +215,25 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> DTA </td>
    <td style="text-align:left;"> Data Change </td>
-   <td style="text-align:right;"> 620367 </td>
+   <td style="text-align:right;"> 639815 </td>
    <td style="text-align:right;"> 15 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> HIR </td>
    <td style="text-align:left;"> Hire </td>
-   <td style="text-align:right;"> 100373 </td>
+   <td style="text-align:right;"> 100748 </td>
    <td style="text-align:right;"> 1 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> JRC </td>
    <td style="text-align:left;"> Job Reclassification </td>
-   <td style="text-align:right;"> 6064 </td>
+   <td style="text-align:right;"> 6118 </td>
    <td style="text-align:right;"> 2 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LOA </td>
    <td style="text-align:left;"> Leave of Absence </td>
-   <td style="text-align:right;"> 11348 </td>
+   <td style="text-align:right;"> 11394 </td>
    <td style="text-align:right;"> 15 </td>
   </tr>
   <tr>
@@ -223,62 +245,62 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> PAY </td>
    <td style="text-align:left;"> Pay Rate Change </td>
-   <td style="text-align:right;"> 418096 </td>
+   <td style="text-align:right;"> 432518 </td>
    <td style="text-align:right;"> 11 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PLA </td>
    <td style="text-align:left;"> Paid Leave of Absence </td>
-   <td style="text-align:right;"> 31781 </td>
+   <td style="text-align:right;"> 31855 </td>
    <td style="text-align:right;"> 17 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> POS </td>
    <td style="text-align:left;"> Position Change </td>
-   <td style="text-align:right;"> 33312 </td>
+   <td style="text-align:right;"> 33301 </td>
    <td style="text-align:right;"> 3 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> REH </td>
    <td style="text-align:left;"> Rehire </td>
-   <td style="text-align:right;"> 27608 </td>
+   <td style="text-align:right;"> 27660 </td>
    <td style="text-align:right;"> 1 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RET </td>
    <td style="text-align:left;"> Retirement </td>
-   <td style="text-align:right;"> 2829 </td>
+   <td style="text-align:right;"> 2873 </td>
    <td style="text-align:right;"> 5 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RFL </td>
    <td style="text-align:left;"> Return from Leave </td>
-   <td style="text-align:right;"> 29789 </td>
+   <td style="text-align:right;"> 29858 </td>
    <td style="text-align:right;"> 3 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RWB </td>
    <td style="text-align:left;"> Return from Work Break </td>
-   <td style="text-align:right;"> 20446 </td>
+   <td style="text-align:right;"> 20494 </td>
    <td style="text-align:right;"> 1 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RWP </td>
    <td style="text-align:left;"> Retirement with Pay </td>
-   <td style="text-align:right;"> 324 </td>
+   <td style="text-align:right;"> 328 </td>
    <td style="text-align:right;"> 3 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> SWB </td>
    <td style="text-align:left;"> Short Work Break </td>
-   <td style="text-align:right;"> 21139 </td>
+   <td style="text-align:right;"> 21272 </td>
    <td style="text-align:right;"> 2 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
-   <td style="text-align:right;"> 111172 </td>
-   <td style="text-align:right;"> 42 </td>
+   <td style="text-align:right;"> 111987 </td>
+   <td style="text-align:right;"> 43 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TWP </td>
@@ -289,7 +311,7 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> XFR </td>
    <td style="text-align:left;"> Transfer </td>
-   <td style="text-align:right;"> 76823 </td>
+   <td style="text-align:right;"> 77147 </td>
    <td style="text-align:right;"> 8 </td>
   </tr>
 </tbody>
@@ -318,7 +340,7 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> ADJ </td>
    <td style="text-align:left;"> Adjustment </td>
-   <td style="text-align:right;"> 54569 </td>
+   <td style="text-align:right;"> 54821 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> AML </td>
@@ -328,17 +350,17 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> ASN </td>
    <td style="text-align:left;"> Termination of Assignment </td>
-   <td style="text-align:right;"> 4147 </td>
+   <td style="text-align:right;"> 4197 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> BAC </td>
    <td style="text-align:left;"> BA Conversion (SYS) </td>
-   <td style="text-align:right;"> 19488 </td>
+   <td style="text-align:right;"> 19477 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> BEC </td>
    <td style="text-align:left;"> Ben Elig Change (SYS) </td>
-   <td style="text-align:right;"> 16717 </td>
+   <td style="text-align:right;"> 16898 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> BNK </td>
@@ -348,7 +370,7 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> CDP </td>
    <td style="text-align:left;"> Correction-Department </td>
-   <td style="text-align:right;"> 541 </td>
+   <td style="text-align:right;"> 539 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> CJC </td>
@@ -358,7 +380,7 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> CNT </td>
    <td style="text-align:left;"> Contract (SYS) </td>
-   <td style="text-align:right;"> 609 </td>
+   <td style="text-align:right;"> 661 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> COV </td>
@@ -373,7 +395,7 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> CRP </td>
    <td style="text-align:left;"> Duplicate EE Record </td>
-   <td style="text-align:right;"> 73 </td>
+   <td style="text-align:right;"> 74 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DEA </td>
@@ -383,17 +405,17 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> DEV </td>
    <td style="text-align:left;"> Development Opportunities </td>
-   <td style="text-align:right;"> 71 </td>
+   <td style="text-align:right;"> 76 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DST </td>
    <td style="text-align:left;"> Distribution Change (SYS) </td>
-   <td style="text-align:right;"> 332834 </td>
+   <td style="text-align:right;"> 351686 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> EAC </td>
    <td style="text-align:left;"> End Employment Agreement </td>
-   <td style="text-align:right;"> 234 </td>
+   <td style="text-align:right;"> 238 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> EES </td>
@@ -401,14 +423,19 @@ reasons </th>
    <td style="text-align:right;"> 4 </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> EFT </td>
+   <td style="text-align:left;"> End of Fixed-Term Contract </td>
+   <td style="text-align:right;"> 172 </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> EMT </td>
    <td style="text-align:left;"> Emeritus </td>
-   <td style="text-align:right;"> 136 </td>
+   <td style="text-align:right;"> 139 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> ERT </td>
    <td style="text-align:left;"> Early Retirement </td>
-   <td style="text-align:right;"> 219 </td>
+   <td style="text-align:right;"> 221 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> EVW </td>
@@ -418,27 +445,27 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> EXT </td>
    <td style="text-align:left;"> Extension </td>
-   <td style="text-align:right;"> 1798 </td>
+   <td style="text-align:right;"> 1812 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> FAM </td>
    <td style="text-align:left;"> Family Reasons </td>
-   <td style="text-align:right;"> 123 </td>
+   <td style="text-align:right;"> 128 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> FCA </td>
    <td style="text-align:left;"> FICA Status Change (SYS) </td>
-   <td style="text-align:right;"> 84207 </td>
+   <td style="text-align:right;"> 84232 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> FLS </td>
    <td style="text-align:left;"> Pay Adj - FLSA Reg(SYS) </td>
-   <td style="text-align:right;"> 259 </td>
+   <td style="text-align:right;"> 263 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> FML </td>
    <td style="text-align:left;"> Family and Medical Leave Act </td>
-   <td style="text-align:right;"> 32773 </td>
+   <td style="text-align:right;"> 32854 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> FTE </td>
@@ -458,27 +485,27 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> FYB </td>
    <td style="text-align:left;"> FY Budget (SYS) </td>
-   <td style="text-align:right;"> 85712 </td>
+   <td style="text-align:right;"> 96670 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> FYB </td>
    <td style="text-align:left;"> Fiscal Year Budget (SYS) </td>
-   <td style="text-align:right;"> 85712 </td>
+   <td style="text-align:right;"> 96670 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> FYF </td>
    <td style="text-align:left;"> FY Increase </td>
-   <td style="text-align:right;"> 127601 </td>
+   <td style="text-align:right;"> 130322 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> FYF </td>
    <td style="text-align:left;"> FYSC Terms (SYS) </td>
-   <td style="text-align:right;"> 127601 </td>
+   <td style="text-align:right;"> 130322 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> FYR </td>
    <td style="text-align:left;"> FY Raise </td>
-   <td style="text-align:right;"> 3719 </td>
+   <td style="text-align:right;"> 4369 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> FYS </td>
@@ -488,27 +515,27 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> H2U </td>
    <td style="text-align:left;"> Hospital to University </td>
-   <td style="text-align:right;"> 999 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> HEA </td>
-   <td style="text-align:left;"> Medical(Not protected by FMLA) </td>
-   <td style="text-align:right;"> 650 </td>
+   <td style="text-align:right;"> 1007 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> HEA </td>
    <td style="text-align:left;"> Medical LOA Option B </td>
-   <td style="text-align:right;"> 650 </td>
+   <td style="text-align:right;"> 649 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> HEA </td>
+   <td style="text-align:left;"> Medical(Not protected by FMLA) </td>
+   <td style="text-align:right;"> 649 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> HRS </td>
    <td style="text-align:left;"> Hours </td>
-   <td style="text-align:right;"> 14 </td>
+   <td style="text-align:right;"> 17 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> HTH </td>
    <td style="text-align:left;"> Health-Related Issues </td>
-   <td style="text-align:right;"> 44 </td>
+   <td style="text-align:right;"> 46 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> I9 </td>
@@ -543,12 +570,12 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> JIN </td>
    <td style="text-align:left;"> Job Information </td>
-   <td style="text-align:right;"> 52920 </td>
+   <td style="text-align:right;"> 53033 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> JIN </td>
    <td style="text-align:left;"> Job Info </td>
-   <td style="text-align:right;"> 52920 </td>
+   <td style="text-align:right;"> 53033 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> JOB </td>
@@ -558,22 +585,22 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> JRC </td>
    <td style="text-align:left;"> Job Reclassification </td>
-   <td style="text-align:right;"> 5841 </td>
+   <td style="text-align:right;"> 5895 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LAT </td>
    <td style="text-align:left;"> Lateral Transfer </td>
-   <td style="text-align:right;"> 20136 </td>
+   <td style="text-align:right;"> 20169 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LOA </td>
    <td style="text-align:left;"> LOA Without Pay </td>
-   <td style="text-align:right;"> 1457 </td>
+   <td style="text-align:right;"> 1465 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LOC </td>
    <td style="text-align:left;"> Location </td>
-   <td style="text-align:right;"> 50 </td>
+   <td style="text-align:right;"> 56 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LTD </td>
@@ -593,27 +620,27 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> LWF </td>
    <td style="text-align:left;"> Leaving the Workforce </td>
-   <td style="text-align:right;"> 97 </td>
+   <td style="text-align:right;"> 104 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> MER </td>
    <td style="text-align:left;"> Merit (SYS) </td>
-   <td style="text-align:right;"> 69821 </td>
+   <td style="text-align:right;"> 69806 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> MIL </td>
    <td style="text-align:left;"> Military Service </td>
-   <td style="text-align:right;"> 860 </td>
+   <td style="text-align:right;"> 861 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> MKT </td>
    <td style="text-align:left;"> Market Equity Adjustment (SYS) </td>
-   <td style="text-align:right;"> 62540 </td>
+   <td style="text-align:right;"> 62518 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> MLA </td>
    <td style="text-align:left;"> Medical Leave of Absence Opt A </td>
-   <td style="text-align:right;"> 2831 </td>
+   <td style="text-align:right;"> 2842 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> MLB </td>
@@ -623,7 +650,7 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> NER </td>
    <td style="text-align:left;"> Not Eligible for Rehire </td>
-   <td style="text-align:right;"> 399 </td>
+   <td style="text-align:right;"> 401 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> NEW </td>
@@ -633,42 +660,42 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> NHR </td>
    <td style="text-align:left;"> New Hire </td>
-   <td style="text-align:right;"> 100373 </td>
+   <td style="text-align:right;"> 100748 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> NRC </td>
    <td style="text-align:left;"> Non Renewal of Contract </td>
-   <td style="text-align:right;"> 724 </td>
+   <td style="text-align:right;"> 865 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> OCN </td>
    <td style="text-align:left;"> Other Controllable </td>
-   <td style="text-align:right;"> 96 </td>
+   <td style="text-align:right;"> 97 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> OTH </td>
    <td style="text-align:left;"> Other Information </td>
-   <td style="text-align:right;"> 86016 </td>
+   <td style="text-align:right;"> 86332 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> OUC </td>
    <td style="text-align:left;"> Other Uncontrollable </td>
-   <td style="text-align:right;"> 236 </td>
+   <td style="text-align:right;"> 264 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PAR </td>
    <td style="text-align:left;"> Parental Leave </td>
-   <td style="text-align:right;"> 64 </td>
+   <td style="text-align:right;"> 66 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PAY </td>
    <td style="text-align:left;"> Compensation </td>
-   <td style="text-align:right;"> 24 </td>
+   <td style="text-align:right;"> 26 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PDU </td>
    <td style="text-align:left;"> Position Data Update </td>
-   <td style="text-align:right;"> 11176 </td>
+   <td style="text-align:right;"> 11174 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PHS </td>
@@ -678,52 +705,52 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> PLA </td>
    <td style="text-align:left;"> Paid LOA </td>
-   <td style="text-align:right;"> 732 </td>
+   <td style="text-align:right;"> 736 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PRM </td>
    <td style="text-align:left;"> Promotion Opportunities </td>
-   <td style="text-align:right;"> 33 </td>
+   <td style="text-align:right;"> 34 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PRO </td>
    <td style="text-align:left;"> Promotion </td>
-   <td style="text-align:right;"> 21453 </td>
+   <td style="text-align:right;"> 21581 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PSB </td>
    <td style="text-align:left;"> Paid Sabbatical Leave </td>
-   <td style="text-align:right;"> 17 </td>
+   <td style="text-align:right;"> 15 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> REC </td>
    <td style="text-align:left;"> Job Reclassification </td>
-   <td style="text-align:right;"> 6398 </td>
+   <td style="text-align:right;"> 6421 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> REH </td>
    <td style="text-align:left;"> Rehire </td>
-   <td style="text-align:right;"> 27608 </td>
+   <td style="text-align:right;"> 27660 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> REL </td>
    <td style="text-align:left;"> Relocation </td>
-   <td style="text-align:right;"> 140 </td>
+   <td style="text-align:right;"> 153 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RET </td>
    <td style="text-align:left;"> Regular Retirement </td>
-   <td style="text-align:right;"> 2769 </td>
+   <td style="text-align:right;"> 2816 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RET </td>
    <td style="text-align:left;"> Return to School </td>
-   <td style="text-align:right;"> 2769 </td>
+   <td style="text-align:right;"> 2816 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RFL </td>
    <td style="text-align:left;"> Return From Leave </td>
-   <td style="text-align:right;"> 22020 </td>
+   <td style="text-align:right;"> 22078 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RFN </td>
@@ -733,27 +760,27 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> RIF </td>
    <td style="text-align:left;"> Reduction in Force </td>
-   <td style="text-align:right;"> 1313 </td>
+   <td style="text-align:right;"> 1322 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RLS </td>
    <td style="text-align:left;"> Release from Probation </td>
-   <td style="text-align:right;"> 2750 </td>
+   <td style="text-align:right;"> 2753 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> ROR </td>
    <td style="text-align:left;"> Reorganization </td>
-   <td style="text-align:right;"> 5177 </td>
+   <td style="text-align:right;"> 5173 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RPL </td>
    <td style="text-align:left;"> Return from Paid Leave </td>
-   <td style="text-align:right;"> 7766 </td>
+   <td style="text-align:right;"> 7778 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RWB </td>
    <td style="text-align:left;"> Return from Work Break </td>
-   <td style="text-align:right;"> 20446 </td>
+   <td style="text-align:right;"> 20494 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RWP </td>
@@ -763,7 +790,7 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> SEP </td>
    <td style="text-align:left;"> Separation Other </td>
-   <td style="text-align:right;"> 115 </td>
+   <td style="text-align:right;"> 118 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> SMR </td>
@@ -773,22 +800,22 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> SRP </td>
    <td style="text-align:left;"> Special Retirement Plan </td>
-   <td style="text-align:right;"> 150 </td>
+   <td style="text-align:right;"> 152 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> STA </td>
    <td style="text-align:left;"> Position Status Change </td>
-   <td style="text-align:right;"> 22093 </td>
+   <td style="text-align:right;"> 22084 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> SWB </td>
    <td style="text-align:left;"> Short Work Break </td>
-   <td style="text-align:right;"> 20627 </td>
+   <td style="text-align:right;"> 20760 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TMP </td>
    <td style="text-align:left;"> End PT/Non-BenefitsEmployment </td>
-   <td style="text-align:right;"> 10665 </td>
+   <td style="text-align:right;"> 10681 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TWP </td>
@@ -798,17 +825,17 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> TYP </td>
    <td style="text-align:left;"> Type of Work </td>
-   <td style="text-align:right;"> 33 </td>
+   <td style="text-align:right;"> 34 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> U2H </td>
    <td style="text-align:left;"> Voluntary Xfr to Hospital </td>
-   <td style="text-align:right;"> 68 </td>
+   <td style="text-align:right;"> 73 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> UNS </td>
    <td style="text-align:left;"> Separation/Unavailability </td>
-   <td style="text-align:right;"> 337 </td>
+   <td style="text-align:right;"> 338 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> VDT </td>
@@ -823,7 +850,7 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> VOL </td>
    <td style="text-align:left;"> Voluntary Resignation </td>
-   <td style="text-align:right;"> 80453 </td>
+   <td style="text-align:right;"> 80596 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> WC </td>
@@ -838,7 +865,7 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> WEC </td>
    <td style="text-align:left;"> Well Elig Chg (SYS) </td>
-   <td style="text-align:right;"> 38804 </td>
+   <td style="text-align:right;"> 38766 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> WOR </td>
@@ -848,17 +875,16 @@ reasons </th>
   <tr>
    <td style="text-align:left;"> WPA </td>
    <td style="text-align:left;"> Workplace Accomodations </td>
-   <td style="text-align:right;"> 337 </td>
+   <td style="text-align:right;"> 339 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> XFR </td>
    <td style="text-align:left;"> Transfer </td>
-   <td style="text-align:right;"> 28984 </td>
+   <td style="text-align:right;"> 29138 </td>
   </tr>
 </tbody>
 </table></div>
 
-![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-19-1.png)<!-- -->
 
 <div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:1000px; "><table class="table" style="color: black; width: auto !important; margin-left: auto; margin-right: auto;">
 <caption>Actions and reasons</caption>
@@ -877,28 +903,28 @@ reasons </th>
    <td style="text-align:left;"> Data Change </td>
    <td style="text-align:left;"> BAC </td>
    <td style="text-align:left;"> BA Conversion (SYS) </td>
-   <td style="text-align:right;"> 19488 </td>
+   <td style="text-align:right;"> 19477 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DTA </td>
    <td style="text-align:left;"> Data Change </td>
    <td style="text-align:left;"> BEC </td>
    <td style="text-align:left;"> Ben Elig Change (SYS) </td>
-   <td style="text-align:right;"> 16717 </td>
+   <td style="text-align:right;"> 16898 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DTA </td>
    <td style="text-align:left;"> Data Change </td>
    <td style="text-align:left;"> CNT </td>
    <td style="text-align:left;"> Contract (SYS) </td>
-   <td style="text-align:right;"> 609 </td>
+   <td style="text-align:right;"> 661 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DTA </td>
    <td style="text-align:left;"> Data Change </td>
    <td style="text-align:left;"> CDP </td>
    <td style="text-align:left;"> Correction-Department </td>
-   <td style="text-align:right;"> 541 </td>
+   <td style="text-align:right;"> 539 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DTA </td>
@@ -919,14 +945,14 @@ reasons </th>
    <td style="text-align:left;"> Data Change </td>
    <td style="text-align:left;"> DST </td>
    <td style="text-align:left;"> Distribution Change (SYS) </td>
-   <td style="text-align:right;"> 332834 </td>
+   <td style="text-align:right;"> 351686 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DTA </td>
    <td style="text-align:left;"> Data Change </td>
    <td style="text-align:left;"> FCA </td>
    <td style="text-align:left;"> FICA Status Change (SYS) </td>
-   <td style="text-align:right;"> 84207 </td>
+   <td style="text-align:right;"> 84232 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DTA </td>
@@ -947,14 +973,14 @@ reasons </th>
    <td style="text-align:left;"> Data Change </td>
    <td style="text-align:left;"> JIN </td>
    <td style="text-align:left;"> Job Information </td>
-   <td style="text-align:right;"> 40013 </td>
+   <td style="text-align:right;"> 40086 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DTA </td>
    <td style="text-align:left;"> Data Change </td>
    <td style="text-align:left;"> OTH </td>
    <td style="text-align:left;"> Other Information </td>
-   <td style="text-align:right;"> 86016 </td>
+   <td style="text-align:right;"> 86332 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DTA </td>
@@ -975,14 +1001,14 @@ reasons </th>
    <td style="text-align:left;"> Data Change </td>
    <td style="text-align:left;"> WEC </td>
    <td style="text-align:left;"> Well Elig Chg (SYS) </td>
-   <td style="text-align:right;"> 38804 </td>
+   <td style="text-align:right;"> 38766 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> HIR </td>
    <td style="text-align:left;"> Hire </td>
    <td style="text-align:left;"> NHR </td>
    <td style="text-align:left;"> New Hire </td>
-   <td style="text-align:right;"> 100373 </td>
+   <td style="text-align:right;"> 100748 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> JRC </td>
@@ -996,7 +1022,7 @@ reasons </th>
    <td style="text-align:left;"> Job Reclassification </td>
    <td style="text-align:left;"> JRC </td>
    <td style="text-align:left;"> Job Reclassification </td>
-   <td style="text-align:right;"> 5841 </td>
+   <td style="text-align:right;"> 5895 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LOA </td>
@@ -1031,14 +1057,14 @@ reasons </th>
    <td style="text-align:left;"> Leave of Absence </td>
    <td style="text-align:left;"> EXT </td>
    <td style="text-align:left;"> Extension </td>
-   <td style="text-align:right;"> 961 </td>
+   <td style="text-align:right;"> 967 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LOA </td>
    <td style="text-align:left;"> Leave of Absence </td>
    <td style="text-align:left;"> FML </td>
    <td style="text-align:left;"> Family and Medical Leave Act </td>
-   <td style="text-align:right;"> 6221 </td>
+   <td style="text-align:right;"> 6245 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LOA </td>
@@ -1052,14 +1078,14 @@ reasons </th>
    <td style="text-align:left;"> Leave of Absence </td>
    <td style="text-align:left;"> LOA </td>
    <td style="text-align:left;"> LOA Without Pay </td>
-   <td style="text-align:right;"> 1457 </td>
+   <td style="text-align:right;"> 1465 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LOA </td>
    <td style="text-align:left;"> Leave of Absence </td>
    <td style="text-align:left;"> MLA </td>
    <td style="text-align:left;"> Medical Leave of Absence Opt A </td>
-   <td style="text-align:right;"> 1325 </td>
+   <td style="text-align:right;"> 1331 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LOA </td>
@@ -1101,7 +1127,7 @@ reasons </th>
    <td style="text-align:left;"> Leave of Absence </td>
    <td style="text-align:left;"> WPA </td>
    <td style="text-align:left;"> Workplace Accomodations </td>
-   <td style="text-align:right;"> 138 </td>
+   <td style="text-align:right;"> 140 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LTO </td>
@@ -1115,7 +1141,7 @@ reasons </th>
    <td style="text-align:left;"> Pay Rate Change </td>
    <td style="text-align:left;"> ADJ </td>
    <td style="text-align:left;"> Adjustment </td>
-   <td style="text-align:right;"> 54569 </td>
+   <td style="text-align:right;"> 54821 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PAY </td>
@@ -1129,21 +1155,21 @@ reasons </th>
    <td style="text-align:left;"> Pay Rate Change </td>
    <td style="text-align:left;"> FYB </td>
    <td style="text-align:left;"> FY Budget (SYS) </td>
-   <td style="text-align:right;"> 85709 </td>
+   <td style="text-align:right;"> 96668 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PAY </td>
    <td style="text-align:left;"> Pay Rate Change </td>
    <td style="text-align:left;"> FYF </td>
    <td style="text-align:left;"> FY Increase </td>
-   <td style="text-align:right;"> 122169 </td>
+   <td style="text-align:right;"> 124700 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PAY </td>
    <td style="text-align:left;"> Pay Rate Change </td>
    <td style="text-align:left;"> FYR </td>
    <td style="text-align:left;"> FY Raise </td>
-   <td style="text-align:right;"> 3719 </td>
+   <td style="text-align:right;"> 4369 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PAY </td>
@@ -1157,35 +1183,35 @@ reasons </th>
    <td style="text-align:left;"> Pay Rate Change </td>
    <td style="text-align:left;"> JIN </td>
    <td style="text-align:left;"> Job Info </td>
-   <td style="text-align:right;"> 12907 </td>
+   <td style="text-align:right;"> 12947 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PAY </td>
    <td style="text-align:left;"> Pay Rate Change </td>
    <td style="text-align:left;"> REC </td>
    <td style="text-align:left;"> Job Reclassification </td>
-   <td style="text-align:right;"> 6398 </td>
+   <td style="text-align:right;"> 6421 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PAY </td>
    <td style="text-align:left;"> Pay Rate Change </td>
    <td style="text-align:left;"> MKT </td>
    <td style="text-align:left;"> Market Equity Adjustment (SYS) </td>
-   <td style="text-align:right;"> 62540 </td>
+   <td style="text-align:right;"> 62518 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PAY </td>
    <td style="text-align:left;"> Pay Rate Change </td>
    <td style="text-align:left;"> MER </td>
    <td style="text-align:left;"> Merit (SYS) </td>
-   <td style="text-align:right;"> 69821 </td>
+   <td style="text-align:right;"> 69806 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PAY </td>
    <td style="text-align:left;"> Pay Rate Change </td>
    <td style="text-align:left;"> FLS </td>
    <td style="text-align:left;"> Pay Adj - FLSA Reg(SYS) </td>
-   <td style="text-align:right;"> 259 </td>
+   <td style="text-align:right;"> 263 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PLA </td>
@@ -1220,14 +1246,14 @@ reasons </th>
    <td style="text-align:left;"> Paid Leave of Absence </td>
    <td style="text-align:left;"> EXT </td>
    <td style="text-align:left;"> Extension </td>
-   <td style="text-align:right;"> 837 </td>
+   <td style="text-align:right;"> 845 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PLA </td>
    <td style="text-align:left;"> Paid Leave of Absence </td>
    <td style="text-align:left;"> FML </td>
    <td style="text-align:left;"> Family and Medical Leave Act </td>
-   <td style="text-align:right;"> 26552 </td>
+   <td style="text-align:right;"> 26609 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PLA </td>
@@ -1248,7 +1274,7 @@ reasons </th>
    <td style="text-align:left;"> Paid Leave of Absence </td>
    <td style="text-align:left;"> MLA </td>
    <td style="text-align:left;"> Medical Leave of Absence Opt A </td>
-   <td style="text-align:right;"> 1506 </td>
+   <td style="text-align:right;"> 1511 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PLA </td>
@@ -1262,35 +1288,35 @@ reasons </th>
    <td style="text-align:left;"> Paid Leave of Absence </td>
    <td style="text-align:left;"> HEA </td>
    <td style="text-align:left;"> Medical(Not protected by FMLA) </td>
-   <td style="text-align:right;"> 299 </td>
+   <td style="text-align:right;"> 298 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PLA </td>
    <td style="text-align:left;"> Paid Leave of Absence </td>
    <td style="text-align:left;"> MIL </td>
    <td style="text-align:left;"> Military Service </td>
-   <td style="text-align:right;"> 607 </td>
+   <td style="text-align:right;"> 608 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PLA </td>
    <td style="text-align:left;"> Paid Leave of Absence </td>
    <td style="text-align:left;"> PLA </td>
    <td style="text-align:left;"> Paid LOA </td>
-   <td style="text-align:right;"> 732 </td>
+   <td style="text-align:right;"> 736 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PLA </td>
    <td style="text-align:left;"> Paid Leave of Absence </td>
    <td style="text-align:left;"> PSB </td>
    <td style="text-align:left;"> Paid Sabbatical Leave </td>
-   <td style="text-align:right;"> 17 </td>
+   <td style="text-align:right;"> 15 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PLA </td>
    <td style="text-align:left;"> Paid Leave of Absence </td>
    <td style="text-align:left;"> PAR </td>
    <td style="text-align:left;"> Parental Leave </td>
-   <td style="text-align:right;"> 64 </td>
+   <td style="text-align:right;"> 66 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PLA </td>
@@ -1318,28 +1344,28 @@ reasons </th>
    <td style="text-align:left;"> Position Change </td>
    <td style="text-align:left;"> PDU </td>
    <td style="text-align:left;"> Position Data Update </td>
-   <td style="text-align:right;"> 11176 </td>
+   <td style="text-align:right;"> 11174 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> POS </td>
    <td style="text-align:left;"> Position Change </td>
    <td style="text-align:left;"> STA </td>
    <td style="text-align:left;"> Position Status Change </td>
-   <td style="text-align:right;"> 22093 </td>
+   <td style="text-align:right;"> 22084 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> REH </td>
    <td style="text-align:left;"> Rehire </td>
    <td style="text-align:left;"> REH </td>
    <td style="text-align:left;"> Rehire </td>
-   <td style="text-align:right;"> 27608 </td>
+   <td style="text-align:right;"> 27660 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RET </td>
    <td style="text-align:left;"> Retirement </td>
    <td style="text-align:left;"> EMT </td>
    <td style="text-align:left;"> Emeritus </td>
-   <td style="text-align:right;"> 119 </td>
+   <td style="text-align:right;"> 121 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RET </td>
@@ -1360,7 +1386,7 @@ reasons </th>
    <td style="text-align:left;"> Retirement </td>
    <td style="text-align:left;"> RET </td>
    <td style="text-align:left;"> Regular Retirement </td>
-   <td style="text-align:right;"> 2655 </td>
+   <td style="text-align:right;"> 2697 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RET </td>
@@ -1374,35 +1400,35 @@ reasons </th>
    <td style="text-align:left;"> Return from Leave </td>
    <td style="text-align:left;"> FYB </td>
    <td style="text-align:left;"> Fiscal Year Budget (SYS) </td>
-   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 2 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RFL </td>
    <td style="text-align:left;"> Return from Leave </td>
    <td style="text-align:left;"> RFL </td>
    <td style="text-align:left;"> Return From Leave </td>
-   <td style="text-align:right;"> 22020 </td>
+   <td style="text-align:right;"> 22078 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RFL </td>
    <td style="text-align:left;"> Return from Leave </td>
    <td style="text-align:left;"> RPL </td>
    <td style="text-align:left;"> Return from Paid Leave </td>
-   <td style="text-align:right;"> 7766 </td>
+   <td style="text-align:right;"> 7778 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RWB </td>
    <td style="text-align:left;"> Return from Work Break </td>
    <td style="text-align:left;"> RWB </td>
    <td style="text-align:left;"> Return from Work Break </td>
-   <td style="text-align:right;"> 20446 </td>
+   <td style="text-align:right;"> 20494 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RWP </td>
    <td style="text-align:left;"> Retirement with Pay </td>
    <td style="text-align:left;"> ERT </td>
    <td style="text-align:left;"> Early Retirement </td>
-   <td style="text-align:right;"> 219 </td>
+   <td style="text-align:right;"> 221 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RWP </td>
@@ -1416,7 +1442,7 @@ reasons </th>
    <td style="text-align:left;"> Retirement with Pay </td>
    <td style="text-align:left;"> SRP </td>
    <td style="text-align:left;"> Special Retirement Plan </td>
-   <td style="text-align:right;"> 104 </td>
+   <td style="text-align:right;"> 106 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> SWB </td>
@@ -1430,14 +1456,14 @@ reasons </th>
    <td style="text-align:left;"> Short Work Break </td>
    <td style="text-align:left;"> SWB </td>
    <td style="text-align:left;"> Short Work Break </td>
-   <td style="text-align:right;"> 20626 </td>
+   <td style="text-align:right;"> 20759 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> PAY </td>
    <td style="text-align:left;"> Compensation </td>
-   <td style="text-align:right;"> 24 </td>
+   <td style="text-align:right;"> 26 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
@@ -1458,14 +1484,14 @@ reasons </th>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> DEV </td>
    <td style="text-align:left;"> Development Opportunities </td>
-   <td style="text-align:right;"> 71 </td>
+   <td style="text-align:right;"> 76 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> CRP </td>
    <td style="text-align:left;"> Duplicate EE Record </td>
-   <td style="text-align:right;"> 73 </td>
+   <td style="text-align:right;"> 74 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
@@ -1479,7 +1505,7 @@ reasons </th>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> EMT </td>
    <td style="text-align:left;"> Emeritus </td>
-   <td style="text-align:right;"> 17 </td>
+   <td style="text-align:right;"> 18 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
@@ -1493,14 +1519,21 @@ reasons </th>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> EAC </td>
    <td style="text-align:left;"> End Employment Agreement </td>
-   <td style="text-align:right;"> 234 </td>
+   <td style="text-align:right;"> 238 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> TER </td>
+   <td style="text-align:left;"> Termination </td>
+   <td style="text-align:left;"> EFT </td>
+   <td style="text-align:left;"> End of Fixed-Term Contract </td>
+   <td style="text-align:right;"> 172 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> TMP </td>
    <td style="text-align:left;"> End PT/Non-BenefitsEmployment </td>
-   <td style="text-align:right;"> 10665 </td>
+   <td style="text-align:right;"> 10681 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
@@ -1514,7 +1547,7 @@ reasons </th>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> FAM </td>
    <td style="text-align:left;"> Family Reasons </td>
-   <td style="text-align:right;"> 123 </td>
+   <td style="text-align:right;"> 128 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
@@ -1542,21 +1575,21 @@ reasons </th>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> FYF </td>
    <td style="text-align:left;"> FYSC Terms (SYS) </td>
-   <td style="text-align:right;"> 5432 </td>
+   <td style="text-align:right;"> 5622 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> HTH </td>
    <td style="text-align:left;"> Health-Related Issues </td>
-   <td style="text-align:right;"> 44 </td>
+   <td style="text-align:right;"> 46 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> HRS </td>
    <td style="text-align:left;"> Hours </td>
-   <td style="text-align:right;"> 14 </td>
+   <td style="text-align:right;"> 17 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
@@ -1570,14 +1603,14 @@ reasons </th>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> LWF </td>
    <td style="text-align:left;"> Leaving the Workforce </td>
-   <td style="text-align:right;"> 97 </td>
+   <td style="text-align:right;"> 104 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> LOC </td>
    <td style="text-align:left;"> Location </td>
-   <td style="text-align:right;"> 50 </td>
+   <td style="text-align:right;"> 56 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
@@ -1598,63 +1631,63 @@ reasons </th>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> NRC </td>
    <td style="text-align:left;"> Non Renewal of Contract </td>
-   <td style="text-align:right;"> 724 </td>
+   <td style="text-align:right;"> 865 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> NER </td>
    <td style="text-align:left;"> Not Eligible for Rehire </td>
-   <td style="text-align:right;"> 396 </td>
+   <td style="text-align:right;"> 398 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> OCN </td>
    <td style="text-align:left;"> Other Controllable </td>
-   <td style="text-align:right;"> 96 </td>
+   <td style="text-align:right;"> 97 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> OUC </td>
    <td style="text-align:left;"> Other Uncontrollable </td>
-   <td style="text-align:right;"> 236 </td>
+   <td style="text-align:right;"> 264 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> PRM </td>
    <td style="text-align:left;"> Promotion Opportunities </td>
-   <td style="text-align:right;"> 33 </td>
+   <td style="text-align:right;"> 34 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> RIF </td>
    <td style="text-align:left;"> Reduction in Force </td>
-   <td style="text-align:right;"> 1313 </td>
+   <td style="text-align:right;"> 1322 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> RLS </td>
    <td style="text-align:left;"> Release from Probation </td>
-   <td style="text-align:right;"> 2750 </td>
+   <td style="text-align:right;"> 2753 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> REL </td>
    <td style="text-align:left;"> Relocation </td>
-   <td style="text-align:right;"> 140 </td>
+   <td style="text-align:right;"> 153 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> RET </td>
    <td style="text-align:left;"> Return to School </td>
-   <td style="text-align:right;"> 114 </td>
+   <td style="text-align:right;"> 119 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
@@ -1668,7 +1701,7 @@ reasons </th>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> SEP </td>
    <td style="text-align:left;"> Separation Other </td>
-   <td style="text-align:right;"> 115 </td>
+   <td style="text-align:right;"> 118 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
@@ -1682,7 +1715,7 @@ reasons </th>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> UNS </td>
    <td style="text-align:left;"> Separation/Unavailability </td>
-   <td style="text-align:right;"> 337 </td>
+   <td style="text-align:right;"> 338 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
@@ -1696,14 +1729,14 @@ reasons </th>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> ASN </td>
    <td style="text-align:left;"> Termination of Assignment </td>
-   <td style="text-align:right;"> 4147 </td>
+   <td style="text-align:right;"> 4197 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> TYP </td>
    <td style="text-align:left;"> Type of Work </td>
-   <td style="text-align:right;"> 33 </td>
+   <td style="text-align:right;"> 34 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
@@ -1717,7 +1750,7 @@ reasons </th>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> VOL </td>
    <td style="text-align:left;"> Voluntary Resignation </td>
-   <td style="text-align:right;"> 80453 </td>
+   <td style="text-align:right;"> 80596 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
@@ -1738,7 +1771,7 @@ reasons </th>
    <td style="text-align:left;"> Transfer </td>
    <td style="text-align:left;"> H2U </td>
    <td style="text-align:left;"> Hospital to University </td>
-   <td style="text-align:right;"> 999 </td>
+   <td style="text-align:right;"> 1007 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> XFR </td>
@@ -1752,28 +1785,28 @@ reasons </th>
    <td style="text-align:left;"> Transfer </td>
    <td style="text-align:left;"> LAT </td>
    <td style="text-align:left;"> Lateral Transfer </td>
-   <td style="text-align:right;"> 20136 </td>
+   <td style="text-align:right;"> 20169 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> XFR </td>
    <td style="text-align:left;"> Transfer </td>
    <td style="text-align:left;"> PRO </td>
    <td style="text-align:left;"> Promotion </td>
-   <td style="text-align:right;"> 21453 </td>
+   <td style="text-align:right;"> 21581 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> XFR </td>
    <td style="text-align:left;"> Transfer </td>
    <td style="text-align:left;"> ROR </td>
    <td style="text-align:left;"> Reorganization </td>
-   <td style="text-align:right;"> 5177 </td>
+   <td style="text-align:right;"> 5173 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> XFR </td>
    <td style="text-align:left;"> Transfer </td>
    <td style="text-align:left;"> XFR </td>
    <td style="text-align:left;"> Transfer </td>
-   <td style="text-align:right;"> 28984 </td>
+   <td style="text-align:right;"> 29138 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> XFR </td>
@@ -1787,7 +1820,7 @@ reasons </th>
    <td style="text-align:left;"> Transfer </td>
    <td style="text-align:left;"> U2H </td>
    <td style="text-align:left;"> Voluntary Xfr to Hospital </td>
-   <td style="text-align:right;"> 68 </td>
+   <td style="text-align:right;"> 73 </td>
   </tr>
 </tbody>
 </table></div>
@@ -1872,42 +1905,42 @@ reasons </th>
    <td style="text-align:left;"> Retirement </td>
    <td style="text-align:left;"> EMT </td>
    <td style="text-align:left;"> Emeritus </td>
-   <td style="text-align:right;"> 119 </td>
+   <td style="text-align:right;"> 121 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> EMT </td>
    <td style="text-align:left;"> Emeritus </td>
-   <td style="text-align:right;"> 17 </td>
+   <td style="text-align:right;"> 18 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LOA </td>
    <td style="text-align:left;"> Leave of Absence </td>
    <td style="text-align:left;"> EXT </td>
    <td style="text-align:left;"> Extension </td>
-   <td style="text-align:right;"> 961 </td>
+   <td style="text-align:right;"> 967 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PLA </td>
    <td style="text-align:left;"> Paid Leave of Absence </td>
    <td style="text-align:left;"> EXT </td>
    <td style="text-align:left;"> Extension </td>
-   <td style="text-align:right;"> 837 </td>
+   <td style="text-align:right;"> 845 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LOA </td>
    <td style="text-align:left;"> Leave of Absence </td>
    <td style="text-align:left;"> FML </td>
    <td style="text-align:left;"> Family and Medical Leave Act </td>
-   <td style="text-align:right;"> 6221 </td>
+   <td style="text-align:right;"> 6245 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PLA </td>
    <td style="text-align:left;"> Paid Leave of Absence </td>
    <td style="text-align:left;"> FML </td>
    <td style="text-align:left;"> Family and Medical Leave Act </td>
-   <td style="text-align:right;"> 26552 </td>
+   <td style="text-align:right;"> 26609 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DTA </td>
@@ -1949,28 +1982,28 @@ reasons </th>
    <td style="text-align:left;"> Pay Rate Change </td>
    <td style="text-align:left;"> FYB </td>
    <td style="text-align:left;"> FY Budget (SYS) </td>
-   <td style="text-align:right;"> 85709 </td>
+   <td style="text-align:right;"> 96668 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RFL </td>
    <td style="text-align:left;"> Return from Leave </td>
    <td style="text-align:left;"> FYB </td>
    <td style="text-align:left;"> Fiscal Year Budget (SYS) </td>
-   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 2 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PAY </td>
    <td style="text-align:left;"> Pay Rate Change </td>
    <td style="text-align:left;"> FYF </td>
    <td style="text-align:left;"> FY Increase </td>
-   <td style="text-align:right;"> 122169 </td>
+   <td style="text-align:right;"> 124700 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> FYF </td>
    <td style="text-align:left;"> FYSC Terms (SYS) </td>
-   <td style="text-align:right;"> 5432 </td>
+   <td style="text-align:right;"> 5622 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LOA </td>
@@ -1984,7 +2017,7 @@ reasons </th>
    <td style="text-align:left;"> Paid Leave of Absence </td>
    <td style="text-align:left;"> HEA </td>
    <td style="text-align:left;"> Medical(Not protected by FMLA) </td>
-   <td style="text-align:right;"> 299 </td>
+   <td style="text-align:right;"> 298 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
@@ -1998,14 +2031,14 @@ reasons </th>
    <td style="text-align:left;"> Data Change </td>
    <td style="text-align:left;"> JIN </td>
    <td style="text-align:left;"> Job Information </td>
-   <td style="text-align:right;"> 40013 </td>
+   <td style="text-align:right;"> 40086 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PAY </td>
    <td style="text-align:left;"> Pay Rate Change </td>
    <td style="text-align:left;"> JIN </td>
    <td style="text-align:left;"> Job Info </td>
-   <td style="text-align:right;"> 12907 </td>
+   <td style="text-align:right;"> 12947 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PLA </td>
@@ -2040,21 +2073,21 @@ reasons </th>
    <td style="text-align:left;"> Paid Leave of Absence </td>
    <td style="text-align:left;"> MIL </td>
    <td style="text-align:left;"> Military Service </td>
-   <td style="text-align:right;"> 607 </td>
+   <td style="text-align:right;"> 608 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LOA </td>
    <td style="text-align:left;"> Leave of Absence </td>
    <td style="text-align:left;"> MLA </td>
    <td style="text-align:left;"> Medical Leave of Absence Opt A </td>
-   <td style="text-align:right;"> 1325 </td>
+   <td style="text-align:right;"> 1331 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PLA </td>
    <td style="text-align:left;"> Paid Leave of Absence </td>
    <td style="text-align:left;"> MLA </td>
    <td style="text-align:left;"> Medical Leave of Absence Opt A </td>
-   <td style="text-align:right;"> 1506 </td>
+   <td style="text-align:right;"> 1511 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LOA </td>
@@ -2082,21 +2115,21 @@ reasons </th>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> NER </td>
    <td style="text-align:left;"> Not Eligible for Rehire </td>
-   <td style="text-align:right;"> 396 </td>
+   <td style="text-align:right;"> 398 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RET </td>
    <td style="text-align:left;"> Retirement </td>
    <td style="text-align:left;"> RET </td>
    <td style="text-align:left;"> Regular Retirement </td>
-   <td style="text-align:right;"> 2655 </td>
+   <td style="text-align:right;"> 2697 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> RET </td>
    <td style="text-align:left;"> Return to School </td>
-   <td style="text-align:right;"> 114 </td>
+   <td style="text-align:right;"> 119 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DTA </td>
@@ -2117,7 +2150,7 @@ reasons </th>
    <td style="text-align:left;"> Retirement with Pay </td>
    <td style="text-align:left;"> SRP </td>
    <td style="text-align:left;"> Special Retirement Plan </td>
-   <td style="text-align:right;"> 104 </td>
+   <td style="text-align:right;"> 106 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LOA </td>
@@ -2131,7 +2164,7 @@ reasons </th>
    <td style="text-align:left;"> Short Work Break </td>
    <td style="text-align:left;"> SWB </td>
    <td style="text-align:left;"> Short Work Break </td>
-   <td style="text-align:right;"> 20626 </td>
+   <td style="text-align:right;"> 20759 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LOA </td>
@@ -2152,7 +2185,7 @@ reasons </th>
    <td style="text-align:left;"> Leave of Absence </td>
    <td style="text-align:left;"> WPA </td>
    <td style="text-align:left;"> Workplace Accomodations </td>
-   <td style="text-align:right;"> 138 </td>
+   <td style="text-align:right;"> 140 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PLA </td>
@@ -2181,28 +2214,28 @@ reasons </th>
    <td style="text-align:left;"> Data Change </td>
    <td style="text-align:left;"> BAC </td>
    <td style="text-align:left;"> BA Conversion (SYS) </td>
-   <td style="text-align:right;"> 19488 </td>
+   <td style="text-align:right;"> 19477 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DTA </td>
    <td style="text-align:left;"> Data Change </td>
    <td style="text-align:left;"> BEC </td>
    <td style="text-align:left;"> Ben Elig Change (SYS) </td>
-   <td style="text-align:right;"> 16717 </td>
+   <td style="text-align:right;"> 16898 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DTA </td>
    <td style="text-align:left;"> Data Change </td>
    <td style="text-align:left;"> CNT </td>
    <td style="text-align:left;"> Contract (SYS) </td>
-   <td style="text-align:right;"> 609 </td>
+   <td style="text-align:right;"> 661 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DTA </td>
    <td style="text-align:left;"> Data Change </td>
    <td style="text-align:left;"> CDP </td>
    <td style="text-align:left;"> Correction-Department </td>
-   <td style="text-align:right;"> 541 </td>
+   <td style="text-align:right;"> 539 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DTA </td>
@@ -2223,14 +2256,14 @@ reasons </th>
    <td style="text-align:left;"> Data Change </td>
    <td style="text-align:left;"> DST </td>
    <td style="text-align:left;"> Distribution Change (SYS) </td>
-   <td style="text-align:right;"> 332834 </td>
+   <td style="text-align:right;"> 351686 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DTA </td>
    <td style="text-align:left;"> Data Change </td>
    <td style="text-align:left;"> FCA </td>
    <td style="text-align:left;"> FICA Status Change (SYS) </td>
-   <td style="text-align:right;"> 84207 </td>
+   <td style="text-align:right;"> 84232 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DTA </td>
@@ -2244,7 +2277,7 @@ reasons </th>
    <td style="text-align:left;"> Data Change </td>
    <td style="text-align:left;"> OTH </td>
    <td style="text-align:left;"> Other Information </td>
-   <td style="text-align:right;"> 86016 </td>
+   <td style="text-align:right;"> 86332 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DTA </td>
@@ -2258,28 +2291,28 @@ reasons </th>
    <td style="text-align:left;"> Data Change </td>
    <td style="text-align:left;"> WEC </td>
    <td style="text-align:left;"> Well Elig Chg (SYS) </td>
-   <td style="text-align:right;"> 38804 </td>
+   <td style="text-align:right;"> 38766 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> HIR </td>
    <td style="text-align:left;"> Hire </td>
    <td style="text-align:left;"> NHR </td>
    <td style="text-align:left;"> New Hire </td>
-   <td style="text-align:right;"> 100373 </td>
+   <td style="text-align:right;"> 100748 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> JRC </td>
    <td style="text-align:left;"> Job Reclassification </td>
    <td style="text-align:left;"> JRC </td>
    <td style="text-align:left;"> Job Reclassification </td>
-   <td style="text-align:right;"> 5841 </td>
+   <td style="text-align:right;"> 5895 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LOA </td>
    <td style="text-align:left;"> Leave of Absence </td>
    <td style="text-align:left;"> LOA </td>
    <td style="text-align:left;"> LOA Without Pay </td>
-   <td style="text-align:right;"> 1457 </td>
+   <td style="text-align:right;"> 1465 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> LTO </td>
@@ -2293,14 +2326,14 @@ reasons </th>
    <td style="text-align:left;"> Pay Rate Change </td>
    <td style="text-align:left;"> ADJ </td>
    <td style="text-align:left;"> Adjustment </td>
-   <td style="text-align:right;"> 54569 </td>
+   <td style="text-align:right;"> 54821 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PAY </td>
    <td style="text-align:left;"> Pay Rate Change </td>
    <td style="text-align:left;"> FYR </td>
    <td style="text-align:left;"> FY Raise </td>
-   <td style="text-align:right;"> 3719 </td>
+   <td style="text-align:right;"> 4369 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PAY </td>
@@ -2314,49 +2347,49 @@ reasons </th>
    <td style="text-align:left;"> Pay Rate Change </td>
    <td style="text-align:left;"> REC </td>
    <td style="text-align:left;"> Job Reclassification </td>
-   <td style="text-align:right;"> 6398 </td>
+   <td style="text-align:right;"> 6421 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PAY </td>
    <td style="text-align:left;"> Pay Rate Change </td>
    <td style="text-align:left;"> MKT </td>
    <td style="text-align:left;"> Market Equity Adjustment (SYS) </td>
-   <td style="text-align:right;"> 62540 </td>
+   <td style="text-align:right;"> 62518 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PAY </td>
    <td style="text-align:left;"> Pay Rate Change </td>
    <td style="text-align:left;"> MER </td>
    <td style="text-align:left;"> Merit (SYS) </td>
-   <td style="text-align:right;"> 69821 </td>
+   <td style="text-align:right;"> 69806 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PAY </td>
    <td style="text-align:left;"> Pay Rate Change </td>
    <td style="text-align:left;"> FLS </td>
    <td style="text-align:left;"> Pay Adj - FLSA Reg(SYS) </td>
-   <td style="text-align:right;"> 259 </td>
+   <td style="text-align:right;"> 263 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PLA </td>
    <td style="text-align:left;"> Paid Leave of Absence </td>
    <td style="text-align:left;"> PLA </td>
    <td style="text-align:left;"> Paid LOA </td>
-   <td style="text-align:right;"> 732 </td>
+   <td style="text-align:right;"> 736 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PLA </td>
    <td style="text-align:left;"> Paid Leave of Absence </td>
    <td style="text-align:left;"> PSB </td>
    <td style="text-align:left;"> Paid Sabbatical Leave </td>
-   <td style="text-align:right;"> 17 </td>
+   <td style="text-align:right;"> 15 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> PLA </td>
    <td style="text-align:left;"> Paid Leave of Absence </td>
    <td style="text-align:left;"> PAR </td>
    <td style="text-align:left;"> Parental Leave </td>
-   <td style="text-align:right;"> 64 </td>
+   <td style="text-align:right;"> 66 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> POS </td>
@@ -2370,49 +2403,49 @@ reasons </th>
    <td style="text-align:left;"> Position Change </td>
    <td style="text-align:left;"> PDU </td>
    <td style="text-align:left;"> Position Data Update </td>
-   <td style="text-align:right;"> 11176 </td>
+   <td style="text-align:right;"> 11174 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> POS </td>
    <td style="text-align:left;"> Position Change </td>
    <td style="text-align:left;"> STA </td>
    <td style="text-align:left;"> Position Status Change </td>
-   <td style="text-align:right;"> 22093 </td>
+   <td style="text-align:right;"> 22084 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> REH </td>
    <td style="text-align:left;"> Rehire </td>
    <td style="text-align:left;"> REH </td>
    <td style="text-align:left;"> Rehire </td>
-   <td style="text-align:right;"> 27608 </td>
+   <td style="text-align:right;"> 27660 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RFL </td>
    <td style="text-align:left;"> Return from Leave </td>
    <td style="text-align:left;"> RFL </td>
    <td style="text-align:left;"> Return From Leave </td>
-   <td style="text-align:right;"> 22020 </td>
+   <td style="text-align:right;"> 22078 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RFL </td>
    <td style="text-align:left;"> Return from Leave </td>
    <td style="text-align:left;"> RPL </td>
    <td style="text-align:left;"> Return from Paid Leave </td>
-   <td style="text-align:right;"> 7766 </td>
+   <td style="text-align:right;"> 7778 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RWB </td>
    <td style="text-align:left;"> Return from Work Break </td>
    <td style="text-align:left;"> RWB </td>
    <td style="text-align:left;"> Return from Work Break </td>
-   <td style="text-align:right;"> 20446 </td>
+   <td style="text-align:right;"> 20494 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RWP </td>
    <td style="text-align:left;"> Retirement with Pay </td>
    <td style="text-align:left;"> ERT </td>
    <td style="text-align:left;"> Early Retirement </td>
-   <td style="text-align:right;"> 219 </td>
+   <td style="text-align:right;"> 221 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> RWP </td>
@@ -2426,7 +2459,7 @@ reasons </th>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> PAY </td>
    <td style="text-align:left;"> Compensation </td>
-   <td style="text-align:right;"> 24 </td>
+   <td style="text-align:right;"> 26 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
@@ -2447,14 +2480,14 @@ reasons </th>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> DEV </td>
    <td style="text-align:left;"> Development Opportunities </td>
-   <td style="text-align:right;"> 71 </td>
+   <td style="text-align:right;"> 76 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> CRP </td>
    <td style="text-align:left;"> Duplicate EE Record </td>
-   <td style="text-align:right;"> 73 </td>
+   <td style="text-align:right;"> 74 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
@@ -2475,14 +2508,21 @@ reasons </th>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> EAC </td>
    <td style="text-align:left;"> End Employment Agreement </td>
-   <td style="text-align:right;"> 234 </td>
+   <td style="text-align:right;"> 238 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> TER </td>
+   <td style="text-align:left;"> Termination </td>
+   <td style="text-align:left;"> EFT </td>
+   <td style="text-align:left;"> End of Fixed-Term Contract </td>
+   <td style="text-align:right;"> 172 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> TMP </td>
    <td style="text-align:left;"> End PT/Non-BenefitsEmployment </td>
-   <td style="text-align:right;"> 10665 </td>
+   <td style="text-align:right;"> 10681 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
@@ -2496,7 +2536,7 @@ reasons </th>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> FAM </td>
    <td style="text-align:left;"> Family Reasons </td>
-   <td style="text-align:right;"> 123 </td>
+   <td style="text-align:right;"> 128 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
@@ -2524,14 +2564,14 @@ reasons </th>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> HTH </td>
    <td style="text-align:left;"> Health-Related Issues </td>
-   <td style="text-align:right;"> 44 </td>
+   <td style="text-align:right;"> 46 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> HRS </td>
    <td style="text-align:left;"> Hours </td>
-   <td style="text-align:right;"> 14 </td>
+   <td style="text-align:right;"> 17 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
@@ -2545,63 +2585,63 @@ reasons </th>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> LWF </td>
    <td style="text-align:left;"> Leaving the Workforce </td>
-   <td style="text-align:right;"> 97 </td>
+   <td style="text-align:right;"> 104 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> LOC </td>
    <td style="text-align:left;"> Location </td>
-   <td style="text-align:right;"> 50 </td>
+   <td style="text-align:right;"> 56 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> NRC </td>
    <td style="text-align:left;"> Non Renewal of Contract </td>
-   <td style="text-align:right;"> 724 </td>
+   <td style="text-align:right;"> 865 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> OCN </td>
    <td style="text-align:left;"> Other Controllable </td>
-   <td style="text-align:right;"> 96 </td>
+   <td style="text-align:right;"> 97 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> OUC </td>
    <td style="text-align:left;"> Other Uncontrollable </td>
-   <td style="text-align:right;"> 236 </td>
+   <td style="text-align:right;"> 264 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> PRM </td>
    <td style="text-align:left;"> Promotion Opportunities </td>
-   <td style="text-align:right;"> 33 </td>
+   <td style="text-align:right;"> 34 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> RIF </td>
    <td style="text-align:left;"> Reduction in Force </td>
-   <td style="text-align:right;"> 1313 </td>
+   <td style="text-align:right;"> 1322 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> RLS </td>
    <td style="text-align:left;"> Release from Probation </td>
-   <td style="text-align:right;"> 2750 </td>
+   <td style="text-align:right;"> 2753 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> REL </td>
    <td style="text-align:left;"> Relocation </td>
-   <td style="text-align:right;"> 140 </td>
+   <td style="text-align:right;"> 153 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
@@ -2615,7 +2655,7 @@ reasons </th>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> SEP </td>
    <td style="text-align:left;"> Separation Other </td>
-   <td style="text-align:right;"> 115 </td>
+   <td style="text-align:right;"> 118 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
@@ -2629,7 +2669,7 @@ reasons </th>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> UNS </td>
    <td style="text-align:left;"> Separation/Unavailability </td>
-   <td style="text-align:right;"> 337 </td>
+   <td style="text-align:right;"> 338 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
@@ -2643,14 +2683,14 @@ reasons </th>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> ASN </td>
    <td style="text-align:left;"> Termination of Assignment </td>
-   <td style="text-align:right;"> 4147 </td>
+   <td style="text-align:right;"> 4197 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> TYP </td>
    <td style="text-align:left;"> Type of Work </td>
-   <td style="text-align:right;"> 33 </td>
+   <td style="text-align:right;"> 34 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
@@ -2664,7 +2704,7 @@ reasons </th>
    <td style="text-align:left;"> Termination </td>
    <td style="text-align:left;"> VOL </td>
    <td style="text-align:left;"> Voluntary Resignation </td>
-   <td style="text-align:right;"> 80453 </td>
+   <td style="text-align:right;"> 80596 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> TER </td>
@@ -2685,7 +2725,7 @@ reasons </th>
    <td style="text-align:left;"> Transfer </td>
    <td style="text-align:left;"> H2U </td>
    <td style="text-align:left;"> Hospital to University </td>
-   <td style="text-align:right;"> 999 </td>
+   <td style="text-align:right;"> 1007 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> XFR </td>
@@ -2699,28 +2739,28 @@ reasons </th>
    <td style="text-align:left;"> Transfer </td>
    <td style="text-align:left;"> LAT </td>
    <td style="text-align:left;"> Lateral Transfer </td>
-   <td style="text-align:right;"> 20136 </td>
+   <td style="text-align:right;"> 20169 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> XFR </td>
    <td style="text-align:left;"> Transfer </td>
    <td style="text-align:left;"> PRO </td>
    <td style="text-align:left;"> Promotion </td>
-   <td style="text-align:right;"> 21453 </td>
+   <td style="text-align:right;"> 21581 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> XFR </td>
    <td style="text-align:left;"> Transfer </td>
    <td style="text-align:left;"> ROR </td>
    <td style="text-align:left;"> Reorganization </td>
-   <td style="text-align:right;"> 5177 </td>
+   <td style="text-align:right;"> 5173 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> XFR </td>
    <td style="text-align:left;"> Transfer </td>
    <td style="text-align:left;"> XFR </td>
    <td style="text-align:left;"> Transfer </td>
-   <td style="text-align:right;"> 28984 </td>
+   <td style="text-align:right;"> 29138 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> XFR </td>
@@ -2734,69 +2774,27 @@ reasons </th>
    <td style="text-align:left;"> Transfer </td>
    <td style="text-align:left;"> U2H </td>
    <td style="text-align:left;"> Voluntary Xfr to Hospital </td>
-   <td style="text-align:right;"> 68 </td>
+   <td style="text-align:right;"> 73 </td>
   </tr>
 </tbody>
 </table></div>
-
-
-![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-21-1.png)<!-- -->
-
-
-![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-22-1.png)<!-- -->
-
-![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-23-1.png)<!-- -->
-
-
-
-
-![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-25-1.png)<!-- -->
-
-
-![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-26-1.png)<!-- -->
-
-
-
-
-
-
-### Count of actions per date
-
-![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-28-1.png)<!-- -->![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-28-2.png)<!-- -->
-
-![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-29-1.png)<!-- -->
-
-
-
-
-### Seasonality
-
-
-![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-31-1.png)<!-- -->
-
-
-
-
-![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-33-1.png)<!-- -->![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-33-2.png)<!-- -->
-
-![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-34-1.png)<!-- -->
 
 ## (2) DEFINE "BOUNDARY" ACTIONS AND CHECK FOR INTERNAL CONSISTENCY
 
 The actions and action reasons are reviewed, and grouped according to three main boundary types: primary, leave, and break.
 
-These are then tallied per EMPLID to check for inconsistencies.  In particular, the number of exits should never exceed the number of entries for a type, and the number of entries should never be greater than one more than the number of exits.
+These are then tallied per EMPLID to check for inconsistencies.  
 
-Many inconsistencies were found, suggesting additional processing and refinement of the "boundary" definitions.
+First, the number of exits should not exceed the number of entries for a type.  Many examples of these inconsistencies were found.  These may be explained as having an entry date that preceded the query start date.  
 
-For example:    
+This can be resolved in one of two ways.  One way is entering a dummy "entry" action to mirror the unpaired "exit" action, and set this action to one day preceding the query.  However, this enters an assumption into the data set that might obscure an error and loses information like job duration.
 
-  * EMPLID "00028879" on EFFDT == "2010-01-16" shows identical rows except for the EMPL_RCD field.   
-  * EMPLID "00029479" on EFFDT == "2011-07-16" show them returning from leave twice, were terminated, and transferred all in one day (and the employment records continue until they retired in 2022.)   
-  * EMPLID "00002624" on EFFDT == "2021-03-16" added a "Hire Concurrent Job", which suggests I should not consider this action as a boundary action.
+Another way is to modify the query to pull the entire history of any employees that have activity after the query start date of Jan 1, 2010.  That would make the first effective date in the data set much older than Jan 1, 2010, but a complete record of all activities for all employees wouldn't be expected until after Jan 1, 2010.  Although older data is less accurate, this would avoid introducing assumptions, obscuring errors, and losing information.
+
+Second, the number of entries should not exceed more than one more than the number of exits.  No errors of this type were found, indicating consistent data.
 
 
-![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-35-1.png)<!-- -->
+![](Workforce-Journey-EDA-Single-Records_files/figure-html/unnamed-chunk-37-1.png)<!-- -->
 
 
 
@@ -2813,207 +2811,20 @@ For example:
 <tbody>
   <tr>
    <td style="text-align:left;"> break </td>
-   <td style="text-align:right;"> 1206 </td>
+   <td style="text-align:right;"> 1291 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> leave </td>
-   <td style="text-align:right;"> 7973 </td>
+   <td style="text-align:right;"> 7989 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> primary </td>
-   <td style="text-align:right;"> 17945 </td>
+   <td style="text-align:right;"> 18017 </td>
   </tr>
 </tbody>
 </table>
 
-<table class=" lightable-paper lightable-hover" style='color: black; font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
-<caption>Sample of EMPLIDs with more 'break' exits than entries</caption>
- <thead>
-  <tr>
-   <th style="text-align:left;"> EMPLID </th>
-   <th style="text-align:right;"> entry </th>
-   <th style="text-align:right;"> exit </th>
-  </tr>
- </thead>
-<tbody>
-  <tr>
-   <td style="text-align:left;"> 00002679 </td>
-   <td style="text-align:right;"> 15 </td>
-   <td style="text-align:right;"> 16 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00008629 </td>
-   <td style="text-align:right;"> 5 </td>
-   <td style="text-align:right;"> 6 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00016848 </td>
-   <td style="text-align:right;"> 2 </td>
-   <td style="text-align:right;"> 3 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00020291 </td>
-   <td style="text-align:right;"> 3 </td>
-   <td style="text-align:right;"> 4 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00030805 </td>
-   <td style="text-align:right;"> 8 </td>
-   <td style="text-align:right;"> 9 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00033564 </td>
-   <td style="text-align:right;"> 3 </td>
-   <td style="text-align:right;"> 4 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00033601 </td>
-   <td style="text-align:right;"> 5 </td>
-   <td style="text-align:right;"> 6 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00038302 </td>
-   <td style="text-align:right;"> 0 </td>
-   <td style="text-align:right;"> 1 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00057134 </td>
-   <td style="text-align:right;"> 0 </td>
-   <td style="text-align:right;"> 1 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00058281 </td>
-   <td style="text-align:right;"> 1 </td>
-   <td style="text-align:right;"> 2 </td>
-  </tr>
-</tbody>
-</table>
 
-<table class=" lightable-paper lightable-hover" style='color: black; font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
-<caption>Sample of EMPLIDs with more 'leave' exits than entries</caption>
- <thead>
-  <tr>
-   <th style="text-align:left;"> EMPLID </th>
-   <th style="text-align:right;"> entry </th>
-   <th style="text-align:right;"> exit </th>
-  </tr>
- </thead>
-<tbody>
-  <tr>
-   <td style="text-align:left;"> 00000133 </td>
-   <td style="text-align:right;"> 1 </td>
-   <td style="text-align:right;"> 2 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00000441 </td>
-   <td style="text-align:right;"> 1 </td>
-   <td style="text-align:right;"> 5 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00000750 </td>
-   <td style="text-align:right;"> 1 </td>
-   <td style="text-align:right;"> 2 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00000880 </td>
-   <td style="text-align:right;"> 0 </td>
-   <td style="text-align:right;"> 1 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00001233 </td>
-   <td style="text-align:right;"> 1 </td>
-   <td style="text-align:right;"> 2 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00001756 </td>
-   <td style="text-align:right;"> 1 </td>
-   <td style="text-align:right;"> 3 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00002040 </td>
-   <td style="text-align:right;"> 1 </td>
-   <td style="text-align:right;"> 2 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00002760 </td>
-   <td style="text-align:right;"> 1 </td>
-   <td style="text-align:right;"> 2 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00002908 </td>
-   <td style="text-align:right;"> 1 </td>
-   <td style="text-align:right;"> 3 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00003188 </td>
-   <td style="text-align:right;"> 4 </td>
-   <td style="text-align:right;"> 5 </td>
-  </tr>
-</tbody>
-</table>
-
-<table class=" lightable-paper lightable-hover" style='color: black; font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
-<caption>Sample of EMPLIDs with more 'primary' exits than entries</caption>
- <thead>
-  <tr>
-   <th style="text-align:left;"> EMPLID </th>
-   <th style="text-align:right;"> entry </th>
-   <th style="text-align:right;"> exit </th>
-  </tr>
- </thead>
-<tbody>
-  <tr>
-   <td style="text-align:left;"> 00000008 </td>
-   <td style="text-align:right;"> 0 </td>
-   <td style="text-align:right;"> 1 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00000396 </td>
-   <td style="text-align:right;"> 0 </td>
-   <td style="text-align:right;"> 1 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00000496 </td>
-   <td style="text-align:right;"> 0 </td>
-   <td style="text-align:right;"> 1 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00000965 </td>
-   <td style="text-align:right;"> 0 </td>
-   <td style="text-align:right;"> 1 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00001072 </td>
-   <td style="text-align:right;"> 0 </td>
-   <td style="text-align:right;"> 1 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00001211 </td>
-   <td style="text-align:right;"> 0 </td>
-   <td style="text-align:right;"> 1 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00001344 </td>
-   <td style="text-align:right;"> 0 </td>
-   <td style="text-align:right;"> 1 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00001427 </td>
-   <td style="text-align:right;"> 0 </td>
-   <td style="text-align:right;"> 1 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00001446 </td>
-   <td style="text-align:right;"> 1 </td>
-   <td style="text-align:right;"> 2 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 00001571 </td>
-   <td style="text-align:right;"> 0 </td>
-   <td style="text-align:right;"> 1 </td>
-  </tr>
-</tbody>
-</table>
 
 
 <table class=" lightable-paper lightable-hover" style='color: black; font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
@@ -3040,194 +2851,8 @@ For example:
 </tbody>
 </table>
 
-<table class=" lightable-paper lightable-hover" style='color: black; font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
-<caption>More 'break' entries than exits</caption>
- <thead>
-  <tr>
-   <th style="text-align:left;"> EMPLID </th>
-   <th style="text-align:right;"> entry </th>
-   <th style="text-align:right;"> exit </th>
-  </tr>
- </thead>
-<tbody>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-</tbody>
-</table>
 
-<table class=" lightable-paper lightable-hover" style='color: black; font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
-<caption>More 'leave' entries than exits</caption>
- <thead>
-  <tr>
-   <th style="text-align:left;"> EMPLID </th>
-   <th style="text-align:right;"> entry </th>
-   <th style="text-align:right;"> exit </th>
-  </tr>
- </thead>
-<tbody>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-</tbody>
-</table>
 
-<table class=" lightable-paper lightable-hover" style='color: black; font-family: "Arial Narrow", arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
-<caption>More 'primary' entries than exits</caption>
- <thead>
-  <tr>
-   <th style="text-align:left;"> EMPLID </th>
-   <th style="text-align:right;"> entry </th>
-   <th style="text-align:right;"> exit </th>
-  </tr>
- </thead>
-<tbody>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-   <td style="text-align:right;"> NA </td>
-  </tr>
-</tbody>
-</table>
 
 
 
@@ -3241,52 +2866,76 @@ For example:
 
 The query below is converted to a view, ds_hr.EMPL_AGE_RANGE_ACTION_MV_V.
 
-"SELECT A.EMPLID, A.EMPL_RCD, A.EFFDT, A.EFFSEQ
-    , A.ACTION, B.ACTION_DESCR
-    , A.ACTION_REASON, C.DESCR ACTION_REASON_DESCR
-    , Case when A.ACTION ! = 'TER' then ''
+SELECT    
+
+  A.EMPLID, A.EMPL_RCD, A.EFFDT, A.EFFSEQ   
+    , A.ACTION, B.ACTION_DESCR    
+    , A.ACTION_REASON, C.DESCR ACTION_REASON_DESCR, A.JOBCODE, E.DESCR JOB_TITLE    
+    , A.DEPTID, F.DESCR DEPT_NAME   
+    , Case when A.ACTION ! = 'TER' then ''    
         when A.ACTION  = ('TER') 
         AND A.ACTION_REASON not in ('BNK', 'EVW', 'I9', 'INV', 'NER', 'RFN', 'RIF', 'RLS') 
         then 'Voluntary' else 'Involuntary' end VOLUNTARY_FLAG
-    , Case    when (SYSDATE-D.BIRTHDATE)/365.25 < 20
+    , Case    when (A.EFFDT-D.BIRTHDATE)/365.25 < 20
         then 'Under 20' 
-    when (SYSDATE-D.BIRTHDATE)/365.25 >= 20  and (SYSDATE-D.BIRTHDATE)/365.25 < 30
+    when (A.EFFDT-D.BIRTHDATE)/365.25 >= 20  and (A.EFFDT-D.BIRTHDATE)/365.25 < 30
         then '20s'
-    when (SYSDATE-D.BIRTHDATE)/365.25 >= 30  and (SYSDATE-D.BIRTHDATE)/365.25  < 40
+    when (A.EFFDT-D.BIRTHDATE)/365.25 >= 30  and (A.EFFDT-D.BIRTHDATE)/365.25  < 40
         then '30s'
-    when (SYSDATE-D.BIRTHDATE)/365.25 >= 40  and (SYSDATE-D.BIRTHDATE)/365.25  < 50
+    when (A.EFFDT-D.BIRTHDATE)/365.25 >= 40  and (A.EFFDT-D.BIRTHDATE)/365.25  < 50
         then '40s'
-    when (SYSDATE-D.BIRTHDATE)/365.25 >= 50  and (SYSDATE-D.BIRTHDATE)/365.25 < 60
+    when (A.EFFDT-D.BIRTHDATE)/365.25 >= 50  and (A.EFFDT-D.BIRTHDATE)/365.25 < 60
         then '50s'
-    when (SYSDATE-D.BIRTHDATE)/365.25 >= 60  and (SYSDATE-D.BIRTHDATE)/365.25  < 70
+    when (A.EFFDT-D.BIRTHDATE)/365.25 >= 60  and (A.EFFDT-D.BIRTHDATE)/365.25  < 70
         then '60s'
-    when (SYSDATE-D.BIRTHDATE)/365.25 >= 70  and (SYSDATE-D.BIRTHDATE)/365.25 < 80
+    when (A.EFFDT-D.BIRTHDATE)/365.25 >= 70  and (A.EFFDT-D.BIRTHDATE)/365.25 < 80
         then '70s'
-    when (SYSDATE-D.BIRTHDATE)/365.25 >= 80  and (SYSDATE-D.BIRTHDATE)/365.25 < 90
+    when (A.EFFDT-D.BIRTHDATE)/365.25 >= 80  and (A.EFFDT-D.BIRTHDATE)/365.25 < 90
         then '80s'
     else '90 and Above'
         end Age_Band
+    , Case when LENGTH(A.JOBCODE) = 6
+        AND A.JOBCODE NOT LIKE '7%'
+        then 'UCareer Job Code'
+        else ''
+        end UCAREER_JOBCODE_FLAG    
         
-FROM PS_UU_UNSEC_JOB_VW A
-  JOIN PS_ACTION_TBL B
-    ON (B.ACTION = A.ACTION
-    AND B.EFFDT =
-        (SELECT MAX(B_ED.EFFDT) FROM PS_ACTION_TBL B_ED
-        WHERE B.ACTION = B_ED.ACTION
-          AND B_ED.EFFDT <= SYSDATE))
-  JOIN PS_ACTN_REASON_TBL C
-    ON (C.ACTION = A.ACTION
-     AND C.ACTION_REASON = A.ACTION_REASON
-     AND C.EFFDT =
-        (SELECT MAX(C_ED.EFFDT) FROM PS_ACTN_REASON_TBL C_ED
-        WHERE C.ACTION = C_ED.ACTION
-          AND C.ACTION_REASON = C_ED.ACTION_REASON
-          AND C_ED.EFFDT <= SYSDATE))
+FROM    
+
+  PS_UU_UNSEC_JOB_VW A    
+    JOIN PS_ACTION_TBL B
+        ON (B.ACTION = A.ACTION)
+    JOIN PS_ACTN_REASON_TBL C
+        ON (C.ACTION = A.ACTION
+            AND C.ACTION_REASON = A.ACTION_REASON)
     JOIN ps_personal_dt_fst D
         ON (D.EMPLID = A.EMPLID)
+    JOIN PS_JOBCODE_TBL E
+        ON (E.JOBCODE = A.JOBCODE)
+    JOIN PS_DEPT_TBL F
+        ON (F.DEPTID = A.DEPTID)
         
-WHERE  A.EFFDT > TO_DATE('2010-01-01','YYYY-MM-DD')
-    ORDER BY A.EMPLID, A.EMPL_RCD, A.EFFDT"
+WHERE  A.EFFDT > TO_DATE('2010-01-01','YYYY-MM-DD')   
+    
+  AND B.EFFDT = (SELECT MAX(B_ED.EFFDT) 
+      FROM PS_ACTION_TBL B_ED
+      WHERE B.ACTION = B_ED.ACTION
+      AND B_ED.EFFDT <= SYSDATE)
+  AND C.EFFDT = (SELECT MAX(C_ED.EFFDT) 
+      FROM PS_ACTN_REASON_TBL C_ED
+      WHERE C.ACTION = C_ED.ACTION
+      AND C.ACTION_REASON = C_ED.ACTION_REASON
+      AND C_ED.EFFDT <= SYSDATE)
+      AND E.EFFDT = (SELECT MAX(E_ED.EFFDT) 
+        FROM PS_JOBCODE_TBL E_ED
+        WHERE E.JOBCODE = E_ED.JOBCODE
+        AND E_ED.EFFDT <= SYSDATE)         
+  AND F.EFFDT = (SELECT MAX(F_ED.EFFDT) 
+        FROM PS_DEPT_TBL F_ED
+        WHERE F.DEPTID = F_ED.DEPTID
+        AND F_ED.EFFDT <= SYSDATE)            
+
+ORDER BY A.EMPLID, A.EMPL_RCD, A.EFFDT, A.EFFSEQ
 
 
 

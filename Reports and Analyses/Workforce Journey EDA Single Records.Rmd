@@ -1,5 +1,5 @@
 ---
-title: "Workforce Journey Exploratory Data Analysis"
+title: "Workforce Journey Exploratory Data Analysis(No Concurrent Jobs)"
 author: "Bill Prisbrey"
 date: "2025-06-19"
 output:
@@ -7,13 +7,32 @@ output:
     keep_md: true
 ---
 
-Notes to self:
 
-Looks like I need to exclude ACTION_REASON == "HCJ" (Hire Concurrent Job) because somehow three records snuck in. # DONE
+```{r include = FALSE}
 
-There's no "Too Many Entries" which is encouraging.  
+# Notes to self:
 
-I haven't attempted to see how many of the "Too Many Exits" are due to pre-query hires.  It could be a large number of these.  However figuring that out, opposed to an error, could be tricky.
+# As of 7.8.2025, this pulls the new query.  This shifts the age younger, as you'd expect, and adds some 424 rows for some reason that might explain itself, or is irrelevant, or might be worth investigating and explaining.
+
+# To do:
+# - Include descriptive graphics of the new fields (job codes and descriptions)
+# - Update the entry/exits graphic to completely match how I'm defining them
+# - In a different report, calculate the headcount
+# - I should add a dummy "entry" variable for people presumably entering before the min date (Jan 2, 2010.)  How am I going to double-check that? 
+# - This query isn't exactly what I want.  It pulls all records after the defined date, but I want all the records for people who are -active- after the defined date.  Would it be so hard to create this query?  As it is, I almost want to identify all the EMPLIDs who have too many exits --- and pull their full history.  (Or maybe I just do this once, and if it's close enough then it's good enough ? )
+# - I can remove the example tables.  They really aren't that useful.  If I wanted to populate, maybe I can just list EMPLIDs?  But why?
+# - I could improve the titles and formatting of all of these tables (so many tables!  But they are useful reference look-ups for me.)
+# - Write up how the "too many entries" might be an entry before the start date
+
+# ==
+
+# Looks like I need to exclude ACTION_REASON == "HCJ" (Hire Concurrent Job) because somehow three records snuck in. # DONE
+
+# There's no "Too Many Entries" which is encouraging.  
+
+# I haven't attempted to see how many of the "Too Many Exits" are due to pre-query hires.  It could be a large number of these.  However figuring that out, opposed to an error, could be tricky.
+
+```
 
 ```{r settings, include = FALSE}
 
@@ -121,7 +140,7 @@ filterTwoCount <- fullEmplid$count.total >= 2
 ## QUERY ##
 ###########
 
-# Obtain age data
+# Obtain journey data
 
 keyring::keyring_unlock(keyring = "BIPR", password = "Excelsior!")
 
@@ -135,7 +154,7 @@ con.ds <- DBI::dbConnect(odbc::odbc(),
                          service = keyring::key_list(keyring = "BIPR")[1,1]),
                          Port = 2080)
 
-journeyQuery <- "select * from ds_hr.EMPL_AGE_RANGE_ACTION_MV_V WHERE EFFDT < TO_DATE('2025-06-30', 'YYYY-MM-DD') " # a view of that same query
+journeyQuery <- "select * from ds_hr.EMPL_AGE_RANGE_ACTION_MV_V WHERE EFFDT < TO_DATE('2025-08-01', 'YYYY-MM-DD') " # a view of the query
 
 journeyData <- dbGetQuery(con.ds, journeyQuery)
 
@@ -150,7 +169,7 @@ SELECT
 FROM
   ds_hr.EMPL_AGE_RANGE_ACTION_MV_V
 WHERE
-  EFFDT <= DATE '2025-06-01'
+  EFFDT <= DATE '2025-08-01'
 GROUP BY
   ACTION,
   ACTION_DESCR,
@@ -188,6 +207,9 @@ journeyData$AGE_BAND <- factor(journeyData$AGE_BAND, levels =
                                  )
                                  )
 
+# I already set a filter to the query to 6/30/2025
+# Given that it's the week of maximum activity, I should just set it to Aug 1.
+
 # Remove a bad date
 #> journeyData[journeyData$EFFDT > as.Date("2030-12-31"),]
 #          EMPLID EMPL_RCD      EFFDT EFFSEQ ACTION     ACTION_DESCR ACTION_REASON
@@ -195,7 +217,7 @@ journeyData$AGE_BAND <- factor(journeyData$AGE_BAND, levels =
 #        ACTION_REASON_DESCR VOLUNTARY_FLAG AGE_BAND
 # 1950047           Extension           <NA>      30s
 
-journeyData <- journeyData[journeyData$EFFDT <= as.Date("2030-12-31"),]
+# journeyData <- journeyData[journeyData$EFFDT <= as.Date("2030-12-31"),]
 
 ```
 
@@ -215,6 +237,9 @@ journeySingleFilter <- journeyData$EMPLID %in% singleRCD & journeyData$EMPL_RCD 
 # NEEDS ATTENTION if I want to figure this out.  Not sure I really need this
 nonZeroFilter <- (journeyData$EMPLID %in% singleRCD) & journeyData$EMPL_RCD != 0 
 nonZeroEmplids <- unique(journeyData$EMPLID[nonZeroFilter])
+
+# holding onto the original data
+jData <- journeyData
 
 # I should figure out how to incorporate this logic into a query
 
@@ -501,46 +526,28 @@ View(journeyData[journeyData$EFFDT == "2010-09-01" & journeyData$EMPLID == "0000
 
 **PURPOSE:**  The purpose of this report is to describe the "workforce journey" data for employees that only have had one employee record value of zero, meaning no concurrent jobs or possible mis-use of the "EMPL_RCD" field.
 
-It will highlight possible inconsistencies for further clarification with HR. 
-
 **OBJECTIVES:**   
 
-  1.  Describe the "Workforce Journey" data.   
+  1.  Describe the "Workforce Journey" data for employees who never had a concurrent job in the defined period.    
   2.  Define "boundary" actions and check for internal consistency.   
 
 **EXECUTIVE SUMMARY:**
 
-The "workforce journey" data is examined. It is filtered according to the condition of no concurrent jobs, or more specifically, that the employee only ever had a EMPL_RCD value of zero.  Some `r nrow(journeyData) |> (\(x){x+1})() |> format(big.mark=",")` rows use `r length(unique(journeyData$ACTION))` distinct actions to describe the employment experience of `r length(unique(journeyData$EMPLID)) |> format(big.mark = ",")` employees since `r year(min(journeyData$EFFDT))`.  This filtered out the employment history of  `r (length(dupeRCD) + length(nonZeroEmplids)) |> format(big.mark=",")` employees with more than one employee record.
+The "workforce journey" data is examined. The records are queried after `r as.Date(min(journeyData$EFFDT))` and before 2025-08-01, then filtered according to the condition of no concurrent jobs.  (More specifically, that the employee only ever had a EMPL_RCD value of zero and never had an action reason of "HCJ" ("Hire Concurrent Job") during the query period.)  Some `r nrow(journeyData) |> format(big.mark=",")` rows use `r length(unique(journeyData$ACTION))` distinct actions to describe the employment experience of `r length(unique(journeyData$EMPLID)) |> format(big.mark = ",")` employees.
 
 Of particular interest are the so-called "boundary actions" that define entry and exit into the workforce.  These include "primary" actions like hiring and retiring; "break" actions that describe a "short work break"; and "leave" actions for long term disability or a paid leave of absence.   
-
-==
-
-Old version; these were pretty much cleared up.  Fields were clarified and a new query is being written.
-
-When these boundary actions are so simply defined, there are inconsistencies in the respective tallies.  These need to be clarified with HR.
-
-Possible improvements and points for additional clarity include:    
-
-  * Anchor the age bands to a specific date rather than the time of the query.   
-  * Clarify the actions and reasons that define boundary entry and exits.   
-  * Clarify the fields "EMPL_RCD" and "EFFSEQ".   
-  * Clarify edge cases and complex cases (like the employment history of "00028073" and the records of “00029479” on EFFDT == “2011-07-16”).  
-  * Review the definition of "voluntary" vs "involuntary" termination and discuss specific cases.   
 
 **SUMMARY:**   
 
 `r nrow(journeyData) |> (\(x){x+1})() |> format(big.mark=",")` rows covering dates between `r min(journeyData$EFFDT)` and `r max(journeyData$EFFDT)` are queried.
 
-One row with a bad date ("2202-11-21") is filtered out.
+All employees that had employee record values other than zero, or action reasons of "HCJ" ("Hire Concurrent Job"), are filtered out.  This removes employees who had concurrent positions or erroneous data entry. These employees will be treated separately due to their more complex work journeys.        
 
-All employees that had employee record values other than zero are filtered out.  This removes employees who had concurrent positions or erroneous data entry.  These `r(length(dupeRCD) + length(nonZeroEmplids)) |> format(big.mark=",")` employees will be treated separately.     
-
-The remaining data describes `r length(unique(journeyData$EMPLID)) |> format(big.mark = ",")` employees and every employment "action" that defines their experience (such as transfers, pay raises, leave of absence, and eventual termination or retirement.)  `r length(unique(journeyData$ACTION))` distinct actions are further explained with `r length(unique(journeyData$ACTION_REASON))` unique "action reasons." Employees have a median count of `r median(eventsPerEmplid$eventCount)` of these "actions" in their employment history. (At an extreme, one employee (`r eventsPerEmplid$EMPLID[eventsPerEmplid$eventCount == max(eventsPerEmplid$eventCount)]`)  has `r max(eventsPerEmplid$eventCount)` actions.)    
+The remaining data describes `r length(unique(journeyData$EMPLID)) |> format(big.mark = ",")` employees in `r length(unique(journeyData$JOBCODE)) |> format(big.mark = ",")` job codes in `r length(unique(journeyData$DEPTID)) |> format(big.mark = ",")` departments, and every employment "action" that defines their experience (such as transfers, pay raises, leave of absence, and eventual termination or retirement.)  `r length(unique(journeyData$ACTION))` distinct actions are further explained with `r length(unique(journeyData$ACTION_REASON))` unique "action reasons." Employees have a median count of `r median(eventsPerEmplid$eventCount)` of these "actions" in their employment history. (At an extreme, one employee (`r eventsPerEmplid$EMPLID[eventsPerEmplid$eventCount == max(eventsPerEmplid$eventCount)]`)  has `r max(eventsPerEmplid$eventCount)` actions.)    
 
 Overwhelmingly, an action of "Data Change" ("DTA") is the most common, followed by "Pay Rate Change" ("PAY") and distantly "Termination" ("TER"), "Hire" ("HIR"), and "Transfer" ("XFR").  The "Termination" ("TER") action has the most "action reasons" (`r length(unique(journeyData$ACTION_REASON[journeyData$ACTION == "TER"]))`).
 
-An age band of the employee is provided of the decade of their age at the time of the query.  Each employee has one un-changing age band. The most frequent band is the decade of the thirties.
+An age band of the employee is provided of the decade of their age at the time of the action. The most frequent band is the decade of the twenties.   
 
 Termination is almost exclusively flagged as "voluntary", with only `r proportions(table(journeyData$VOLUNTARY_FLAG))["Involuntary"] |> (\(x){round(100*x,1)})()`% of the flagged rows described as "involuntary."    
 
@@ -548,15 +555,7 @@ A strong seasonal spike in actions is seen around July 1st.  A consistent bi-wee
 
 Boundary actions are defined as actions that signify entering or leaving the workforce.  This includes "primary" entry actions of hire or rehire, and exit actions of terminate or retire; "break" actions of a "short work break" or "return from work break"; and "leave" actions of paid leave of absence, leave of absence, or long-term disability, and "return from leave."  Leave of absence actions that are explained with the action reason of "extension" are excluded as they do not signify a new boundary event.     
 
-
-== Let's see 
-These are tallied per employee and found to have inconsistent results, where an employee has "exited" the workforce without a prior "entry" action, for example.  This appears to  be due to:    
-  (1) simplistic definitions of boundary actions (for example, "rehire" could be ignored if  "Hire Concurrent Job" is the supplied action reason)   
-  (2) incomplete understanding of the use of the "EMPL_RCD" field causing duplication that needs to be managed       
-  (3) complicated dates where multiple actions are entered that may be contradictory   
-  
-  
-
+ 
 ## (1) DESCRIBE THE WORKFORCE JOURNEY DATA
 
 ### Data summary
@@ -569,14 +568,15 @@ skim(journeyData)
 
 ```{r}
 
-incomingPar <- par(mar = c(13,4,3,1), bg = "ivory", fg = "gray10"  )
+incomingPar <- par(mar = c(4,13,3,1), bg = "ivory", fg = "gray10"  )
 
-theBar <- barplot(actionFrame[order(actionFrame$count, decreasing = TRUE) ,"count"],
+theBar <- barplot(actionFrame[order(actionFrame$count, decreasing = FALSE) ,"count"],
         col = "thistle",
+        horiz = TRUE,
         las =2)
-axis(side = 1, at = theBar, labels = actionFrame[order(actionFrame$count, decreasing = TRUE) ,"ACTION"], las = 2, line = -3, tick = FALSE)
+axis(side = 2, at = theBar, labels = actionFrame[order(actionFrame$count, decreasing = FALSE) ,"ACTION"], las = 2, line = -3, tick = FALSE)
 
-axis(side = 1, at = theBar, labels = actionFrame[order(actionFrame$count, decreasing = TRUE) ,"ACTION_DESCR"], las = 2, line = 1)
+axis(side = 2, at = theBar, labels = actionFrame[order(actionFrame$count, decreasing = FALSE) ,"ACTION_DESCR"], las = 2, line = 1)
 
 mtext(side = 3, font =2, cex = 1.3, "Count of actions", line = 1.319)
 
@@ -584,46 +584,22 @@ par(incomingPar)
 
 ```
 
-
-```{r}
-
-merge(actionFrame, reasonsPerAction[,c("ACTION","ACTION_REASON")], by = "ACTION") |>
-  kbl(caption = "Actions and unique associated reasons",
-      col.names = c("", "description", "count", "unique\nreasons"),
-      row.names=FALSE,
-      escape = FALSE) |>  
-  kable_styling(full_width = FALSE) 
-
-
-```
-
-```{r}
-
-reasonFrame |>
-  kbl(caption = "Action reasons",
-      col.names = c("", "description","count"),
-      row.names=FALSE,
-      escape = FALSE) |>  
-  kable_styling(full_width = FALSE) |>
-  scroll_box(height = "1000px")
-
-```
-
 ```{r}
 
 # Reason graphic
-# turn this horizontal?
+# turn this horizontal? # DONE
 
-incomingPar <- par(mar = c(13,4,3,1), bg = "ivory", fg = "gray10"  )
+incomingPar <- par(mar = c(5,13,3,1), bg = "ivory", fg = "gray10"  )
 
 plotFrame <- reasonFrame[order(reasonFrame$count, decreasing = TRUE) ,][1:20,]
 
-theBar <- barplot(plotFrame[,"count"],
+theBar <- barplot(rev(plotFrame[,"count"]),
         col = "lemonchiffon",
+        horiz = TRUE,
         las =2)
-axis(side = 1, at = theBar, labels = plotFrame[,"ACTION_REASON"], las = 2, line = -3, tick = FALSE)
+axis(side = 2, at = theBar, labels = rev(plotFrame[,"ACTION_REASON"]), las = 2, line = -3, tick = FALSE)
 
-axis(side = 1, at = theBar, labels = plotFrame[,"ACTION_REASON_DESCR"], las = 2, line = 1)
+axis(side = 2, at = theBar, labels = rev(plotFrame[,"ACTION_REASON_DESCR"]), las = 2, line = 1)
 
 mtext(side = 3, font =2, cex = 1.3, "Top twenty reasons by count", line = 1.319)
 
@@ -632,44 +608,6 @@ par(incomingPar)
 
 
 ```
-
-```{r}
-
-
-
-actionReasonCombo |>
-  kbl(caption = "Actions and reasons",
-      col.names = c("", "action", "reason", "description",  "count"),
-      row.names=FALSE,
-      escape = FALSE) |>  
-  kable_styling(full_width = FALSE) |>
-  scroll_box(height = "1000px")
-
-
-actionReasonCombo[actionReasonCombo$ACTION_REASON %in% actionsPerReason$ACTION_REASON,] |>
-  (\(x){x[order(x$ACTION_REASON),]})() |>
-  kbl(caption = "Reasons applied to multiple actions",
-      col.names = c("", "action", "reason","description", "count"),
-      row.names=FALSE,
-      escape=FALSE
-  ) |>  
-  kable_styling(full_width = FALSE) |>
-  scroll_box(height = "1000px")
-
-actionReasonCombo[!(actionReasonCombo$ACTION_REASON %in% actionsPerReason$ACTION_REASON),] |>
-#  (\(x){x[order(x$ACTION_REASON),]})() |>
-  kbl(caption = "Reasons applied to a single action",
-      col.names = c("", "action", "reason","description", "count"),
-      row.names=FALSE,
-      escape=FALSE
-  ) |>  
-  kable_styling(full_width = FALSE) |>
-  scroll_box(height = "1000px")
-
-
-
-```
-
 
 ```{r}
 
@@ -709,7 +647,39 @@ axis(side = 1, at = theHist$breaks, labels = round(exp(theHist$breaks),1)  )
 
 ```{r}
 
+# job codes
+
+incomingPar <- par(mar = c(5,17,3,1), bg = "ivory", fg = "gray10"  )
+
+plotFrame <- journeyData$JOB_TITLE |> 
+  table() |>
+  (\(x){data.frame(job = names(x), count = as.numeric(x))})() |>
+  (\(x){x[order(x$count, decreasing = TRUE), ]})() |>
+  (\(x){x[1:20,]})()
+
+
+theBar <- barplot(rev(plotFrame[,"count"]),
+        col = "mintcream",
+        horiz = TRUE,
+        las =2)
+# axis(side = 2, at = theBar, labels = rev(plotFrame[,"ACTION_REASON"]), las = 2, line = -3, tick = FALSE)
+
+axis(side = 2, at = theBar, labels = rev(plotFrame[,"job"]), las = 2, line = 1)
+
+mtext(side = 3, font =2, cex = 1.3, "Top twenty jobs by row count", line = 1.319)
+
+par(incomingPar)
+
+
+
+```
+
+
+
+```{r eval=FALSE}
+
 # Actions per day per EMPLID
+# This just isn't a very interesting graphic
 
 #theHist <- hist(actionsPerDate_EMPLID$ACTION, breaks = c(0:5,35), plot=FALSE)
 
@@ -1145,24 +1115,88 @@ plotWeeklyActions(cluster=3)
 
 ```
 
-## (2) DEFINE "BOUNDARY" ACTIONS AND CHECK FOR INTERNAL CONSISTENCY
+### Tables
 
-The actions and action reasons are reviewed, and grouped according to three main boundary types: primary, leave, and break.
+```{r}
 
-These are then tallied per EMPLID to check for inconsistencies.  In particular, the number of exits should never exceed the number of entries for a type, and the number of entries should never be greater than one more than the number of exits.
+merge(actionFrame, reasonsPerAction[,c("ACTION","ACTION_REASON")], by = "ACTION") |>
+  kbl(caption = "Actions and unique associated reasons",
+      col.names = c("", "description", "count", "unique\nreasons"),
+      row.names=FALSE,
+      escape = FALSE) |>  
+  kable_styling(full_width = FALSE) 
 
-Many inconsistencies were found, suggesting additional processing and refinement of the "boundary" definitions.
 
-For example:    
+```
 
-  * EMPLID "00028879" on EFFDT == "2010-01-16" shows identical rows except for the EMPL_RCD field.   
-  * EMPLID "00029479" on EFFDT == "2011-07-16" show them returning from leave twice, were terminated, and transferred all in one day (and the employment records continue until they retired in 2022.)   
-  * EMPLID "00002624" on EFFDT == "2021-03-16" added a "Hire Concurrent Job", which suggests I should not consider this action as a boundary action.
+```{r}
+
+reasonFrame |>
+  kbl(caption = "Action reasons",
+      col.names = c("", "description","count"),
+      row.names=FALSE,
+      escape = FALSE) |>  
+  kable_styling(full_width = FALSE) |>
+  scroll_box(height = "1000px")
+
+```
 
 
 ```{r}
 
-explainHeadCount()
+
+
+actionReasonCombo |>
+  kbl(caption = "Actions and reasons",
+      col.names = c("", "action", "reason", "description",  "count"),
+      row.names=FALSE,
+      escape = FALSE) |>  
+  kable_styling(full_width = FALSE) |>
+  scroll_box(height = "1000px")
+
+
+actionReasonCombo[actionReasonCombo$ACTION_REASON %in% actionsPerReason$ACTION_REASON,] |>
+  (\(x){x[order(x$ACTION_REASON),]})() |>
+  kbl(caption = "Reasons applied to multiple actions",
+      col.names = c("", "action", "reason","description", "count"),
+      row.names=FALSE,
+      escape=FALSE
+  ) |>  
+  kable_styling(full_width = FALSE) |>
+  scroll_box(height = "1000px")
+
+actionReasonCombo[!(actionReasonCombo$ACTION_REASON %in% actionsPerReason$ACTION_REASON),] |>
+#  (\(x){x[order(x$ACTION_REASON),]})() |>
+  kbl(caption = "Reasons applied to a single action",
+      col.names = c("", "action", "reason","description", "count"),
+      row.names=FALSE,
+      escape=FALSE
+  ) |>  
+  kable_styling(full_width = FALSE) |>
+  scroll_box(height = "1000px")
+
+
+
+```
+
+## (2) DEFINE "BOUNDARY" ACTIONS AND CHECK FOR INTERNAL CONSISTENCY
+
+The actions and action reasons are reviewed, and grouped according to three main boundary types: primary, leave, and break.
+
+These are then tallied per EMPLID to check for inconsistencies.  
+
+First, the number of exits should not exceed the number of entries for a type.  Many examples of these inconsistencies were found.  These may be explained as having an entry date that preceded the query start date.  
+
+This can be resolved in one of two ways.  One way is entering a dummy "entry" action to mirror the unpaired "exit" action, and set this action to one day preceding the query.  However, this enters an assumption into the data set that might obscure an error and loses information like job duration.
+
+Another way is to modify the query to pull the entire history of any employees that have activity after the query start date of Jan 1, 2010.  That would make the first effective date in the data set much older than Jan 1, 2010, but a complete record of all activities for all employees wouldn't be expected until after Jan 1, 2010.  Although older data is less accurate, this would avoid introducing assumptions, obscuring errors, and losing information.
+
+Second, the number of entries should not exceed more than one more than the number of exits.  No errors of this type were found, indicating consistent data.
+
+
+```{r}
+
+explainHeadCount(rect_text_args=list(cex = 2.3))
 
 ```
 
@@ -1189,6 +1223,12 @@ unique(actionReasonFrame[,c("ACTION", "ACTION_DESCR","boundary", "boundary_type"
 sapply(tooManyExits, nrow) |> kbl(caption = "Too many exits", col.names = "count of EMPLID's") |>
   kable_paper("hover", full_width = F)
 
+```
+
+```{r eval=FALSE}
+
+# Although interesting, for the purposes of this report I don't need to see actual examples
+
 tooManyExits[[1]][1:10,] |>
   kbl(caption = "Sample of EMPLIDs with more 'break' exits than entries", row.names=FALSE) |>
   kable_paper("hover", full_width = F)
@@ -1208,6 +1248,13 @@ tooManyExits[[3]][1:10,] |>
 
 sapply(tooManyEntries, nrow) |> kbl(caption = "Too many entries", col.names = "count of EMPLID's") |>
   kable_paper("hover", full_width = F)
+
+```
+
+
+```{r eval=FALSE}
+
+# Although interesting, for the purposes of this report I don't need to see actual examples
 
 tooManyEntries[[1]][1:10,] |>
   kbl(caption = "More 'break' entries than exits", row.names=FALSE) |>
@@ -1348,52 +1395,76 @@ write.csv(actionReasonFrame, here::here("Robjects", "actionReasonFrame.csv"))
 
 The query below is converted to a view, ds_hr.EMPL_AGE_RANGE_ACTION_MV_V.
 
-"SELECT A.EMPLID, A.EMPL_RCD, A.EFFDT, A.EFFSEQ
-    , A.ACTION, B.ACTION_DESCR
-    , A.ACTION_REASON, C.DESCR ACTION_REASON_DESCR
-    , Case when A.ACTION ! = 'TER' then ''
+SELECT    
+
+  A.EMPLID, A.EMPL_RCD, A.EFFDT, A.EFFSEQ   
+    , A.ACTION, B.ACTION_DESCR    
+    , A.ACTION_REASON, C.DESCR ACTION_REASON_DESCR, A.JOBCODE, E.DESCR JOB_TITLE    
+    , A.DEPTID, F.DESCR DEPT_NAME   
+    , Case when A.ACTION ! = 'TER' then ''    
         when A.ACTION  = ('TER') 
         AND A.ACTION_REASON not in ('BNK', 'EVW', 'I9', 'INV', 'NER', 'RFN', 'RIF', 'RLS') 
         then 'Voluntary' else 'Involuntary' end VOLUNTARY_FLAG
-    , Case    when (SYSDATE-D.BIRTHDATE)/365.25 < 20
+    , Case    when (A.EFFDT-D.BIRTHDATE)/365.25 < 20
         then 'Under 20' 
-    when (SYSDATE-D.BIRTHDATE)/365.25 >= 20  and (SYSDATE-D.BIRTHDATE)/365.25 < 30
+    when (A.EFFDT-D.BIRTHDATE)/365.25 >= 20  and (A.EFFDT-D.BIRTHDATE)/365.25 < 30
         then '20s'
-    when (SYSDATE-D.BIRTHDATE)/365.25 >= 30  and (SYSDATE-D.BIRTHDATE)/365.25  < 40
+    when (A.EFFDT-D.BIRTHDATE)/365.25 >= 30  and (A.EFFDT-D.BIRTHDATE)/365.25  < 40
         then '30s'
-    when (SYSDATE-D.BIRTHDATE)/365.25 >= 40  and (SYSDATE-D.BIRTHDATE)/365.25  < 50
+    when (A.EFFDT-D.BIRTHDATE)/365.25 >= 40  and (A.EFFDT-D.BIRTHDATE)/365.25  < 50
         then '40s'
-    when (SYSDATE-D.BIRTHDATE)/365.25 >= 50  and (SYSDATE-D.BIRTHDATE)/365.25 < 60
+    when (A.EFFDT-D.BIRTHDATE)/365.25 >= 50  and (A.EFFDT-D.BIRTHDATE)/365.25 < 60
         then '50s'
-    when (SYSDATE-D.BIRTHDATE)/365.25 >= 60  and (SYSDATE-D.BIRTHDATE)/365.25  < 70
+    when (A.EFFDT-D.BIRTHDATE)/365.25 >= 60  and (A.EFFDT-D.BIRTHDATE)/365.25  < 70
         then '60s'
-    when (SYSDATE-D.BIRTHDATE)/365.25 >= 70  and (SYSDATE-D.BIRTHDATE)/365.25 < 80
+    when (A.EFFDT-D.BIRTHDATE)/365.25 >= 70  and (A.EFFDT-D.BIRTHDATE)/365.25 < 80
         then '70s'
-    when (SYSDATE-D.BIRTHDATE)/365.25 >= 80  and (SYSDATE-D.BIRTHDATE)/365.25 < 90
+    when (A.EFFDT-D.BIRTHDATE)/365.25 >= 80  and (A.EFFDT-D.BIRTHDATE)/365.25 < 90
         then '80s'
     else '90 and Above'
         end Age_Band
+    , Case when LENGTH(A.JOBCODE) = 6
+        AND A.JOBCODE NOT LIKE '7%'
+        then 'UCareer Job Code'
+        else ''
+        end UCAREER_JOBCODE_FLAG    
         
-FROM PS_UU_UNSEC_JOB_VW A
-  JOIN PS_ACTION_TBL B
-    ON (B.ACTION = A.ACTION
-    AND B.EFFDT =
-        (SELECT MAX(B_ED.EFFDT) FROM PS_ACTION_TBL B_ED
-        WHERE B.ACTION = B_ED.ACTION
-          AND B_ED.EFFDT <= SYSDATE))
-  JOIN PS_ACTN_REASON_TBL C
-    ON (C.ACTION = A.ACTION
-     AND C.ACTION_REASON = A.ACTION_REASON
-     AND C.EFFDT =
-        (SELECT MAX(C_ED.EFFDT) FROM PS_ACTN_REASON_TBL C_ED
-        WHERE C.ACTION = C_ED.ACTION
-          AND C.ACTION_REASON = C_ED.ACTION_REASON
-          AND C_ED.EFFDT <= SYSDATE))
+FROM    
+
+  PS_UU_UNSEC_JOB_VW A    
+    JOIN PS_ACTION_TBL B
+        ON (B.ACTION = A.ACTION)
+    JOIN PS_ACTN_REASON_TBL C
+        ON (C.ACTION = A.ACTION
+            AND C.ACTION_REASON = A.ACTION_REASON)
     JOIN ps_personal_dt_fst D
         ON (D.EMPLID = A.EMPLID)
+    JOIN PS_JOBCODE_TBL E
+        ON (E.JOBCODE = A.JOBCODE)
+    JOIN PS_DEPT_TBL F
+        ON (F.DEPTID = A.DEPTID)
         
-WHERE  A.EFFDT > TO_DATE('2010-01-01','YYYY-MM-DD')
-    ORDER BY A.EMPLID, A.EMPL_RCD, A.EFFDT"
+WHERE  A.EFFDT > TO_DATE('2010-01-01','YYYY-MM-DD')   
+    
+  AND B.EFFDT = (SELECT MAX(B_ED.EFFDT) 
+      FROM PS_ACTION_TBL B_ED
+      WHERE B.ACTION = B_ED.ACTION
+      AND B_ED.EFFDT <= SYSDATE)
+  AND C.EFFDT = (SELECT MAX(C_ED.EFFDT) 
+      FROM PS_ACTN_REASON_TBL C_ED
+      WHERE C.ACTION = C_ED.ACTION
+      AND C.ACTION_REASON = C_ED.ACTION_REASON
+      AND C_ED.EFFDT <= SYSDATE)
+      AND E.EFFDT = (SELECT MAX(E_ED.EFFDT) 
+        FROM PS_JOBCODE_TBL E_ED
+        WHERE E.JOBCODE = E_ED.JOBCODE
+        AND E_ED.EFFDT <= SYSDATE)         
+  AND F.EFFDT = (SELECT MAX(F_ED.EFFDT) 
+        FROM PS_DEPT_TBL F_ED
+        WHERE F.DEPTID = F_ED.DEPTID
+        AND F_ED.EFFDT <= SYSDATE)            
+
+ORDER BY A.EMPLID, A.EMPL_RCD, A.EFFDT, A.EFFSEQ
 
 ```{r eval = FALSE}
 
