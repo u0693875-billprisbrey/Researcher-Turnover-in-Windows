@@ -47,15 +47,16 @@ deltaHeadCount <- function(minDate,
     # create data frame with one row per calendar period
     hrDates <- data.frame(EFFDT = seq(from = minDate, to = maxDate, by = calendar)) 
    
-    # change the column name for consistency with the other time periods 
-    names(hrDates)[names(hrDates) %in% c("EFFDT")] <- "adjDate"
-    
+    # maintain consistency with the other time periods
+    hrDates$adjDate <- hrDates$EFFDT
+     
     # Aggregate hire and termination actions
     theActions <- aggregate(one ~ boundary+EFFDT, data = data, sum)
     
     # prepare for merge
-    names(theActions)[names(theActions) == "EFFDT"] <- "adjDate"
-    theActions$adjDate <- as.Date(theActions$adjDate)
+    # theActions$EFFDT <- as.Date(theActions$EFFDT)
+    # names(theActions)[names(theActions) == "EFFDT"] <- "adjDate"
+    theActions$adjDate <- as.Date(theActions$EFFDT)
     
   }    
   
