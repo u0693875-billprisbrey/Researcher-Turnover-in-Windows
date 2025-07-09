@@ -44,3 +44,21 @@ theActions$EFFDT <- as.Date(theActions$EFFDT)
 
 hrDatio <- merge(hrDates, theActions[theActions$boundary == "exit",], by = "EFFDT", all.x = TRUE, sort=FALSE)
 hrDatio2 <- merge(hrDatio, theActions[theActions$boundary == "entry",], by = "EFFDT", all.x = TRUE, sort=FALSE)
+
+# Actually, I might have these updated.  I haven't put it through the validation paces but
+# ...eh it looks right, right?
+
+oats <- calculateMetrics(data = primaryJourney)
+
+barley <- calculateMetrics(initial_date =ymd("2024-06-30"), data = primaryJourney)
+# so this counts the cumulative delta from "2024-06-30" until the day before the min date, which is Jan 1
+# of the current year as a default
+
+wheat <- calculateMetrics(initial_count = 0, data = primaryJourney) # this is making more sense as a default
+
+
+plotMetrics(list(oats = oats, grain = barley, wheat =wheat))
+
+# looking really good
+
+

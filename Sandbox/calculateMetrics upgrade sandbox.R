@@ -140,8 +140,8 @@ calculateMetrics <- function(initial_count=NA,
   foundation <- merge(foundation, periodHeadCountMean, by = "adjDate", sort = FALSE)
   
   # calculate metrics
-  foundation$hireRate <- foundation$hireCount/foundation$headcount_mean
-  foundation$termRate <- foundation$termCount/foundation$headcount_mean
+  foundation$entryRate <- foundation$entry/foundation$headcount_mean
+  foundation$exitRate <- foundation$exit/foundation$headcount_mean
   foundation$deltaRate <- foundation$delta/foundation$headcount_mean
   
   

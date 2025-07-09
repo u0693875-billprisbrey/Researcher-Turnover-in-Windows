@@ -158,6 +158,14 @@ deltaHeadCount <- function(minDate,
   # calculate delta cumulative
   hrDates$delta.cum <- cumsum(hrDates$delta) + initial_count
   
+  # add a "periodEnd" column for clarity in plotting
+  if(calendar == "week"){ 
+    hrDates$periodEnd <- ceiling_date(hrDates$EFFDT, unit = calendar, week_start = 1) - days(1)
+  } else {
+    hrDates$periodEnd <- ceiling_date(hrDates$EFFDT, unit = calendar) - days(1)
+  }
+  
+  
   return(hrDates)
   
   
