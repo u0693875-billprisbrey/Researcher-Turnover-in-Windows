@@ -82,7 +82,61 @@ deltaHeadCount <- function(minDate,
     
   }
   
+  if(calendar == "month") {
+    
+    monthMin <- ymd(paste(year(minDate), month(minDate),"01", sep = "-") )
+    monthMax <- ymd(paste(year(maxDate), month(maxDate),"01", sep = "-") )
+    
+    # create data frame with one row per calendar period
+    hrDates <- data.frame(EFFDT = seq(from = monthMin, to = monthMax, by = calendar)) 
+    
+    # convert to ISO standard format
+    hrDates$adjDate <- format(hrDates$EFFDT, "%Y-%m") 
+    
+    
+    # aggregate
+    theActions <- aggregate(one ~ boundary + format(EFFDT, "%Y-%m"), data = data, sum)
+    names(theActions)[!names(theActions) %in% c("boundary", "one")] <- "adjDate"
+  }
   
+  if(calendar == "quarter"){
+    
+    # discover the extreme dates of the quarter
+    quarterMin <- minDate
+    while(quarter(quarterMin) == quarter(minDate) ) {quarterMin <- quarterMin - 1 }
+    quarterMin <- quarterMin+1
+    
+    quarterMax <- maxDate
+    while(quarter(quarterMax) == quarter(maxDate) ) {quarterMax <- quarterMax + 1 }
+    quarterMax <- quarterMax-1    
+    
+    # create data frame with one row per calendar period
+    hrDates <- data.frame(EFFDT = seq(from = quarterMin, to = quarterMax, by = calendar)) 
+    
+    # convert to quarter format
+    hrDates$adjDate <- paste(year(hrDates$EFFDT), quarter(hrDates$EFFDT), sep = "-Q")
+    
+    # aggregate
+    theActions <- aggregate(one ~ boundary+paste(year(EFFDT), quarter(EFFDT), sep = "-Q"), data = data, sum)
+    names(theActions)[!names(theActions) %in% c("boundary", "one")] <- "adjDate"
+    
+  }
+  
+  if(calendar == "year") {
+    
+    yearMin <- ymd(paste(year(minDate), "01","01", sep = "-") )
+    yearMax <- ymd(paste(year(maxDate), "12","31", sep = "-") )
+    
+    # create data frame with one row per calendar period
+    hrDates <- data.frame(EFFDT = seq(from = yearMin, to = yearMax, by = calendar)) 
+    
+    # convert to desired format
+    hrDates$adjDate <- year(hrDates$EFFDT) 
+    
+    # aggregate
+    theActions <- aggregate(one ~ boundary+year(EFFDT), data = data, sum)
+    names(theActions)[!names(theActions) %in% c("boundary", "one")] <- "adjDate"
+  }
   
   # merge 
   
