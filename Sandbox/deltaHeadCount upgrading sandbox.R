@@ -61,4 +61,98 @@ plotMetrics(list(oats = oats, grain = barley, wheat =wheat))
 
 # looking really good
 
+# Now I am -really- tempted to turn this into a Shiny app.  
+# Put one more on there
+
+# I wonder how quickly I could put one up.
+# And, I wonder how useful it would be for my own exploration.
+
+# Let's create a few graphics
+
+# I could compare a few departments or job titles.
+# I could also compare the different break types.
+
+# I could also try to see an individual's path
+
+researchTitles <- c("Research Associate", "UU Student - Research", "Volunteer Faculty")
+
+lapply(researchTitles, function(x){calculateMetrics(initial_count = 0, 
+                                                    calendar = "week", 
+                                                    data = primaryJourney[primaryJourney$JOB_TITLE == x,]) }) |>
+  plotMetrics()
+
+calculateMetrics(initial_count = 0,
+                 calendar = "week",
+                 data = primaryJourney[primaryJourney$JOB_TITLE == researchTitles[3],]) |>
+  plotMetrics()
+
+# looks like I need some kind of a skip in case of an error so it plots everything else
+
+table(primaryJourney$JOB_TITLE) |> (\(x){x[order(x, decreasing = TRUE)]})() |> (\(x){x[1:20]})()
+
+UU Student - Other                      Custodian 
+8525                           8071 
+Health Care Assistant           Associate Instructor 
+7499                           7280 
+Graduate Teaching Assist (TA)                    GME Trainee 
+6641                           6386 
+UU Student - Admin/Clerical             Inpatient Nurse II 
+5904                           5767 
+Graduate Research Assist (RA)          UU Student - Research 
+5703                           5407 
+Hrly Research Assistant Grad Assist - Rsrch Focus (GR) 
+5191                           4883 
+UU Student - Instruction              Volunteer Faculty 
+4747                           4688 
+Student Research Asst            Medical Assistant I 
+3421                           3161 
+Patient Relations Specialist              Performing Artist 
+2934                           2844 
+Associate Instructor - Hourly            Classroom Assistant 
+2824                           2744 
+
+# some job families would be nice.
+
+jobTitles <- c(#"Usher", 
+               #"Clerk", 
+               "Laborer", 
+               "Office Assistant", 
+               "Cashier", 
+               "Administrative Assistant")
+
+
+lapply(jobTitles, function(x){calculateMetrics(initial_count = 0, 
+                                                    calendar = "week", 
+                                                    data = primaryJourney[primaryJourney$JOB_TITLE == x,]) }) |>
+  setNames(jobTitles) |>
+  plotMetrics()
+
+# that Cashier line looks kind of funny
+
+# let's do departments
+
+table(primaryJourney$DEPT_NAME) |> (\(x){x[order(x, decreasing = TRUE)]})() |> (\(x){x[1:50]})()
+
+theDepts <- c("Athletics Department", 
+              "Pediatric Administration", 
+              "Pioneer Theatre Company", 
+              "School of Computing", 
+              "University Campus Store")
+
+lapply(theDepts, function(x){calculateMetrics(initial_count = 0, 
+                                               calendar = "week", 
+                                               minDate = ymd("2015-05-17"),
+                                              maxDate = ymd("2025-07-04"),
+                                               data = primaryJourney[primaryJourney$DEPT_NAME == x,]) }) |>
+  setNames(jobTitles) |>
+  plotMetrics()
+
+# unexpected error.  It's really struggling.
+
+calculateMetrics(initial_count = 0,
+                 calendar = "week",
+                 data = primaryJourney[primaryJourney$DEPT_NAME == theDepts[1],]) |>
+  plotMetrics()
+
+# I've got something backwards   The rates (%) and delta (%) graph really don't make sense
 
