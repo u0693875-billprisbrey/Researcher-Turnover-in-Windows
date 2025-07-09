@@ -196,7 +196,7 @@ deltaHeadCount <- function(minDate,
                            initial_count = 0,
                            data) {
   
-  # where data is retData
+  # where data is journeyData or retData
   # where minDate and maxDate are self-explanatory and work best as class "Date", or 
   # as ymd("2021-5-31")
   # where calendar is one of "day", "week", "month", "quarter", and "year".
@@ -226,7 +226,6 @@ deltaHeadCount <- function(minDate,
   # was actually 2020.  I tried dealing with this in several ways that were
   # various levels of silly and undesirable.  So I abandoned using isoyears.
   
-  
   # Add a dummy column for aggregation
   
   data[,"one"] <- 1 # because there is one PI per row
@@ -234,21 +233,20 @@ deltaHeadCount <- function(minDate,
   if(calendar == "day") {
     
     # create data frame with one row per calendar period
-    hrDates <- data.frame(actionDate = seq(from = minDate, to = maxDate, by = calendar)) 
+    hrDates <- data.frame(EFFDT = seq(from = minDate, to = maxDate, by = calendar)) 
     
-    # duplicate column name to parallel other calendar periods
-    hrDates$adjDate <- hrDates$actionDate
+    # maintain consistency with the other time periods
+    hrDates$adjDate <- hrDates$EFFDT
     
     # Aggregate hire and termination actions
-    hireActions <- aggregate(one ~ HIRE_DT, data = data, sum)
-    names(hireActions) <- c("adjDate","one")
-    termActions <- aggregate(one ~ TERMINATION_DT, data = data, sum)
-    names(termActions) <- c("adjDate","one")
+    theActions <- aggregate(one ~ boundary+EFFDT, data = data, sum)
     
     # prepare for merge
-    hireActions$adjDate <- as.Date(hireActions$adjDate)
-    termActions$adjDate <- as.Date(termActions$adjDate)
-  }
+    # theActions$EFFDT <- as.Date(theActions$EFFDT)
+    # names(theActions)[names(theActions) == "EFFDT"] <- "adjDate"
+    theActions$adjDate <- as.Date(theActions$EFFDT)
+    
+  }    
   
   if(calendar == "week") {
     
@@ -262,17 +260,14 @@ deltaHeadCount <- function(minDate,
     weekMax <- weekMax-1
     
     # create data frame with one row per calendar period
-    hrDates <- data.frame(actionDate = seq(from = weekMin, to = weekMax, by = calendar)) 
+    hrDates <- data.frame(EFFDT = seq(from = weekMin, to = weekMax, by = calendar)) 
     
     # convert to ISO standard format
-    hrDates$adjDate <- paste(isoyear(hrDates$actionDate), sprintf("%02d", isoweek(hrDates$actionDate)), sep = "-W")
-    # hrDates$adjDate <- paste(year(hrDates$actionDate), isoweek(hrDates$actionDate), sep = "-W")
+    hrDates$adjDate <- paste(isoyear(hrDates$EFFDT), sprintf("%02d", isoweek(hrDates$EFFDT)), sep = "-W")
     
     # aggregate
-    hireActions <- aggregate(one ~ paste(isoyear(HIRE_DT), sprintf("%02d", isoweek(HIRE_DT)), sep = "-W"), data = data, sum)
-    names(hireActions) <- c("adjDate","one")
-    termActions <- aggregate(one ~ paste(isoyear(TERMINATION_DT), sprintf("%02d", isoweek(TERMINATION_DT)), sep = "-W"), data = data, sum)
-    names(termActions) <- c("adjDate","one")
+    theActions <- aggregate(one ~ boundary+paste(isoyear(EFFDT), sprintf("%02d", isoweek(EFFDT)), sep = "-W"), data = data, sum)
+    names(theActions)[!names(theActions) %in% c("boundary", "one")] <- "adjDate"
     
   }
   
@@ -282,17 +277,15 @@ deltaHeadCount <- function(minDate,
     monthMax <- ymd(paste(year(maxDate), month(maxDate),"01", sep = "-") )
     
     # create data frame with one row per calendar period
-    hrDates <- data.frame(actionDate = seq(from = monthMin, to = monthMax, by = calendar)) 
+    hrDates <- data.frame(EFFDT = seq(from = monthMin, to = monthMax, by = calendar)) 
     
     # convert to ISO standard format
-    hrDates$adjDate <- format(hrDates$actionDate, "%Y-%m") 
+    hrDates$adjDate <- format(hrDates$EFFDT, "%Y-%m") 
+    
     
     # aggregate
-    hireActions <- aggregate(one ~ format(HIRE_DT, "%Y-%m"), data = data, sum)
-    names(hireActions) <- c("adjDate","one")
-    termActions <- aggregate(one ~ format(TERMINATION_DT, "%Y-%m"), data = data, sum)
-    names(termActions) <- c("adjDate","one")
-    
+    theActions <- aggregate(one ~ boundary + format(EFFDT, "%Y-%m"), data = data, sum)
+    names(theActions)[!names(theActions) %in% c("boundary", "one")] <- "adjDate"
   }
   
   if(calendar == "quarter"){
@@ -307,16 +300,14 @@ deltaHeadCount <- function(minDate,
     quarterMax <- quarterMax-1    
     
     # create data frame with one row per calendar period
-    hrDates <- data.frame(actionDate = seq(from = quarterMin, to = quarterMax, by = calendar)) 
+    hrDates <- data.frame(EFFDT = seq(from = quarterMin, to = quarterMax, by = calendar)) 
     
-    # convert to ISO standard format
-    hrDates$adjDate <- paste(year(hrDates$actionDate), quarter(hrDates$actionDate), sep = "-Q")
+    # convert to quarter format
+    hrDates$adjDate <- paste(year(hrDates$EFFDT), quarter(hrDates$EFFDT), sep = "-Q")
     
     # aggregate
-    hireActions <- aggregate(one ~ paste(year(HIRE_DT), quarter(HIRE_DT), sep = "-Q"), data = data, sum)
-    names(hireActions) <- c("adjDate","one")
-    termActions <- aggregate(one ~ paste(year(TERMINATION_DT), quarter(TERMINATION_DT), sep = "-Q"), data = data, sum)
-    names(termActions) <- c("adjDate","one")
+    theActions <- aggregate(one ~ boundary+paste(year(EFFDT), quarter(EFFDT), sep = "-Q"), data = data, sum)
+    names(theActions)[!names(theActions) %in% c("boundary", "one")] <- "adjDate"
     
   }
   
@@ -326,48 +317,197 @@ deltaHeadCount <- function(minDate,
     yearMax <- ymd(paste(year(maxDate), "12","31", sep = "-") )
     
     # create data frame with one row per calendar period
-    hrDates <- data.frame(actionDate = seq(from = yearMin, to = yearMax, by = calendar)) 
+    hrDates <- data.frame(EFFDT = seq(from = yearMin, to = yearMax, by = calendar)) 
     
-    # convert to ISO standard format
-    hrDates$adjDate <- year(hrDates$actionDate) 
+    # convert to desired format
+    hrDates$adjDate <- year(hrDates$EFFDT) 
     
     # aggregate
-    hireActions <- aggregate(one ~ year(HIRE_DT), data = data, sum)
-    names(hireActions) <- c("adjDate","one")
-    termActions <- aggregate(one ~ year(TERMINATION_DT), data = data, sum)
-    names(termActions) <- c("adjDate","one")
-    
+    theActions <- aggregate(one ~ boundary+year(EFFDT), data = data, sum)
+    names(theActions)[!names(theActions) %in% c("boundary", "one")] <- "adjDate"
   }
   
-  # merge
-  hrDates <- merge(hrDates, hireActions, by = "adjDate", all.x = TRUE, sort=FALSE)
-  names(hrDates)[names(hrDates) == "one"] <- "hireCount"
-  hrDates <- merge(hrDates, termActions, by = "adjDate", all.x = TRUE, sort= FALSE)
-  names(hrDates)[names(hrDates) == "one"] <- "termCount"
+  # merge 
+  
+  hrDates <- merge(hrDates, theActions[theActions$boundary == "exit",-which(colnames(theActions) %in% c("boundary", "EFFDT"))], by = "adjDate", all.x = TRUE, sort=FALSE)
+  names(hrDates)[names(hrDates) == "one"] <- "exit"
+  hrDates <- merge(hrDates, theActions[theActions$boundary == "entry",-which(colnames(theActions) %in% c("boundary", "EFFDT"))], by = "adjDate", all.x = TRUE, sort=FALSE)
+  names(hrDates)[names(hrDates) == "one"] <- "entry"
   
   # restore chronological order 
-  # (although I've fixed it be setting sort=FALSE in merge, I'll double-correct)
-  hrDates <- hrDates[order(hrDates$actionDate),]
+  hrDates <- hrDates[order(hrDates$adjDate),] # uh oh.  I need to keep the EFFDT,  I guess
   
-  # Calculate delta
-  
-  # convert NA to zero
+  # convert NA values to zero
   hrDates[is.na(hrDates)] <- 0
   
   # calculate delta
-  hrDates$delta <- hrDates$hireCount - hrDates$termCount
+  hrDates$delta <- hrDates$entry - hrDates$exit
   
   # calculate delta cumulative
   hrDates$delta.cum <- cumsum(hrDates$delta) + initial_count
   
   # add a "periodEnd" column for clarity in plotting
   if(calendar == "week"){ 
-    hrDates$periodEnd <- ceiling_date(hrDates$actionDate, unit = calendar, week_start = 1) - days(1)
+    hrDates$periodEnd <- ceiling_date(hrDates$EFFDT, unit = calendar, week_start = 1) - days(1)
   } else {
-    hrDates$periodEnd <- ceiling_date(hrDates$actionDate, unit = calendar) - days(1)
+    hrDates$periodEnd <- ceiling_date(hrDates$EFFDT, unit = calendar) - days(1)
   }
   
+  
   return(hrDates)
+  
+  
+  ###############
+  ## OLD LOGIC ##
+  ###############
+  
+  # old logic for backwards compatibility:
+  
+  if(!("EFFDT" %in% colnames(data)) & all(c("HIRE_DT","TERMINATION_DT") %in% colnames(data))) {
+    
+    # Add a dummy column for aggregation
+    
+    data[,"one"] <- 1 # because there is one PI per row
+    
+    if(calendar == "day") {
+      
+      # create data frame with one row per calendar period
+      hrDates <- data.frame(actionDate = seq(from = minDate, to = maxDate, by = calendar)) 
+      
+      # duplicate column name to parallel other calendar periods
+      hrDates$adjDate <- hrDates$actionDate
+      
+      # Aggregate hire and termination actions
+      hireActions <- aggregate(one ~ HIRE_DT, data = data, sum)
+      names(hireActions) <- c("adjDate","one")
+      termActions <- aggregate(one ~ TERMINATION_DT, data = data, sum)
+      names(termActions) <- c("adjDate","one")
+      
+      # prepare for merge
+      hireActions$adjDate <- as.Date(hireActions$adjDate)
+      termActions$adjDate <- as.Date(termActions$adjDate)
+    }
+    
+    if(calendar == "week") {
+      
+      # discover the extreme dates of the isoweek
+      weekMin <- minDate
+      while(isoweek(weekMin) == isoweek(minDate) ) {weekMin <- weekMin - 1 }
+      weekMin <- weekMin+1
+      
+      weekMax <- maxDate
+      while(isoweek(weekMax) == isoweek(maxDate) ) {weekMax <- weekMax + 1 }
+      weekMax <- weekMax-1
+      
+      # create data frame with one row per calendar period
+      hrDates <- data.frame(actionDate = seq(from = weekMin, to = weekMax, by = calendar)) 
+      
+      # convert to ISO standard format
+      hrDates$adjDate <- paste(isoyear(hrDates$actionDate), sprintf("%02d", isoweek(hrDates$actionDate)), sep = "-W")
+      # hrDates$adjDate <- paste(year(hrDates$actionDate), isoweek(hrDates$actionDate), sep = "-W")
+      
+      # aggregate
+      hireActions <- aggregate(one ~ paste(isoyear(HIRE_DT), sprintf("%02d", isoweek(HIRE_DT)), sep = "-W"), data = data, sum)
+      names(hireActions) <- c("adjDate","one")
+      termActions <- aggregate(one ~ paste(isoyear(TERMINATION_DT), sprintf("%02d", isoweek(TERMINATION_DT)), sep = "-W"), data = data, sum)
+      names(termActions) <- c("adjDate","one")
+      
+    }
+    
+    if(calendar == "month") {
+      
+      monthMin <- ymd(paste(year(minDate), month(minDate),"01", sep = "-") )
+      monthMax <- ymd(paste(year(maxDate), month(maxDate),"01", sep = "-") )
+      
+      # create data frame with one row per calendar period
+      hrDates <- data.frame(actionDate = seq(from = monthMin, to = monthMax, by = calendar)) 
+      
+      # convert to ISO standard format
+      hrDates$adjDate <- format(hrDates$actionDate, "%Y-%m") 
+      
+      # aggregate
+      hireActions <- aggregate(one ~ format(HIRE_DT, "%Y-%m"), data = data, sum)
+      names(hireActions) <- c("adjDate","one")
+      termActions <- aggregate(one ~ format(TERMINATION_DT, "%Y-%m"), data = data, sum)
+      names(termActions) <- c("adjDate","one")
+      
+    }
+    
+    if(calendar == "quarter"){
+      
+      # discover the extreme dates of the quarter
+      quarterMin <- minDate
+      while(quarter(quarterMin) == quarter(minDate) ) {quarterMin <- quarterMin - 1 }
+      quarterMin <- quarterMin+1
+      
+      quarterMax <- maxDate
+      while(quarter(quarterMax) == quarter(maxDate) ) {quarterMax <- quarterMax + 1 }
+      quarterMax <- quarterMax-1    
+      
+      # create data frame with one row per calendar period
+      hrDates <- data.frame(actionDate = seq(from = quarterMin, to = quarterMax, by = calendar)) 
+      
+      # convert to ISO standard format
+      hrDates$adjDate <- paste(year(hrDates$actionDate), quarter(hrDates$actionDate), sep = "-Q")
+      
+      # aggregate
+      hireActions <- aggregate(one ~ paste(year(HIRE_DT), quarter(HIRE_DT), sep = "-Q"), data = data, sum)
+      names(hireActions) <- c("adjDate","one")
+      termActions <- aggregate(one ~ paste(year(TERMINATION_DT), quarter(TERMINATION_DT), sep = "-Q"), data = data, sum)
+      names(termActions) <- c("adjDate","one")
+      
+    }
+    
+    if(calendar == "year") {
+      
+      yearMin <- ymd(paste(year(minDate), "01","01", sep = "-") )
+      yearMax <- ymd(paste(year(maxDate), "12","31", sep = "-") )
+      
+      # create data frame with one row per calendar period
+      hrDates <- data.frame(actionDate = seq(from = yearMin, to = yearMax, by = calendar)) 
+      
+      # convert to ISO standard format
+      hrDates$adjDate <- year(hrDates$actionDate) 
+      
+      # aggregate
+      hireActions <- aggregate(one ~ year(HIRE_DT), data = data, sum)
+      names(hireActions) <- c("adjDate","one")
+      termActions <- aggregate(one ~ year(TERMINATION_DT), data = data, sum)
+      names(termActions) <- c("adjDate","one")
+      
+    }
+    
+    # merge
+    hrDates <- merge(hrDates, hireActions, by = "adjDate", all.x = TRUE, sort=FALSE)
+    names(hrDates)[names(hrDates) == "one"] <- "hireCount"
+    hrDates <- merge(hrDates, termActions, by = "adjDate", all.x = TRUE, sort= FALSE)
+    names(hrDates)[names(hrDates) == "one"] <- "termCount"
+    
+    # restore chronological order 
+    # (although I've fixed it be setting sort=FALSE in merge, I'll double-correct)
+    hrDates <- hrDates[order(hrDates$actionDate),]
+    
+    # Calculate delta
+    
+    # convert NA to zero
+    hrDates[is.na(hrDates)] <- 0
+    
+    # calculate delta
+    hrDates$delta <- hrDates$hireCount - hrDates$termCount
+    
+    # calculate delta cumulative
+    hrDates$delta.cum <- cumsum(hrDates$delta) + initial_count
+    
+    # add a "periodEnd" column for clarity in plotting
+    if(calendar == "week"){ 
+      hrDates$periodEnd <- ceiling_date(hrDates$actionDate, unit = calendar, week_start = 1) - days(1)
+    } else {
+      hrDates$periodEnd <- ceiling_date(hrDates$actionDate, unit = calendar) - days(1)
+    }
+    
+    return(hrDates)
+    
+  }
   
 }
 
@@ -587,7 +727,7 @@ calculateMetrics <- function(initial_count=NA,
                              data
 ){
   
-  # This calculates various HR metrics: the counts and rates of people hired, terminated, and the net change
+  # This calculates various HR metrics: the counts and rates of people entering, exiting, and the net change
   # (called "delta" here.)
   
   # It uses deltaHeadCount.  Because deltaHeadCount always starts at a value of zero, this function
@@ -603,7 +743,7 @@ calculateMetrics <- function(initial_count=NA,
   # the maxDate argument.  The final "delta.cum" result is used as the initial_count.
   
   # Then, either accepting the provided initial_count or calculating it, it uses deltaHeadCount 
-  # to calculate the counts of people hired, terminated, and the net change (called "delta" here.)
+  # to calculate the counts of people entering, exiting, and the net change (called "delta" here.)
   
   # What makes this an interesting wrapper to deltaHeadCount is that it will count the daily change,
   # and then aggregate that to a mean value over the desired period.  This mean is the denominator
@@ -619,7 +759,7 @@ calculateMetrics <- function(initial_count=NA,
   if(is.na(initial_count) & is.na(initial_date)){
     
     # set initial date to the earliest date in the data set
-    initial_date <-  apply(retData[,c("HIRE_DT", "TERMINATION_DT")], 2, min, na.rm = TRUE) |>
+    initial_date <-  data[,"EFFDT"] |>
       min() |>
       ymd()
     
@@ -689,36 +829,36 @@ calculateMetrics <- function(initial_count=NA,
   if(calendar == "day") {
     
     # for consistency in flow; these should essentially do nothing
-    periodHeadCountMean <- aggregate(delta.cum ~ actionDate, data = meanHeadCount, mean)
+    periodHeadCountMean <- aggregate(delta.cum ~ EFFDT, data = meanHeadCount, mean)
   }
   
   if(calendar == "week") {
-    periodHeadCountMean <- aggregate(delta.cum ~ paste(year(actionDate), isoweek(actionDate), sep = "-W"), data = meanHeadCount, mean)
+    periodHeadCountMean <- aggregate(delta.cum ~ paste(year(EFFDT), isoweek(EFFDT), sep = "-W"), data = meanHeadCount, mean)
   }
   
   if(calendar == "month") {
-    periodHeadCountMean <- aggregate(delta.cum ~ format(actionDate, "%Y-%m"), data = meanHeadCount, mean)
+    periodHeadCountMean <- aggregate(delta.cum ~ format(EFFDT, "%Y-%m"), data = meanHeadCount, mean)
   }
   
   if(calendar == "quarter") {
-    periodHeadCountMean <- aggregate(delta.cum ~ paste(year(actionDate), quarter(actionDate), sep = "-Q"), data = meanHeadCount, mean)
+    periodHeadCountMean <- aggregate(delta.cum ~ paste(year(EFFDT), quarter(EFFDT), sep = "-Q"), data = meanHeadCount, mean)
   }
   
   if(calendar == "year") {
-    periodHeadCountMean <- aggregate(delta.cum ~ year(actionDate), data = meanHeadCount, mean)
+    periodHeadCountMean <- aggregate(delta.cum ~ year(EFFDT), data = meanHeadCount, mean)
   }
   
   
   # fix names
-  names(periodHeadCountMean)[grepl("actionDate", names(periodHeadCountMean))] <- "adjDate"
+  names(periodHeadCountMean)[grepl("EFFDT", names(periodHeadCountMean))] <- "adjDate"
   names(periodHeadCountMean)[names(periodHeadCountMean) == "delta.cum"] <- "headcount_mean"
   
   # merge mean headcount back into the foundation
   foundation <- merge(foundation, periodHeadCountMean, by = "adjDate", sort = FALSE)
   
   # calculate metrics
-  foundation$hireRate <- foundation$hireCount/foundation$headcount_mean
-  foundation$termRate <- foundation$termCount/foundation$headcount_mean
+  foundation$entryRate <- foundation$entry/foundation$headcount_mean
+  foundation$exitRate <- foundation$exit/foundation$headcount_mean
   foundation$deltaRate <- foundation$delta/foundation$headcount_mean
   
   
@@ -1035,33 +1175,33 @@ plotMetrics <- function(data,
     
     if("rate" %in% plotList && !("count" %in% plotList) ) {
       
-      hireVal <- 100*data[[1]][,"hireRate"]
-      termVal <- 100*data[[1]][,"termRate"]
+      hireVal <- 100*data[[1]][,"entryRate"]
+      termVal <- 100*data[[1]][,"exitRate"]
       
       
       yLim <- range(unlist(
         lapply(data, function(df) {
-          apply(df[, c("hireRate", "termRate")], 1, range, na.rm = TRUE)
+          apply(df[, c("entryRate", "exitRate")], 1, range, na.rm = TRUE)
         })
       ), na.rm = TRUE) * 100
       
       y_label <- "rates (%)"
-      legendText <- c("Hire", "Departure")
+      legendText <- c("Entry", "Exit")
       
     }
     
     if("count" %in% plotList && !("rate" %in% plotList) ) {
-      hireVal <- data[[1]][,"hireCount"]
-      termVal <- data[[1]][,"termCount"] 
+      hireVal <- data[[1]][,"entry"]
+      termVal <- data[[1]][,"exit"] 
       
       yLim <- range(unlist(
         lapply(data, function(df) {
-          apply(df[, c("hireCount", "termCount")], 1, range, na.rm = TRUE)
+          apply(df[, c("entry", "exit")], 1, range, na.rm = TRUE)
         })
       ), na.rm = TRUE)    
       
       y_label <- "count"
-      legendText <- c("Hire", "Departure")
+      legendText <- c("Entry", "Exit")
     }
     
     if(any(c("delta.rate","delta.count") %in% plotList)){ # include the x axis if there's no delta plot
@@ -1092,7 +1232,7 @@ plotMetrics <- function(data,
     
     # empty plot
     
-    plot(y= hireVal, #100*data[,"hireRate"],
+    plot(y= hireVal, #100*data[,"entryRate"],
          x= data[[1]][,"periodEnd"],
          ylim = yLim,
          type = "n",
@@ -1139,7 +1279,7 @@ plotMetrics <- function(data,
       invisible(Map(function(df, col) {
         do.call(points, modifyList(
           list(
-            y = 100*df[,"hireRate"],
+            y = 100*df[,"entryRate"],
             x = df[,"periodEnd"],
             type = "l",
             lty =3,
@@ -1153,7 +1293,7 @@ plotMetrics <- function(data,
       invisible(Map(function(df, col) {
         do.call(points, modifyList(
           list(
-            y = 100*df[,"termRate"],
+            y = 100*df[,"exitRate"],
             x = df[,"periodEnd"],
             type = "l",
             col = ifelse(length(data) == 1, "coral",col)
@@ -1170,7 +1310,7 @@ plotMetrics <- function(data,
       invisible(Map(function(df, col) {
         do.call(points, modifyList(
           list(
-            y = df[,"hireCount"],
+            y = df[,"entry"],
             x = df[,"periodEnd"],
             type = "l",
             lty = 3,
@@ -1184,7 +1324,7 @@ plotMetrics <- function(data,
       invisible(Map(function(df, col) {
         do.call(points, modifyList(
           list(
-            y = df[,"termCount"],
+            y = df[,"exit"],
             x = df[,"periodEnd"],
             type = "l",
             col = ifelse(length(data) == 1, "coral",col)
