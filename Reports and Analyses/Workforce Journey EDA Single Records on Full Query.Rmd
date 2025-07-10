@@ -1,0 +1,1499 @@
+---
+title: "Workforce Journey Exploratory Data Analysis (No Concurrent Jobs and Full History)"
+author: "Bill Prisbrey"
+date: "2025-07-09"
+output:
+  html_document:
+    keep_md: true
+---
+
+
+```{r include = FALSE}
+
+# Notes to self:
+
+# As of 7.10.2025, this pulls yet another new query.  The view is populated by a new query that is populated with the full historical records available of everyone who has activity after Jan 1, 2010.
+
+# As of 7.8.2025, this pulls the new query.  This shifts the age younger, as you'd expect, and adds some 424 rows for some reason that might explain itself, or is irrelevant, or might be worth investigating and explaining.
+
+# To do:
+# - Include descriptive graphics of the new fields (job codes and descriptions)
+# - Update the entry/exits graphic to completely match how I'm defining them
+# - In a different report, calculate the headcount
+# - I should add a dummy "entry" variable for people presumably entering before the min date (Jan 2, 2010.)  How am I going to double-check that? 
+# - This query isn't exactly what I want.  It pulls all records after the defined date, but I want all the records for people who are -active- after the defined date.  Would it be so hard to create this query?  As it is, I almost want to identify all the EMPLIDs who have too many exits --- and pull their full history.  (Or maybe I just do this once, and if it's close enough then it's good enough ? )
+# - I can remove the example tables.  They really aren't that useful.  If I wanted to populate, maybe I can just list EMPLIDs?  But why?
+# - I could improve the titles and formatting of all of these tables (so many tables!  But they are useful reference look-ups for me.)
+# - Write up how the "too many entries" might be an entry before the start date
+
+# ==
+
+# Looks like I need to exclude ACTION_REASON == "HCJ" (Hire Concurrent Job) because somehow three records snuck in. # DONE
+
+# There's no "Too Many Entries" which is encouraging.  
+
+# I haven't attempted to see how many of the "Too Many Exits" are due to pre-query hires.  It could be a large number of these.  However figuring that out, opposed to an error, could be tricky.
+
+```
+
+```{r settings, include = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=5, fig.width=7)
+
+# fig.height=6.75, fig.width=12) for ppt
+# fig.height=7, fig.width=10) typical report
+
+
+# adjust graphic parameters
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+# par(oldPar) #restore old parameters # restore old parameters after the plot
+
+library(kableExtra)
+
+```
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+# PREP SCRIPT
+
+source(here::here("Prep scripts","Adjusting prepData and loading things.R"))
+
+
+# PER PI
+
+piClusters <- lapply(list.files(here::here("Robjects", "Clustering PIs"), full.names = TRUE), readRDS)
+
+###########
+## MERGE ## 
+###########
+
+piEmplid <- Reduce(function(x, y) {
+  merged <- merge(x, y, by = "emplid", all = FALSE)
+  merged <- merged[, !duplicated(sub("\\.x$|\\.y$", "", names(merged)))]  # Remove duplicate columns
+  
+  # Rename columns to remove ".x"
+  names(merged) <- sub("\\.x$", "", names(merged))
+  
+  merged
+}, piClusters)
+# piEmplid <- Reduce(function(x, y) merge(x, y, by = "emplid", all = FALSE), piClusters)
+# piEmplid <- do.call(merge, piClusters)
+
+
+
+prepData <- merge(prepData, piEmplid[,c("emplid","complex_cluster","rate_cluster")], by.x =  "PROPOSAL_PI_EMPLID", by.y = "emplid", all.x = TRUE)
+
+##########
+## PREP ##
+##########
+
+piEmplid$combined_cluster <-  factor(paste(piEmplid$complex_cluster, piEmplid$rate_cluster, sep = ", "))
+
+prepData$combined_cluster <- factor(paste(prepData$complex_cluster, prepData$rate_cluster, sep = ", "))
+
+###############
+## LIBRARIES ##
+###############
+
+library(viridis)
+library(pheatmap)
+
+#########
+## MAP ##
+#########
+
+piMap <- data.frame(college = row.names(piEmplid), abbrv = row.names(piEmplid), color = NA, pch = 19, cex = 0.7 )
+
+# I need the college map of colors
+
+fullEmplid <- calculateWinRates(data = cleanData, categoryColumn = "PROPOSAL_PI_EMPLID") |>
+  (\(x){x[[1]]})()
+
+fullEmplid$count.total <- apply(fullEmplid[,c("win.count","loss.count")],1,sum)
+
+filterTwoCount <- fullEmplid$count.total >= 2
+# filterThreeCount <- piEmplid$count.total > 3
+
+##################################
+## EMPL_RCD otherwise duplicate ##
+##################################
+
+# RCD_otherwiseDupe <- readRDS(here::here("Robjects", "RCD_otherwiseDupe from Workforced Journey EDA.R"))
+
+```
+
+
+
+```{r}
+
+###########
+## QUERY ##
+###########
+
+# Obtain journey data
+
+keyring::keyring_unlock(keyring = "BIPR", password = "Excelsior!")
+
+library(DBI)
+con.ds <- DBI::dbConnect(odbc::odbc(), 
+                         Driver = "oracle", 
+                         Host = "ocm-campus01.it.utah.edu", 
+                         SVC = keyring::key_list(keyring = "BIPR")[1, 1],
+                         UID = keyring::key_list(keyring = "BIPR")[1, 2],
+                         PWD = keyring::key_get(keyring = "BIPR", 
+                         service = keyring::key_list(keyring = "BIPR")[1,1]),
+                         Port = 2080)
+
+journeyQuery <- "select * from ds_hr.EMPL_AGE_RANGE_ACTION_MV_V WHERE EFFDT < TO_DATE('2025-08-01', 'YYYY-MM-DD') " # a view of the query
+
+journeyData <- dbGetQuery(con.ds, journeyQuery)
+
+
+actionReasonQuery <- "
+SELECT
+  ACTION,
+  ACTION_DESCR,
+  ACTION_REASON,
+  ACTION_REASON_DESCR,
+  COUNT(*) AS count
+FROM
+  ds_hr.EMPL_AGE_RANGE_ACTION_MV_V
+WHERE
+  EFFDT <= DATE '2025-08-01'
+GROUP BY
+  ACTION,
+  ACTION_DESCR,
+  ACTION_REASON,
+  ACTION_REASON_DESCR
+ORDER BY
+  count DESC
+"
+
+actionReasonFrame <- dbGetQuery(con.ds, actionReasonQuery)
+
+DBI::dbDisconnect(con.ds)
+
+
+```
+
+```{r}
+
+##########
+## PREP ##
+##########
+
+# Create factors with levels in the proper order
+journeyData$AGE_BAND <- factor(journeyData$AGE_BAND, levels = 
+                                 c(
+                                   "Under 20",
+                                   "20s",
+                                   "30s",
+                                   "40s",
+                                   "50s",
+                                   "60s",
+                                   "70s",
+                                   "80s",
+                                   "90 and Above"
+                                 )
+                                 )
+
+# I already set a filter to the query to 6/30/2025
+# Given that it's the week of maximum activity, I should just set it to Aug 1.
+
+# Remove a bad date
+#> journeyData[journeyData$EFFDT > as.Date("2030-12-31"),]
+#          EMPLID EMPL_RCD      EFFDT EFFSEQ ACTION     ACTION_DESCR ACTION_REASON
+#1950047 06013186        0 2202-11-21      0    LOA Leave of Absence           EXT
+#        ACTION_REASON_DESCR VOLUNTARY_FLAG AGE_BAND
+# 1950047           Extension           <NA>      30s
+
+# journeyData <- journeyData[journeyData$EFFDT <= as.Date("2030-12-31"),]
+
+```
+
+```{r}
+
+# Identify count of records per EMPLID in order to separate employees with multiple
+
+recordsPerEMPLID <- aggregate(EMPL_RCD ~ EMPLID, data = journeyData, function(x){length(unique(x))})
+
+dupeRCD <- recordsPerEMPLID |> (\(x){x[x$EMPL_RCD > 1, "EMPLID", drop = TRUE]})()  
+singleRCD <- unique(journeyData$EMPLID)[!unique(journeyData$EMPLID) %in% dupeRCD]
+
+# proportions(c(length(dupeRCD),length(singleRCD))) # 0.181 0.819
+
+journeySingleFilter <- journeyData$EMPLID %in% singleRCD & journeyData$EMPL_RCD == 0 & (!journeyData$ACTION_REASON %in% "HCJ")
+
+# NEEDS ATTENTION if I want to figure this out.  Not sure I really need this
+nonZeroFilter <- (journeyData$EMPLID %in% singleRCD) & journeyData$EMPL_RCD != 0 
+nonZeroEmplids <- unique(journeyData$EMPLID[nonZeroFilter])
+
+# holding onto the original data
+jData <- journeyData
+
+# I should figure out how to incorporate this logic into a query
+
+journeyData <- journeyData[journeySingleFilter,]
+
+```
+
+
+
+```{r}
+
+uniqueActions <- unique(journeyData[,c("ACTION", "ACTION_DESCR")])
+actionCount <- table(journeyData[,c("ACTION")]) 
+actionFrame <- merge(uniqueActions, data.frame(ACTION = names(actionCount), count = as.vector(actionCount)), by = "ACTION")
+
+
+uniqueReasons <- unique(journeyData[, c("ACTION_REASON","ACTION_REASON_DESCR")])
+reasonCount <- table(journeyData[, "ACTION_REASON"])
+reasonFrame <- merge(uniqueReasons, data.frame(ACTION_REASON = names(reasonCount), count = as.vector(reasonCount)), by = "ACTION_REASON")
+
+
+# Association between action and reason
+
+actionReasonCombo <- table(journeyData[,c("ACTION", "ACTION_DESCR",  "ACTION_REASON", "ACTION_REASON_DESCR")]) |>
+  as.data.frame() |>
+  (\(x){ x[x$Freq>0,]})() |>
+  (\(x){x[order(x$ACTION),]  })()
+
+actionsPerReason <- aggregate(ACTION ~ ACTION_REASON, journeyData, function(x){length(unique(x))} ) |>
+  (\(x){x[x$ACTION >1,]})()
+
+
+reasonsPerAction <- aggregate(ACTION_REASON ~ ACTION + ACTION_DESCR, journeyData, function(x){length(unique(x))} )  
+
+
+```
+
+
+```{r}
+
+# Action items per PI
+
+eventsPerEmplid <- aggregate(ACTION ~ EMPLID, data = journeyData, length)
+names(eventsPerEmplid) <- c("EMPLID", "eventCount")
+
+
+
+```
+
+
+
+
+```{r}
+
+# Define boundary actions
+
+actionReasonFrame$boundary <- NA
+actionReasonFrame$boundary_type <- NA
+
+# Primary entry or exit
+
+primeEntryFilter <- actionReasonFrame$ACTION %in% c("HIR", "REH")
+primeExitFilter <- actionReasonFrame$ACTION %in% c("TER", "RET", "RWP")
+
+actionReasonFrame$boundary[primeEntryFilter] <- "entry"
+actionReasonFrame$boundary[primeExitFilter] <- "exit"
+actionReasonFrame$boundary_type[primeEntryFilter|primeExitFilter] <- "primary"
+
+# Break entry or exit
+
+breakEntryFilter <- actionReasonFrame$ACTION %in% c("RWB")
+breakExitFilter <- actionReasonFrame$ACTION %in% c("SWB")
+
+actionReasonFrame$boundary[breakEntryFilter] <- "entry"
+actionReasonFrame$boundary[breakExitFilter] <- "exit"
+actionReasonFrame$boundary_type[breakEntryFilter|breakExitFilter] <- "break"
+
+# Leave entry or exit
+
+leaveEntryFilter <- actionReasonFrame$ACTION %in% c("RFL")
+leaveExitFilter <- actionReasonFrame$ACTION %in% c("LOA","LTO", "PLA") & !(actionReasonFrame$ACTION_REASON %in% c("EXT"))
+
+actionReasonFrame$boundary[leaveEntryFilter] <- "entry"
+actionReasonFrame$boundary[leaveExitFilter] <- "exit"
+actionReasonFrame$boundary_type[leaveEntryFilter|leaveExitFilter] <- "leave"
+
+# now I gotta merge this back to the journey data
+
+journeyData <- merge(journeyData, unique(actionReasonFrame[,c("ACTION","boundary","boundary_type")]), by = "ACTION")
+
+
+```
+
+```{r}
+
+# boundary consistency
+
+# Commencing a series of aggregations and re-shapes
+
+boundaryFrame <- as.data.frame(table(journeyData[,c("EMPLID","boundary_type","boundary")]))
+
+boundaryList <- lapply(levels(boundaryFrame$boundary_type), function(x){ 
+  
+  aggregate(Freq~EMPLID + boundary, data = boundaryFrame[boundaryFrame$boundary_type == x,], sum) |>
+    (\(y){
+      reshape(y,
+              idvar = "EMPLID",
+              timevar = "boundary",
+              v.names = "Freq",
+              direction = "wide")
+    })() |>
+    (\(z){ 
+      names(z) <- c("EMPLID","entry","exit");
+      return(z)
+      })()
+
+  })
+names(boundaryList) <- levels(boundaryFrame$boundary_type)
+
+# internal consistency
+
+tooManyExits <- lapply(boundaryList, function(x) { x[x[,"exit"] > x[,"entry"],] })
+
+
+tooManyEntries <- lapply(boundaryList, function(x) {x[x[,"entry"] > x[,"exit"]+1, ] })
+
+
+
+```
+
+
+```{r}
+
+# Actions per date
+
+actionsPerDate_all <- aggregate(ACTION ~ EFFDT, journeyData, length)
+
+actionsPerWeek_all <- aggregate(ACTION ~ week(EFFDT), actionsPerDate_all, sum)
+
+# nice seasonality graphic
+
+actionsPerDate_EMPLID <- aggregate(ACTION ~ EFFDT + EMPLID, journeyData, length)
+
+# a hist(log()) of this one is kinda nice.
+
+```
+
+```{r eval = FALSE}
+
+# investigating more than one EMPL_RCD
+# NOT DONE when I've already filtered out the duplicate or multiples
+
+# and notice my formula -- it's length, not length(unique(x))
+# So this can still EMPL_RCD == 0 but it finds multiple actions in a day
+# Looks like I made a mistake.
+
+# ...hold on, I might be mistaken about that mistake.  This might do exactly what I wanted.
+
+rcdPerDate_EMPLID <- aggregate(EMPL_RCD ~ EFFDT+EMPLID, data = journeyData, length)
+
+rcdPerDate_EMPLID_Multiple <- rcdPerDate_EMPLID[rcdPerDate_EMPLID[,3]>1,]
+
+
+# nrow(rcdPerDate_EMPLID_Multiple)/nrow(rcdPerDate_EMPLID) # 0.14
+
+# rcdPerDate_EMPLID_unique <- aggregate(EMPL_RCD ~ EFFDT+EMPLID, data = journeyData, function(x) {length(unique(x))}  )
+
+# skim(rcdPerDate_EMPLID_unique[,"EMPL_RCD"]) # 1
+
+# that's what I thought I was doing. # No, I had it right the first time.
+
+```
+
+
+```{r eval=FALSE}
+
+# Identifying duplicates other than EMPL_RCD (otherwise everything else is the same)
+startTime <- Sys.time()
+RCD_otherwiseDupe <- mapply(function(x,y){ 
+  filterCondition <- journeyData$EFFDT == x & journeyData$EMPLID == y
+  theDiff <- nrow(unique(journeyData[filterCondition,])) -
+    nrow(unique(journeyData[filterCondition, -which(colnames(journeyData) %in% "EMPL_RCD")]))
+  return(data.frame(EFFDT = x, EMPLID = y, diff = theDiff))
+  
+  },
+  x = rcdPerDate_EMPLID_Multiple[,1],
+  y = rcdPerDate_EMPLID_Multiple[,2],
+  SIMPLIFY = FALSE) |>
+  (\(x){do.call(rbind, x)})()
+endTime <- Sys.time()
+
+# this actually will take ten hours
+# chatGPT says I can do this with "data.table" and it will take minutes.
+
+# but I'll just run it overnight, why not?
+# endTime - startTime # Time difference of 10.66296 hours
+saveRDS(RCD_otherwiseDupe, here::here("Robjects", "RCD_otherwiseDupe from Workforced Journey EDA.R"))
+
+
+```
+
+
+```{r eval=FALSE}
+
+# investigating more than one EFFSEQ
+
+seqPerDate_EMPLID <- aggregate(EFFSEQ ~ EFFDT+EMPLID, data = journeyData, length)
+
+seqPerDate_EMPLID_Multiple <- seqPerDate_EMPLID[seqPerDate_EMPLID[,3]>1,]
+
+
+nrow(seqPerDate_EMPLID_Multiple)/nrow(seqPerDate_EMPLID) # 
+
+# Identifying duplicates other than seqPerDate (otherwise everything else is the same)
+
+
+```
+
+
+```{r eval=FALSE}
+
+startTime <- Sys.time()
+seq_otherwiseDupe <- mapply(function(x,y){ 
+  filterCondition <- journeyData$EFFDT == x & journeyData$EMPLID == y
+  theDiff <- nrow(unique(journeyData[filterCondition,])) -
+    nrow(unique(journeyData[filterCondition, -which(colnames(journeyData) %in% "EFFSEQ")]))
+  return(data.frame(EFFDT = x, EMPLID = y, diff = theDiff))
+  
+  },
+  x = rcdPerDate_EMPLID_Multiple[,1],
+  y = rcdPerDate_EMPLID_Multiple[,2],
+  SIMPLIFY = FALSE) |>
+  (\(x){do.call(rbind, x)})()
+endTime <- Sys.time()
+
+```
+
+
+```{r eval = FALSE}
+
+# Sandbox for seeing duplicate rows for everything BUT EMPL_RCD
+
+# let's see how many of these have duplicate rows except for the EMPL_RCD
+
+otherwiseDupe <- apply(rcdPerDate_EMPLID_Multiple[1:10,1:2], 1,
+                       function(x,y){print(data.frame(c(x,y)))})
+
+
+
+# seems like this should work
+mapply(
+  function(x, y) {
+    print(data.frame(col1 = x, col2 = y))
+  },
+  x = rcdPerDate_EMPLID_Multiple[1:10, 1],
+  y = rcdPerDate_EMPLID_Multiple[1:10, 2],
+  SIMPLIFY = FALSE
+)
+
+otherwise_RCD_Dupe <- mapply(function(x,y){ 
+  filterCondition <- journeyData$EFFDT == x & journeyData$EMPLID == y
+  theDiff <- nrow(unique(journeyData[filterCondition,])) -
+    nrow(unique(journeyData[filterCondition, -which(colnames(journeyData) %in% "EMPL_RCD")]))
+  return(data.frame(EFFDT = x, EMPLID = y, diff = theDiff))
+  
+  },
+  x = rcdPerDate_EMPLID_Multiple[,1],
+  y = rcdPerDate_EMPLID_Multiple[,2],
+  SIMPLIFY = FALSE) |>
+  (\(x){do.call(rbind, x)})()
+  
+# let's check that
+
+View(journeyData[journeyData$EFFDT == "2022-10-16" & journeyData$EMPLID == "00000133",]) # looks like "EFFSEQ" is different for 2 rows, and third row is completely different
+
+View(journeyData[journeyData$EFFDT == "2010-07-01" & journeyData$EMPLID == "00000395",]) # the onlyh thing that changes is EMPL_RCD
+
+View(journeyData[journeyData$EFFDT == "2010-09-01" & journeyData$EMPLID == "00000395",]) # only change is EMPL_RCD
+
+# Let's do that over all of them and see where we are
+
+```
+
+
+**PURPOSE:**  The purpose of this report is to describe the "workforce journey" data for employees according to several filters:  First, that they have had some activity after Jan 1, 2010.  Second, that they only have had one employee record value of zero, meaning no concurrent jobs or possible mis-use of the "EMPL_RCD" field.
+
+**OBJECTIVES:**   
+
+  1.  Describe the "Workforce Journey" data for employees who had some activity after the cut-off date of 1 Jan 2010 and never had a concurrent job after the cut-off date of 1 Jan 2010.    
+  2.  Define "boundary" actions and check for internal consistency.   
+
+**EXECUTIVE SUMMARY:**
+
+The "workforce journey" data is examined. The records are queried to identify all employees who have activity after 1 Jan 2010, and then their entire work history is pulled.  The earliest date is `r as.Date(min(journeyData$EFFDT))` and the maximum date is `r as.Date(max(journeyData$EFFDT))`.  It is filtered according to the condition of no concurrent jobs.  (More specifically, that the employee only ever had a EMPL_RCD value of zero and never had an action reason of "HCJ" ("Hire Concurrent Job") after the cut-off date.)  
+
+In this data set, some `r nrow(journeyData) |> format(big.mark=",")` rows use `r length(unique(journeyData$ACTION))` distinct actions to describe the employment experience of `r length(unique(journeyData$EMPLID)) |> format(big.mark = ",")` employees.
+
+Of particular interest are the so-called "boundary actions" that define entry and exit into the workforce.  These include "primary" actions like hiring and retiring; "break" actions that describe a "short work break"; and "leave" actions for long term disability or a paid leave of absence.   
+
+**SUMMARY:**   
+
+`r nrow(journeyData) |> (\(x){x+1})() |> format(big.mark=",")` rows covering dates between `r min(journeyData$EFFDT)` and `r max(journeyData$EFFDT)` are queried.
+
+All employees had activity after a cut-off date of 1 January 2010.  All employees that had employee record values other than zero, or action reasons of "HCJ" ("Hire Concurrent Job"), are filtered out.  This removes employees who had concurrent positions or erroneous data entry. These employees will be treated separately due to their more complex work journeys.        
+
+The remaining data describes `r length(unique(journeyData$EMPLID)) |> format(big.mark = ",")` employees in `r length(unique(journeyData$JOBCODE)) |> format(big.mark = ",")` job codes in `r length(unique(journeyData$DEPTID)) |> format(big.mark = ",")` departments, and every employment "action" that defines their experience (such as transfers, pay raises, leave of absence, and eventual termination or retirement.)  `r length(unique(journeyData$ACTION))` distinct actions are further explained with `r length(unique(journeyData$ACTION_REASON))` unique "action reasons." Employees have a median count of `r median(eventsPerEmplid$eventCount)` of these "actions" in their employment history. (At an extreme, one employee (`r eventsPerEmplid$EMPLID[eventsPerEmplid$eventCount == max(eventsPerEmplid$eventCount)]`)  has `r max(eventsPerEmplid$eventCount)` actions.)    
+
+Overwhelmingly, an action of "Data Change" ("DTA") is the most common, followed by "Pay Rate Change" ("PAY") and distantly "Termination" ("TER"), "Hire" ("HIR"), and "Transfer" ("XFR").  The "Termination" ("TER") action has the most "action reasons" (`r length(unique(journeyData$ACTION_REASON[journeyData$ACTION == "TER"]))`).
+
+An age band of the employee is provided of the decade of their age at the time of the action. The most frequent band is the decade of the twenties.   
+
+Termination is almost exclusively flagged as "voluntary", with only `r proportions(table(journeyData$VOLUNTARY_FLAG))["Involuntary"] |> (\(x){round(100*x,1)})()`% of the flagged rows described as "involuntary."    
+
+A strong seasonal spike in actions is seen around July 1st.  A consistent bi-weekly pattern in actions is also noted.    
+
+Boundary actions are defined as actions that signify entering or leaving the workforce.  This includes "primary" entry actions of hire or rehire, and exit actions of terminate or retire; "break" actions of a "short work break" or "return from work break"; and "leave" actions of paid leave of absence, leave of absence, or long-term disability, and "return from leave."  Leave of absence actions that are explained with the action reason of "extension" are excluded as they do not signify a new boundary event.  
+
+A check for internal consistency compares the number of boundary actions per type per employee.  There should never be more exits than entries, for example, and never more than one additional entry than exits.  A tabulation of entries and exits per employee shows a large number of employees with too many exits.  However, this tabulation is much lower for this query than for previous query iterations.  It bears further examination.   
+
+ 
+## (1) DESCRIBE THE WORKFORCE JOURNEY DATA
+
+### Data summary
+
+```{r}
+
+skim(journeyData)
+
+```
+
+```{r}
+
+incomingPar <- par(mar = c(4,13,3,1), bg = "ivory", fg = "gray10"  )
+
+theBar <- barplot(actionFrame[order(actionFrame$count, decreasing = FALSE) ,"count"],
+        col = "thistle",
+        horiz = TRUE,
+        las =2)
+axis(side = 2, at = theBar, labels = actionFrame[order(actionFrame$count, decreasing = FALSE) ,"ACTION"], las = 2, line = -3, tick = FALSE)
+
+axis(side = 2, at = theBar, labels = actionFrame[order(actionFrame$count, decreasing = FALSE) ,"ACTION_DESCR"], las = 2, line = 1)
+
+mtext(side = 3, font =2, cex = 1.3, "Count of actions", line = 1.319)
+
+par(incomingPar)
+
+```
+
+```{r}
+
+# Reason graphic
+# turn this horizontal? # DONE
+
+incomingPar <- par(mar = c(5,13,3,1), bg = "ivory", fg = "gray10"  )
+
+plotFrame <- reasonFrame[order(reasonFrame$count, decreasing = TRUE) ,][1:20,]
+
+theBar <- barplot(rev(plotFrame[,"count"]),
+        col = "lemonchiffon",
+        horiz = TRUE,
+        las =2)
+axis(side = 2, at = theBar, labels = rev(plotFrame[,"ACTION_REASON"]), las = 2, line = -3, tick = FALSE)
+
+axis(side = 2, at = theBar, labels = rev(plotFrame[,"ACTION_REASON_DESCR"]), las = 2, line = 1)
+
+mtext(side = 3, font =2, cex = 1.3, "Top twenty reasons by count", line = 1.319)
+
+par(incomingPar)
+
+
+
+```
+
+```{r}
+
+# Age distribution
+
+journeyData$AGE_BAND |>
+  table() |>
+  barplot(col = viridis::viridis(n=length(levels(journeyData$AGE_BAND)), dir = -1),
+  ylab = "record count",
+  main = "Age distribution of action events")
+
+
+
+```
+
+
+```{r}
+
+# Action items per PI
+
+# eventsPerEmplid <- aggregate(ACTION ~ EMPLID, data = journeyData, length)
+# names(eventsPerEmplid) <- c("EMPLID", "eventCount")
+
+theHist <- hist(log(eventsPerEmplid$eventCount), plot = FALSE)
+
+
+plot(theHist, col = viridis::mako(n = length(theHist$breaks)),
+     main = "Events per EMPLID\n(log compression)",
+     ylab = "count of EMPLID",
+     xlab = "events per EMPLID",
+     xaxt = "n"
+     )
+
+axis(side = 1, at = theHist$breaks, labels = round(exp(theHist$breaks),1)  )
+
+```
+
+```{r}
+
+# job codes
+
+incomingPar <- par(mar = c(5,17,3,1), bg = "ivory", fg = "gray10"  )
+
+plotFrame <- journeyData$JOB_TITLE |> 
+  table() |>
+  (\(x){data.frame(job = names(x), count = as.numeric(x))})() |>
+  (\(x){x[order(x$count, decreasing = TRUE), ]})() |>
+  (\(x){x[1:20,]})()
+
+
+theBar <- barplot(rev(plotFrame[,"count"]),
+        col = "mintcream",
+        horiz = TRUE,
+        las =2)
+# axis(side = 2, at = theBar, labels = rev(plotFrame[,"ACTION_REASON"]), las = 2, line = -3, tick = FALSE)
+
+axis(side = 2, at = theBar, labels = rev(plotFrame[,"job"]), las = 2, line = 1)
+
+mtext(side = 3, font =2, cex = 1.3, "Top twenty jobs by row count", line = 1.319)
+
+par(incomingPar)
+
+
+
+```
+
+
+
+```{r eval=FALSE}
+
+# Actions per day per EMPLID
+# This just isn't a very interesting graphic
+
+#theHist <- hist(actionsPerDate_EMPLID$ACTION, breaks = c(0:5,35), plot=FALSE)
+
+theHist <- hist(actionsPerDate_EMPLID$ACTION, plot = FALSE) #, breaks = c(0:5,35), plot=FALSE)
+
+plot(theHist, col = viridis::mako(n = 3, direction =-1),
+     main = "Events per EMPLID per date",
+     ylab = "count of EMPLID",
+     xlab = "events per EMPLID per date"
+     )
+
+
+```
+
+```{r eval=FALSE}
+
+# termination flag check
+
+table(journeyData[,c("ACTION","VOLUNTARY_FLAG")], useNA = "always") # o.k.
+
+# actions per employee
+
+actionsPerEmplid <- aggregate(count ~ EMPLID + ACTION, 
+          data = transform(journeyData, count = 1), 
+          FUN = sum)
+
+actionsPerEmplid[actionsPerEmplid$ACTION == "TER","count"] |> hist()
+
+# can I align rehire and termination dates?
+# can I see if someone was involuntarily terminated multiple times?
+
+```
+
+
+```{r}
+
+# Termination flag
+
+termFlag <- aggregate(rep(1, nrow(journeyData)) ~ VOLUNTARY_FLAG, data = journeyData, length )
+
+(termFlag[,2]) |> 
+  barplot(col = c("slateblue4", "saddlebrown"),
+          names = termFlag[,1],
+          main = "Termination action",
+          ylab = "count of records"
+          )
+
+
+```
+
+
+```{r fig.height = 7, fig.width = 5}
+
+# Termination reasons
+
+incomingPar <- par(mar = c(5,17,2,1), bg = "ivory", fg = "gray10"  )
+
+plotFrame <- actionReasonFrame[actionReasonFrame$ACTION == "TER",][1:20,] 
+
+theBar <- barplot(rev(plotFrame[,"COUNT"]),
+        col = "mistyrose",
+        horiz = TRUE,
+        las =2)
+axis(side = 2, at = theBar, labels = rev(plotFrame[,"ACTION_REASON"]), las = 2, line = -3, tick = FALSE)
+
+axis(side = 2, at = theBar, labels = rev(plotFrame[,"ACTION_REASON_DESCR"]), las = 2, line = 1)
+
+mtext(side = 3, font =2, cex = 1.3, "Top twenty termination reasons by count", line = .681)
+
+par(incomingPar)
+
+
+
+```
+
+
+
+
+```{r}
+
+# Actions over time
+
+actionsInOrder <-  c("POS", "DTA", "PAY", "TER", "HIR", "SWB", "XFR", "RWB", "REH", "JRC", "PLA", "RFL", "LOA", "RET", "RWP", "LTO", "TWP")
+
+actionsPerDate <- lapply(actionsInOrder, function(x){ aggregate(count ~ EFFDT,  data = transform(journeyData[journeyData$ACTION == x,], count =1), length)}   )
+names(actionsPerDate) <- actionsInOrder # unique(journeyData$ACTION)
+
+# Determine maximum per action
+actionDateMax <- sapply(actionsPerDate, function(x) {max(x[,"count"],na.rm=TRUE )}) |> max() 
+
+# Sort into clusters
+actionDateCluster <- 
+  actionsPerDate |> 
+  sapply(function(x){mean(x[,"count"], na.rm = TRUE)}) |>
+  dist() |>
+  hclust() |>
+  # plot() # looks like 3 is reasonable
+  cutree(3)
+
+# Establish decreasing order of mean count
+meanCount <- actionsPerDate |> 
+     sapply(function(x){mean(x[,"count"], na.rm = TRUE)}) |> sort(decreasing = TRUE)
+
+# Use this to define "actionsInOrder"
+# It would be better if I re-ordered it here as this is no longer
+# flexible to add a new action
+
+# Establish maximum per cluster
+
+clusterMax <- sapply(1:3,
+                     function(y) {
+                       
+                       sapply(actionsPerDate[actionDateCluster == y ], function(x) {max(x[,"count"], na.rm=TRUE)}  ) 
+                     }
+                     )
+
+# Create color map per action
+
+# create action colors
+
+actionColorMap <- vector("numeric", length(actionDateCluster))
+
+names(actionColorMap) <- names(actionDateCluster)
+
+actionColorMap[actionDateCluster == 3] <- viridis::viridis(n = length(actionDateCluster[actionDateCluster == 3]))
+
+actionColorMap[actionDateCluster == 2] <- viridis::turbo(n = length(actionDateCluster[actionDateCluster == 2]), begin = 0.3, end = 0.7)
+
+actionColorMap[actionDateCluster == 1] <- viridis::mako(n = length(actionDateCluster[actionDateCluster == 1]))
+
+# Function to plot a cluster at a time
+
+plotActions <- function(cluster) {
+
+incomingPar <-  par(mar = c(2,4,3,6))
+on.exit(par(incomingPar))
+
+
+plot(1,
+     type = "n",
+     ylim = log(c(1,max(clusterMax[[cluster]]))),
+     xlim = range(as.Date(journeyData$EFFDT)),
+     ylab = "",
+     xlab = "",
+     xaxt = "n"
+     )
+
+axis.Date(side = 1, at = pretty(as.Date(journeyData$EFFDT)), format = "%Y-%m")
+
+invisible(
+  lapply(
+    names(actionDateCluster[actionDateCluster == cluster]),
+    function(act){
+    
+    points(x = as.Date(actionsPerDate[[act]][,"EFFDT"]),
+           y = log(actionsPerDate[[act]][,"count"]),
+           col = actionColorMap[act],
+           type = "l",
+           lwd = 0.619
+    )
+      
+    }
+  )
+)
+
+mtext(side = 3, font=2, cex = 1.381, line = 0.619, text = paste0("Actions in Cluster ", cluster)  )
+
+mtext(side = 2, font = 1, cex = 1, line = 2.5, text = "Count of actions (log)")
+
+legend("topright",
+       legend = names(actionDateCluster[actionDateCluster == cluster]),
+       col = actionColorMap[actionDateCluster == cluster],
+       pch = 19,
+       pt.cex = 3,
+       xpd = TRUE,
+       inset = -0.1
+       )
+
+
+
+}
+
+
+
+```
+
+### Count of actions per date
+
+```{r fig.height = 3}
+
+# Plot the count of actions per date, one plot per cluster
+
+plotActions(cluster=1)
+plotActions(cluster=2)
+
+```
+
+```{r fig.height = 5}
+
+plotActions(cluster=3)
+
+
+```
+
+
+```{r eval=FALSE}
+
+# Dates sandbox
+
+# One line per action over time
+
+jGo <- aggregate(EFFDT ~ ACTION, data = journeyData, function(x){length(unique(x))})
+
+skim(journeyData$EFFDT)
+
+tBlo <- lapply(unique(journeyData$ACTION), function(x){ aggregate(count ~ EFFDT,  data = transform(journeyData[journeyData$ACTION == x,], count =1), length)}   )
+names(tBlo) <- unique(journeyData$ACTION)
+
+actionDateMax <- sapply(tBlo, function(x) {max(x[,"count"],na.rm=TRUE )}) |> max() 
+
+
+# let's lump these
+
+actionDateCluster <- 
+  tBlo |> 
+  sapply(function(x){mean(x[,"count"], na.rm = TRUE)}) |>
+  dist() |>
+  hclust() |>
+  # plot() # looks like 3 is reasonable
+  cutree(3)
+  
+names(tBlo)
+
+clusterMax <- sapply(1:3,
+                     function(y) {
+                       
+                       sapply(tBlo[actionDateCluster == y ], function(x) {max(x[,"count"], na.rm=TRUE)}  ) 
+                     }
+                     )
+
+# well, let's plot it and see what we get
+# create action colors
+
+actionColorMap <- vector("numeric", length(actionDateCluster))
+
+names(actionColorMap) <- names(actionDateCluster)
+
+actionColorMap[actionDateCluster == 1] <- viridis::viridis(n = length(actionDateCluster[actionDateCluster == 1]))
+
+actionColorMap[actionDateCluster == 2] <- viridis::turbo(n = length(actionDateCluster[actionDateCluster == 2]), begin = 0.3, end = 0.7)
+
+actionColorMap[actionDateCluster == 3] <- viridis::mako(n = length(actionDateCluster[actionDateCluster == 3]))
+
+plotActions <- function(cluster) {
+
+incomingPar <-  par(mar = c(2,4,3,6))
+on.exit(par(incomingPar))
+
+
+plot(1,
+     type = "n",
+     ylim = c(0,max(clusterMax[[cluster]])),
+     xlim = range(as.Date(journeyData$EFFDT)),
+     ylab = "",
+     xlab = "",
+     xaxt = "n"
+     )
+
+axis.Date(side = 1, at = pretty(as.Date(journeyData$EFFDT)), format = "%Y-%m")
+
+invisible(
+  lapply(
+    names(actionDateCluster[actionDateCluster == cluster]),
+    function(act){
+    
+    points(x = as.Date(tBlo[[act]][,"EFFDT"]),
+           y = tBlo[[act]][,"count"],
+           col = actionColorMap[act],
+           type = "l",
+           lwd = 0.619
+    )
+      
+    }
+  )
+)
+
+mtext(side = 3, font=2, cex = 1.381, line = 0.619, text = paste0("Actions in Cluster ", cluster)  )
+
+legend("topright",
+       legend = names(actionDateCluster[actionDateCluster == cluster]),
+       col = actionColorMap[actionDateCluster == cluster],
+       pch = 19,
+       pt.cex = 3,
+       xpd = TRUE,
+       inset = -0.1
+       )
+
+
+
+}
+
+
+plotActions(cluster = 1)
+
+
+plotActions(cluster = 2)
+mtext(side = 3, font=2, cex = 1.381, line = 0.619, text ="Actions in Cluster 2"  )
+legend("topright",
+       legend = names(actionDateCluster[actionDateCluster == 2]),
+       col = actionColorMap[actionDateCluster == 2],
+       pch = 19,
+       pt.cex = 3,
+       xpd = TRUE,
+       inset = -0.1
+       )
+
+plotActions(cluster = 3)
+mtext(side = 3, font=2, cex = 1.381, line = 0.619, text ="Actions in Cluster 3"  )
+legend("topright",
+       legend = names(actionDateCluster[actionDateCluster == 3]),
+       col = actionColorMap[actionDateCluster == 3],
+       pch = 19,
+       pt.cex = 3,
+       xpd = TRUE,
+       inset = -0.1
+       )
+```
+
+### Seasonality
+
+
+```{r}
+
+plot(actionsPerWeek_all,
+     xlab = "Week of year",
+     ylab = "count of actions",
+     type = "l",
+     lty = 1,
+     lwd = 0.619,
+     col = "dodgerblue",
+     main = "Weekly actions, all"
+)
+
+```
+
+
+```{r}
+
+# let's do week of year
+
+actionsPerWeek <- lapply(actionsInOrder, function(x){ aggregate(count ~ week(EFFDT),  data = transform(journeyData[journeyData$ACTION == x,], count =1), length)}   )
+names(actionsPerWeek) <- actionsInOrder # unique(journeyData$ACTION)
+
+
+# Establish weekly maximum per cluster
+
+clusterWeekMax <- sapply(1:3,
+                     function(y) {
+                       
+                       sapply(actionsPerWeek[actionDateCluster == y ], function(x) {max(x[,"count"], na.rm=TRUE)}  ) 
+                     }
+                     )
+
+
+plotWeeklyActions <- function(cluster) {
+
+incomingPar <-  par(mar = c(4,4,3,6))
+on.exit(par(incomingPar))
+
+
+plot(1,
+     type = "n",
+     ylim = log(c(1,max(clusterWeekMax[[cluster]]))),
+     xlim = range(week(journeyData$EFFDT)),
+     ylab = "",
+     xlab = "",
+     xaxt = "n"
+     )
+
+axis(side = 1, at = pretty(week(journeyData$EFFDT)))
+
+invisible(
+  lapply(
+    names(actionDateCluster[actionDateCluster == cluster]),
+    function(act){
+    
+    points(x = actionsPerWeek[[act]][,"week(EFFDT)"],
+           y = log(actionsPerWeek[[act]][,"count"]),
+           col = actionColorMap[act],
+           type = "l",
+           lwd = 0.619
+    )
+      
+    }
+  )
+)
+
+mtext(side = 3, font=2, cex = 1.381, line = 0.619, text = paste0("Weekly actions in Cluster ", cluster)  )
+
+mtext(side = 2, font = 1, cex = 1, line = 2.5, text = "Count of actions (log)")
+
+mtext(side = 1, font = 1, cex = 1, line = 2.5, text = "Week of year")
+
+legend("topright",
+       legend = names(actionDateCluster[actionDateCluster == cluster]),
+       col = actionColorMap[actionDateCluster == cluster],
+       pch = 19,
+       pt.cex = 3,
+       xpd = TRUE,
+       inset = -0.1
+       )
+
+
+
+}
+
+
+```
+
+```{r fig.height = 3}
+
+# Plot the count of actions per date, one plot per cluster
+
+plotWeeklyActions(cluster=1)
+plotWeeklyActions(cluster=2)
+
+```
+
+```{r fig.height = 5}
+
+plotWeeklyActions(cluster=3)
+
+
+```
+
+### Tables
+
+```{r}
+
+merge(actionFrame, reasonsPerAction[,c("ACTION","ACTION_REASON")], by = "ACTION") |>
+  kbl(caption = "Actions and unique associated reasons",
+      col.names = c("", "description", "count", "unique\nreasons"),
+      row.names=FALSE,
+      escape = FALSE) |>  
+  kable_styling(full_width = FALSE) 
+
+
+```
+
+```{r}
+
+reasonFrame |>
+  kbl(caption = "Action reasons",
+      col.names = c("", "description","count"),
+      row.names=FALSE,
+      escape = FALSE) |>  
+  kable_styling(full_width = FALSE) |>
+  scroll_box(height = "1000px")
+
+```
+
+
+```{r}
+
+
+
+actionReasonCombo |>
+  kbl(caption = "Actions and reasons",
+      col.names = c("", "action", "reason", "description",  "count"),
+      row.names=FALSE,
+      escape = FALSE) |>  
+  kable_styling(full_width = FALSE) |>
+  scroll_box(height = "1000px")
+
+
+actionReasonCombo[actionReasonCombo$ACTION_REASON %in% actionsPerReason$ACTION_REASON,] |>
+  (\(x){x[order(x$ACTION_REASON),]})() |>
+  kbl(caption = "Reasons applied to multiple actions",
+      col.names = c("", "action", "reason","description", "count"),
+      row.names=FALSE,
+      escape=FALSE
+  ) |>  
+  kable_styling(full_width = FALSE) |>
+  scroll_box(height = "1000px")
+
+actionReasonCombo[!(actionReasonCombo$ACTION_REASON %in% actionsPerReason$ACTION_REASON),] |>
+#  (\(x){x[order(x$ACTION_REASON),]})() |>
+  kbl(caption = "Reasons applied to a single action",
+      col.names = c("", "action", "reason","description", "count"),
+      row.names=FALSE,
+      escape=FALSE
+  ) |>  
+  kable_styling(full_width = FALSE) |>
+  scroll_box(height = "1000px")
+
+
+
+```
+
+## (2) DEFINE "BOUNDARY" ACTIONS AND CHECK FOR INTERNAL CONSISTENCY
+
+The actions and action reasons are reviewed, and grouped according to three main boundary types: primary, leave, and break.
+
+These are then tallied per EMPLID to check for inconsistencies.  
+
+First, the number of exits should not exceed the number of entries for a type.  Many examples of these inconsistencies were found.   However, this query has a lower number of these errors than previous queries, especially for "primary" type.  All of these errors invite further examination and explanation.    
+
+Second, the number of entries should not exceed more than one more than the number of exits.  Only one error of this type was found, indicating consistent data.
+
+
+```{r}
+
+explainHeadCount(rect_text_args=list(cex = 2.3))
+
+```
+
+
+```{r eval = FALSE}
+
+# Table describing boundary actions
+
+unique(actionReasonFrame[,c("ACTION", "ACTION_DESCR","boundary", "boundary_type")]) |>
+  (\(x){x <- x[!is.na(x$boundary),] })() |>
+  (\(x){x[order(x$boundary_type),]  })() |>
+  
+  kbl(caption = "Boundary actions grouped",
+      col.names = c("","ACTION_DESCR","boundary",""),
+      row.names=FALSE) |>
+  column_spec(2:3, extra_css = "padding-left: 1em;")
+
+
+```
+
+
+```{r}
+
+sapply(tooManyExits, nrow) |> kbl(caption = "Too many exits", col.names = "count of EMPLID's") |>
+  kable_paper("hover", full_width = F)
+
+```
+
+```{r eval=FALSE}
+
+# Although interesting, for the purposes of this report I don't need to see actual examples
+
+tooManyExits[[1]][1:10,] |>
+  kbl(caption = "Sample of EMPLIDs with more 'break' exits than entries", row.names=FALSE) |>
+  kable_paper("hover", full_width = F)
+
+tooManyExits[[2]][1:10,] |>
+  kbl(caption = "Sample of EMPLIDs with more 'leave' exits than entries", row.names=FALSE) |>
+  kable_paper("hover", full_width = F)
+
+tooManyExits[[3]][1:10,] |>
+  kbl(caption = "Sample of EMPLIDs with more 'primary' exits than entries", row.names=FALSE) |>
+  kable_paper("hover", full_width = F)
+
+```
+
+
+```{r}
+
+sapply(tooManyEntries, nrow) |> kbl(caption = "Too many entries", col.names = "count of EMPLID's") |>
+  kable_paper("hover", full_width = F)
+
+```
+
+
+```{r eval=FALSE}
+
+# Although interesting, for the purposes of this report I don't need to see actual examples
+
+tooManyEntries[[1]][1:10,] |>
+  kbl(caption = "More 'break' entries than exits", row.names=FALSE) |>
+  kable_paper("hover", full_width = F)
+
+tooManyEntries[[2]][1:10,] |>
+  kbl(caption = "More 'leave' entries than exits", row.names=FALSE) |>
+  kable_paper("hover", full_width = F)
+
+tooManyEntries[[3]][1:10,] |>
+  kbl(caption = "More 'primary' entries than exits", row.names=FALSE) |>
+  kable_paper("hover", full_width = F)
+
+
+```
+
+
+```{r eval=FALSE}
+
+# boundary consistency sandbox
+
+# checking to see if boundary pairs (exit/entry per type) match
+
+table(journeyData$boundary)
+# entry   exit 
+# 305797 303913 
+
+# I'll need to do this per EMPLID
+
+shobsho <- aggregate(boundary~EMPLID + boundary_type, data = journeyData, table) |> as.matrix.data.frame()
+
+# that's not it
+
+shobble <- as.data.frame(table(journeyData[, c("EMPLID","boundary_type","boundary")]))
+
+# that's a lot more like it
+
+# now I wonder if I can filter out the values of 0,
+# and I wonder how to make that brief entry/exit map
+
+# And I wonder if I want to re-shape this
+
+shobble[shobble$EMPLID == monthOneTerm[1],]
+
+# almost there to finding imbalance
+
+# another aggregation, I think, to find them out
+
+
+
+ohbsho <- lapply(levels(shobble$boundary_type), function(x) {aggregate(Freq ~ EMPLID, data = shobble[shobble$boundary_type == x,], length(unique(x)) )})
+
+
+shobble[shobble$boundary_type == "primary",] |> head()
+
+
+shaibo <- aggregate(Freq ~ EMPLID + boundary, data = shobble[shobble$boundary_type == "primary",], sum) |>
+  (\(x){x[order(x$EMPLID),]})()
+
+# I am going to re-shape this.
+# I need to see where exit > entry
+# or where entry is more than exit + 1
+
+shaibobble <- reshape(shaibo,
+                      idvar = "EMPLID",
+                      timevar = "boundary",
+                      v.names = "Freq",
+                      direction = "wide")
+names(shaibobble) <- c("EMPLID","entry","exit")
+
+# ok, I like this
+# I c/should turn this into a list
+
+shazam <- lapply(levels(shobble$boundary_type), function(x){ 
+  
+  aggregate(Freq~EMPLID + boundary, data = shobble[shobble$boundary_type == x,], sum) |>
+    (\(y){
+      reshape(y,
+              idvar = "EMPLID",
+              timevar = "boundary",
+              v.names = "Freq",
+              direction = "wide")
+    })() |>
+    (\(z){ 
+      names(z) <- c("EMPLID","entry","exit");
+      return(z)
+      })()
+
+  })
+names(shazam) <- levels(shobble$boundary_type)
+
+# ok, now we are getting somewhere!
+
+
+# too many cooks
+
+incongruous <- lapply(shazam, function(x) { x[x[,"exit"] > x[,"entry"],] })
+
+
+tooManyCooks <- lapply(shazam, function(x) {x[x[,"entry"] > x[,"exit"]+1, ] })
+
+# ok now this is interesting
+# check out "00028879", EFFDT == "2010-01-16"
+# They are IDENTICAL except for the EMPL_RCD
+
+# I should just shoot a quick e-mail and see if I can figure this out
+
+# ...or, pick up a few examples of these
+
+# View(journeyData[journeyData$EMPLID == "00029479",])
+
+# check out "00029479", EFFDT == "2011-07-16"
+# They returned from leave twice, were terminated, and transferred all in one day
+# ...and continued employment until they retired on "2022-06-16"
+
+# View(journeyData[journeyData$EMPLID == "00002624",])
+# check out "00002624" on 2021-03-16
+# Looks like this is a "Hire Concurrent Job" which needs some explaining
+
+# let's just write this up and set up a meeting.
+
+
+```
+
+
+
+```{r eval=FALSE}
+
+# print and work with actionReasonFrame in Excel
+
+write.csv(actionReasonFrame, here::here("Robjects", "actionReasonFrame.csv"))
+
+
+```
+
+
+### Query
+
+The query below is converted to a view, ds_hr.EMPL_AGE_RANGE_ACTION_MV_V.
+
+This query is designed to create a list of all EMPLID's that have activity after the cut-off date of Jan 1, 2010, and then pull the entire history of these employees.  
+
+CREATE OR REPLACE FORCE EDITIONABLE VIEW "UUETL_HR"."EMPL_AGE_RANGE_ACTION_V" ("EMPLID", "EMPL_RCD", "EFFDT", "EFFSEQ", "ACTION", "ACTION_DESCR", "ACTION_REASON", "ACTION_REASON_DESCR", "JOBCODE", "JOB_TITLE", "DEPTID", "DEPT_NAME", "VOLUNTARY_FLAG", "AGE_BAND", "UCAREER_JOBCODE_FLAG") AS 
+  with empl_from_2010 as (
+  select distinct 
+   emplid
+  from ps_uu_unsec_job_vw  
+  where effdt > TO_DATE('2010-01-01','YYYY-MM-DD') 
+ )
+  SELECT 
+ A.EMPLID, A.EMPL_RCD, A.EFFDT, A.EFFSEQ
+    , A.ACTION, B.ACTION_DESCR
+    , A.ACTION_REASON, C.DESCR ACTION_REASON_DESCR, A.JOBCODE, E.DESCR JOB_TITLE
+    , A.DEPTID, F.DESCR DEPT_NAME
+    , Case when A.ACTION ! = 'TER' then ''
+        when A.ACTION  = ('TER') 
+        AND A.ACTION_REASON not in ('BNK', 'EVW', 'I9', 'INV', 'NER', 'RFN', 'RIF', 'RLS') 
+        then 'Voluntary' else 'Involuntary' end VOLUNTARY_FLAG
+    , Case    when (A.EFFDT-D.BIRTHDATE)/365.25 < 20
+        then 'Under 20' 
+    when (A.EFFDT-D.BIRTHDATE)/365.25 >= 20  and (A.EFFDT-D.BIRTHDATE)/365.25 < 30
+        then '20s'
+    when (A.EFFDT-D.BIRTHDATE)/365.25 >= 30  and (A.EFFDT-D.BIRTHDATE)/365.25  < 40
+        then '30s'
+    when (A.EFFDT-D.BIRTHDATE)/365.25 >= 40  and (A.EFFDT-D.BIRTHDATE)/365.25  < 50
+        then '40s'
+    when (A.EFFDT-D.BIRTHDATE)/365.25 >= 50  and (A.EFFDT-D.BIRTHDATE)/365.25 < 60
+        then '50s'
+    when (A.EFFDT-D.BIRTHDATE)/365.25 >= 60  and (A.EFFDT-D.BIRTHDATE)/365.25  < 70
+        then '60s'
+    when (A.EFFDT-D.BIRTHDATE)/365.25 >= 70  and (A.EFFDT-D.BIRTHDATE)/365.25 < 80
+        then '70s'
+    when (A.EFFDT-D.BIRTHDATE)/365.25 >= 80  and (A.EFFDT-D.BIRTHDATE)/365.25 < 90
+        then '80s'
+    else '90 and Above'
+        end Age_Band
+    , Case when LENGTH(A.JOBCODE) = 6
+        AND A.JOBCODE NOT LIKE '7%'
+        then 'UCareer Job Code'
+        else ''
+        end UCAREER_JOBCODE_FLAG
+FROM PS_UU_UNSEC_JOB_VW A
+    JOIN PS_ACTION_TBL B
+        ON (B.ACTION = A.ACTION)
+    JOIN PS_ACTN_REASON_TBL C
+        ON (C.ACTION = A.ACTION
+            AND C.ACTION_REASON = A.ACTION_REASON)
+    JOIN ps_personal_dt_fst D
+        ON (D.EMPLID = A.EMPLID)
+    JOIN PS_JOBCODE_TBL E
+        ON (E.JOBCODE = A.JOBCODE)
+    JOIN PS_DEPT_TBL F
+        ON (F.DEPTID = A.DEPTID)
+-- WHERE  A.EFFDT > TO_DATE('2010-01-01','YYYY-MM-DD')
+where a.emplid in (select emplid from empl_from_2010)
+    and B.EFFDT = (SELECT MAX(B_ED.EFFDT) 
+        FROM PS_ACTION_TBL B_ED
+        WHERE B.ACTION = B_ED.ACTION
+        AND B_ED.EFFDT <= SYSDATE)
+    AND C.EFFDT = (SELECT MAX(C_ED.EFFDT) 
+        FROM PS_ACTN_REASON_TBL C_ED
+        WHERE C.ACTION = C_ED.ACTION
+        AND C.ACTION_REASON = C_ED.ACTION_REASON
+        AND C_ED.EFFDT <= SYSDATE)
+    AND E.EFFDT = (SELECT MAX(E_ED.EFFDT) 
+        FROM PS_JOBCODE_TBL E_ED
+        WHERE E.JOBCODE = E_ED.JOBCODE
+        AND E_ED.EFFDT <= SYSDATE)         
+    AND F.EFFDT = (SELECT MAX(F_ED.EFFDT) 
+        FROM PS_DEPT_TBL F_ED
+        WHERE F.DEPTID = F_ED.DEPTID
+        AND F_ED.EFFDT <= SYSDATE);
+
+```{r eval = FALSE}
+
+# Let's check on people terminated in the first month of the data set
+
+dateCriteria <- journeyData$EFFDT <= as.Date("2010-01-31")
+termCriteria <- journeyData$ACTION == "TER"
+hireCriteria <- journeyData$ACTION == "HIR"
+rehireCriteria <- journeyData$ACTION == "REH"
+
+monthOneTerm <- unique(journeyData$EMPLID[dateCriteria & termCriteria])
+
+dim(journeyData[journeyData$EMPLID == monthOneTerm[1],]) # looks like I found a re-hire.  His last record happened in 2018
+
+journeyData[journeyData$EMPLID == monthOneTerm[1],] |>
+  (\(x){x[order(x$EFFDT),] })()
+
+
+journeyData[journeyData$EMPLID == monthOneTerm[2],] |>
+  (\(x){x[order(x$EFFDT),] })() # see now this is what I'm looking for
+# A termination but no matching hire date
+
+# I need to understand the EFFSEQ, and there's actually value for EMPL_RCD
+
+# 
+
+```
+
