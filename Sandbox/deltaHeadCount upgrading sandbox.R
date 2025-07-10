@@ -156,3 +156,92 @@ calculateMetrics(initial_count = 0,
 
 # I've got something backwards   The rates (%) and delta (%) graph really don't make sense
 
+calculateMetrics(initial_count = 0, minDate = ymd("2013-01-01"), maxDate = ymd("2025-07-04"), calendar = "quarter", data = primaryJourney) |> plotMetrics()
+
+# and that's insane.  We've added 12,000 people over ten years?  Wow!
+# so we've got something that looks just wrong.
+
+# Ok, so what we have is . . .  . wrong.
+# Let's take a closer look and walk through this
+
+athleticsDept <- calculateMetrics(initial_count = 0,
+                                  calendar = "week",
+                                  data = primaryJourney[primaryJourney$DEPT_NAME == theDepts[1],])
+
+dim(primaryJourney[primaryJourney$DEPT_NAME == theDepts[1],]) #5154 17 # that's a lot to look through
+
+athleticsFilter <- primaryJourney$DEPT_NAME == theDepts[1]
+ytdFilter <- primaryJourney$EFFDT <= ymd("2025-08-01") & primaryJourney$EFFDT >= ymd("2025-01-01")
+
+length(unique(primaryJourney$EMPLID[athleticsFilter & ytdFilter])) # 296
+
+View(primaryJourney[athleticsFilter & ytdFilter,])
+
+# looks like I've tracked down the inversion ---
+# because I am setting the initial amount at zero, then the signs aren't working
+# and I often have a negative denominator (if I have a negative headcount)
+
+# that doesn't explain why it doesn't start until March, even if the delta.cum *may* be right
+
+calendar <- c("day","week","month","quarter","year")
+athleticsDept <- lapply(calendar, function(x){calculateMetrics(initial_count = 0,
+                                                               calendar = x,
+                                                               data = primaryJourney[primaryJourney$DEPT_NAME == theDepts[1],])}) |>
+  setNames(calendar)
+
+
+# so the "week" is not wrong -- just incomplete
+# weird
+
+# I need to debug "week"
+
+
+athleticsDept_NA <- lapply(calendar, function(x){calculateMetrics(initial_count = NA,
+                                                               calendar = x,
+                                                               data = primaryJourney[primaryJourney$DEPT_NAME == theDepts[1],])}) |>
+  setNames(calendar)
+
+
+
+# week is still correct -- just not showing anything before March
+# And now that the denominator is correct, the % values in the bottom two graphs looks great
+
+# not sure how this is handling the "cold start" problem
+# and the answer is, not well --- the entire headcount should be shifted upwards because it will
+# log exits for people that never were added.
+
+# After I trouble-shoot "week", then I need to play with the expanded data set.
+
+debugonce(calculateMetrics)
+
+athleticsWeek <- calculateMetrics(initial_count = NA,
+                                  calendar = "week",
+                                  data = primaryJourney[primaryJourney$DEPT_NAME == theDepts[1],])
+
+
+# I've got my hunch
+# WHAMMO!  FIXED!  (And how did I not catch that earlier?  Oh well)
+
+fullTermAthlete <- lapply(calendar, 
+                          function(x){
+                            calculateMetrics(calendar = x,
+                                             minDate = ymd("2011-01-01"),
+                                             maxDate = today(),
+                                             data = primaryJourney[primaryJourney$DEPT_NAME == theDepts[1],]
+                                             )
+                          }
+                          ) |> setNames(calendar)
+
+# It's struggling to plot thisfor some reason. $ oh-- I didn't set the names!
+
+debugonce(plotMetrics)
+
+plotMetrics(fullTermAthlete[[1]])
+
+# well
+# interesting
+
+# I need to look at the other types of boundaries as well
+
+# but let's look at the full data set first
+

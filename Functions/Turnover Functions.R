@@ -833,7 +833,7 @@ calculateMetrics <- function(initial_count=NA,
   }
   
   if(calendar == "week") {
-    periodHeadCountMean <- aggregate(delta.cum ~ paste(year(EFFDT), isoweek(EFFDT), sep = "-W"), data = meanHeadCount, mean)
+    periodHeadCountMean <- aggregate(delta.cum ~ paste(year(EFFDT), sprintf("%02d", isoweek(EFFDT)), sep = "-W"), data = meanHeadCount, mean)
   }
   
   if(calendar == "month") {
@@ -897,7 +897,7 @@ plotMetrics <- function(data,
   # and creates several graphics of different metrics over time.
   
   # NOTES FOR USING:
-  # If you don't want to show both hire and term rate lines, then set the argument "type='n'"
+  # If you don't want to show both entry and exit lines, then set the argument "type='n'"
   #  in the appropriate params list (but it would still show up in the legend.  Hmm.)
   # If you don't want to show a particular legend, then set the argument "plot = FALSE"
   #  in the appropriate params list.
