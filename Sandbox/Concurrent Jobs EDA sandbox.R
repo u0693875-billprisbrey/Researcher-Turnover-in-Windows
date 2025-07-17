@@ -83,12 +83,18 @@ nonZeroFilter <- (journeyData$EMPLID %in% singleRCD) & journeyData$EMPL_RCD != 0
 nonZeroEmplids <- unique(journeyData$EMPLID[nonZeroFilter])
 
 # holding onto the original data
-jData <- journeyData
+jData.o <- journeyData
 
 # I should figure out how to incorporate this logic into a query
 
-journeyData <- journeyData[!journeySingleFilter,]
+jData.single <- journeyData[journeySingleFilter,]
+jData.concurrent <- journeyData[!journeySingleFilter,]
 
+journeyData <- list(single = jData.single, conc =jData.concurrent)
+
+#########################
+## PUT INTO A FUNCTION ##
+#########################
 
 # Define boundary actions
 
@@ -296,3 +302,310 @@ deltaHeadCount(data = journeyData[journeyData$EMPLID %in% fewPIs,], minDate = ym
 # then I use a variety of rules to assign "entry" and "exit" and "type"
 
 # Let's get playing with that.
+
+
+# It's almost like I need to create a function
+# for assigning the boundary_type and boundary action.  My headcount functions,
+# that use "entry" and "exit", won't be adjusted.
+
+
+# First, are there multiple HIR per emplid?
+
+action_dates_per_emplid <- aggregate(EFFDT ~ EMPLID+ACTION, data = journeyData, function(x) length(unique(x)))
+table(action_dates_per_emplid$ACTION) # HIR is 32054, so that's promising # no, it just means that every EMPLID has been hired
+
+hire_per_emplid <- action_dates_per_emplid[action_dates_per_emplid$ACTION == "HIR",] 
+> quantile(hire_per_emplid$EFFDT)
+0%  25%  50%  75% 100% 
+1    2    2    2   11 
+
+# so there are multiple "HIR" per EMPLID.
+
+rehire_per_emplid <- action_dates_per_emplid[action_dates_per_emplid$ACTION == "REH",] 
+quantile(rehire_per_emplid$EFFDT)
+0%  25%  50%  75% 100% 
+1    1    2    3  102 
+
+# plenty of re-hires too
+
+action_reason_dates_per_emplid <- aggregate(EFFDT ~ EMPLID+ACTION+ACTION_REASON, data = journeyData, function(x) length(unique(x)))
+
+hire_reason_per_emplid <- action_reason_dates_per_emplid[action_reason_dates_per_emplid$ACTION == "HIR",]
+
+# CNV "conversion" what's that?
+
+# should be one and only one HIR NHR (new hire) per emplid
+
+newHireFilter <- hire_reason_per_emplid$ACTION == "HIR" & hire_reason_per_emplid$ACTION_REASON == "NHR"
+
+skim(hire_reason_per_emplid$EFFDT[newHireFilter])
+# mean of 1.01
+quantile(hire_reason_per_emplid$EFFDT[newHireFilter])
+0%  25%  50%  75% 100% 
+1    1    1   1    3
+
+# ok, so not perfect but looking really, really good!
+
+# . . . and brain is done for tonight I think.
+
+# So what I'm thinking of doing is developing a function 
+# that can handle the full data set.
+# It will have several steps and stages to it.
+
+# S
+
+
+
+# let's test for NHR
+
+action_reason_dates_per_emplid <- lapply(journeyData, function(y){
+  
+  aggregate(EFFDT ~ EMPLID+ACTION+ACTION_REASON, data = y, function(x) length(unique(x)))
+  
+})
+
+hire_reason_per_emplid <- lapply(action_reason_dates_per_emplid, function(x){
+  
+  x[x$ACTION == "HIR" & x$ACTION_REASON == "NHR",] 
+  
+})
+
+lapply(hire_reason_per_emplid, function(x){mean(x$EFFDT)})
+
+$single
+[1] 1.000149
+
+$conc
+[1] 1.005254
+
+# well that looks pretty good actually
+# how many are off, actually?
+
+lapply(hire_reason_per_emplid, function(x){nrow(x[x$EFFDT >1,] )})
+
+$single
+[1] 18
+
+$conc
+[1] 151
+
+# ok, so this is a pretty good universal rule
+
+
+# Define boundary actions
+
+actionReasonFrame$boundary <- NA
+actionReasonFrame$boundary_type <- NA
+
+##################
+## INITIAL HIRE ##
+##################
+
+initialHireFilter <- actionReasonFrame$ACTION %in% c("HIR") & actionReasonFrame$ACTION_REASON %in% c("NHR")
+
+# o.k., one done
+# This is pretty much everybody's start
+
+# Let's look at termination
+
+term_reason_per_emplid <- lapply(action_reason_dates_per_emplid, function(x){
+  
+  x[x$ACTION == "TER",] 
+  
+})
+
+lapply(term_reason_per_emplid, function(x){mean(x$EFFDT)})
+lapply(term_reason_per_emplid, function(x){nrow(x[x$EFFDT >1,] )})
+
+# This is the wrong way to think about it
+
+# Let's get a few individual timelines drawn out
+
+eventsPerEmplid <- lapply(journeyData, function(x) { aggregate(ACTION ~ EMPLID, data = x, length)})
+
+
+set.seed(42)
+fewPIs <- sample(recordsPerEMPLID$EMPLID[recordsPerEMPLID$EMPL_RCD == 2 & recordsPerEMPLID$EMPLID %in% eventsPerEmplid[[2]]$EMPLID[eventsPerEmplid[[2]]$ACTION < 25] ],6)
+
+> fewPIs
+[1] "06012878" "00594544" "00915150" "01379631"
+[5] "00435004" "01344487"
+
+View(journeyData[["conc"]][journeyData[["conc"]]$EMPLID == fewPIs[1],])
+
+# fewPIs[[1]] is exasperating.
+# This is making my head spin.  Hard to chart this out.
+# It's a bit of a mess.
+# maybe I will make a timeline graphic --
+# or should I do one manually first?
+
+# This guy is hired, terminated, re-hired, and on the same day
+# terminated AND hired into a concurrent job.
+# And it sticks with empl_rcd = 1; it DOES NOT go back to zero.
+
+timeline1 <- journeyData[["conc"]][journeyData[["conc"]]$EMPLID == fewPIs[1],]
+timeline1$ACTION <- factor(timeline1$ACTION)
+
+plot(y = rep(1, nrow(timeline1)),
+     x = as.Date(timeline1$EFFDT),
+     pch = 19,
+     col = c("red","yellow","blue","green")[timeline1$ACTION] )
+
+# ok
+# This suggests creating a "map" with shapes and colors,
+#   like adding a couple of columns to actionReasonFrame.
+# What do I do when I have several on the same day?
+#  I could create lanes--- but then where am I putting the 
+#  concurrent job?
+
+# thanks Chat -- that was fast!
+
+date_counts <- table(timeline1$EFFDT) # identify multiple events per day
+
+yPos <- ave(as.numeric(timeline1$EFFDT), timeline1$EFFDT, FUN = function(dates) {
+  n <- length(dates)
+  if (n == 1) {
+    return(1)  # single point: no jitter
+  } else {
+    # Evenly spaced jitter around y = 1
+    jitter_values <- seq(0.9, 1.1, length.out = n)
+    return(jitter_values)
+  }
+})
+
+plot(y = yPos,
+     x = as.Date(timeline1$EFFDT),
+     pch = 19,
+     col = c("red","brown","blue","green")[timeline1$ACTION] )
+
+
+# ok, that's not bad
+# I'd like to color- and shape- code it better.
+
+# next I'd like to adjust the timeline based on the EMPL_REC
+# It would also be cool -if- the jitter was always in the same order
+
+plot(y = yPos + timeline1$EMPL_RCD,
+     x = as.Date(timeline1$EFFDT),
+     pch = 19,
+     col = c("red","brown","blue","green")[timeline1$ACTION] )
+
+
+# well, that's some clarity I guess
+
+# let's color code these things, starting with boundary actions
+
+actionFrame <- unique(actionReasonFrame[,c("ACTION", "ACTION_DESCR")])
+
+# boundaries
+actionFrame$boundary_type <- NA
+actionFrame$boundary <- NA
+
+# color, shape, and size
+actionFrame$shape_color <- NA
+actionFrame$shape_shape <- NA
+actionFrame$shape_size <- NA
+
+# assign
+# I think I'll just type it out
+
+actionFrame <- data.frame(ACTION = c("DTA", "PAY", "TER", "HIR", "REH", "SWB", "RWB", "XFR", "POS", "PLA", "RFL", "JRC", "LOA", "RET", "RCL", "RWP", "LTO", "STO", "PRO", "STD", "TWP", "RFD"),
+                          boundary = c(NA, NA, "exit", "entry", "entry", "exit", "entry", NA, NA, "exit", "entry", NA, "exit", "exit", NA, "exit", "exit", "exit", NA, "exit", "exit", "entry"),
+                          boundary_type = c(NA,  NA, "primary", "primary","primary","break","break",NA, NA, "leave", "leave", NA, "leave", "primary", NA, "primary", "leave", "leave", NA, "leave", "primary", "leave")) #,
+
+# color, shape, and size
+actionFrame$shape_color <- NA
+actionFrame$shape_shape <- NA
+actionFrame$shape_size <- NA
+
+actionFrame$shape_color[actionFrame$boundary_type == "primary"] <- "chocolate"
+actionFrame$shape_color[actionFrame$boundary_type == "break" ] <- "steelblue"
+actionFrame$shape_color[actionFrame$boundary_type == "leave" ] <- "coral"
+
+actionFrame$shape_color[is.na(actionFrame$boundary_type)] <- "lightgreen"
+
+actionFrame$shape_shape[actionFrame$boundary == "exit"] <- 13   
+actionFrame$shape_shape[actionFrame$boundary == "entry"] <- 19   
+actionFrame$shape_shape[is.na(actionFrame$boundary)] <- 1
+
+actionFrame$shape_size[actionFrame$ACTION == "HIR" ] <- 2
+actionFrame$shape_size[actionFrame$ACTION == "TER" ] <- 2
+
+actionFrame$shape_size[is.na(actionFrame$boundary_type)] <- 0.75
+
+# if otherwise unspecified
+actionFrame$shape_size[is.na(actionFrame$shape_size)] <- 1
+
+
+# now let's plot me some timelines
+
+plotJourney <- function(data, plotMap){
+  
+  # where plotMap is the actionFrame with color, shape, and size specified
+  # where data is the journeyData for a single EMPLID
+  
+  timeLine <- merge(data, plotMap, by = "ACTION", all.x = TRUE)
+  
+  # create jitter
+  yPos <- ave(as.numeric(timeLine$EFFDT), timeLine$EFFDT, FUN = function(dates) {
+    n <- length(dates)
+    if (n == 1) {
+      return(1)  # single point: no jitter
+    } else {
+      # Evenly spaced jitter around y = 1
+      jitter_values <- seq(0.9, 1.1, length.out = n)
+      return(jitter_values)
+    }
+  })
+  
+  # draw the plot
+  
+  plot(y = yPos + timeLine$EMPL_RCD,
+       x = as.Date(timeLine$EFFDT),
+       pch = timeLine[,"shape_shape"],
+       col = timeLine[,"shape_color"],
+       cex = timeLine[,"shape_size"]
+       )
+  
+}
+
+# well
+# it's something
+
+# let's see a few more
+
+plotJourney(data = journeyData[["conc"]][journeyData[["conc"]]$EMPLID == fewPIs[1],], plotMap = actionFrame)
+
+# fewPIs[3], fewPIs[5], fewPIs[6]  have exits sticking way out there, and no entry against it
+
+# Now I can start getting fancy with my shapes, colors, and sizes
+
+# This isn't a bad graphic.  I should probably just chuck this up in a Shiny app
+# so I can reference it easily
+
+# And I thought I had some "break" and "leave" in there?
+#   -- I need to specify the shape SIZE !
+
+# I should target the PI's to increase the relevancy
+
+# it's looking good
+
+# this could work great with plotly
+# A shiny app with a plotly graphic and hover ability
+# and below that, the raw data frame
+
+singlePIs <- sample(journeyData[["single"]][,"EMPLID"], 6 )
+plotJourney(data = journeyData[["single"]][journeyData[["single"]]$EMPLID == singlePIs[1],], plotMap = actionFrame)
+
+# I almost want a solid line for some of these durations
+# Like a blue line during the break, and a coral line during the leave
+# and I guess a solid "chocolate" line during employment ?
+
+# my purpose here isn't to create a graphic, though
+# it's to develop "entry" and "exit" rules for concurrent jobs
+
+# Except for that one example, it looks like I can ignore EMPL_RCD == 1
+# (?)  How fair of a generalization is that?
+
+
+
