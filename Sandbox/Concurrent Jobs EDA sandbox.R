@@ -524,8 +524,8 @@ actionFrame$shape_color[actionFrame$boundary_type == "leave" ] <- "coral"
 
 actionFrame$shape_color[is.na(actionFrame$boundary_type)] <- "lightgreen"
 
-actionFrame$shape_shape[actionFrame$boundary == "exit"] <- 13   
-actionFrame$shape_shape[actionFrame$boundary == "entry"] <- 19   
+actionFrame$shape_shape[actionFrame$boundary == "exit"] <- 19   
+actionFrame$shape_shape[actionFrame$boundary == "entry"] <- 13   
 actionFrame$shape_shape[is.na(actionFrame$boundary)] <- 1
 
 actionFrame$shape_size[actionFrame$ACTION == "HIR" ] <- 2
@@ -607,5 +607,278 @@ plotJourney(data = journeyData[["single"]][journeyData[["single"]]$EMPLID == sin
 # Except for that one example, it looks like I can ignore EMPL_RCD == 1
 # (?)  How fair of a generalization is that?
 
+# The thing is, that developing the graphic should help me walk through
+# the rules and provide a very nice visual check.
 
+# I almost want to make one rule per PI, then just keep iterating until
+# they are all covered.
+
+# And it looks like I am going to need to develop a color, shape, size for 
+# every actionReason
+
+# And seriously, should I iterate with a Shiny app?
+
+# To Do:
+#   Develop entry/exit rules that apply to the actionReasonFrame
+#   Develop unique color/shape/size for all 186 actionReasonFrame combos
+#   Draw a duration line at the bottom of the graphic
+#   Apply the rules and compare to some kind of double-check (?!!!)
+#   Some kind of marker for "currently employed"
+#   Display the journey data frame
+#   I think the duration line is in its own graphic underneath
+
+# man either way my head is kinda spinning.
+# I wonder how complex the logic on this is going to be, both for applying
+# entry/exit and for plotting?
+
+# let's try the line
+
+timeline2 <- journeyData[["single"]][journeyData[["single"]]$EMPLID == singlePIs[2],]
+
+plotMap <- actionFrame
+timeLine2 <- merge(timeline2, plotMap, by = "ACTION", all.x = TRUE)
+
+# create jitter
+yPos <- ave(as.numeric(timeLine2$EFFDT), timeLine2$EFFDT, FUN = function(dates) {
+  n <- length(dates)
+  if (n == 1) {
+    return(1)  # single point: no jitter
+  } else {
+    # Evenly spaced jitter around y = 1
+    jitter_values <- seq(0.9, 1.1, length.out = n)
+    return(jitter_values)
+  }
+})
+
+# draw the plot
+
+plot(y = yPos + timeLine2$EMPL_RCD,
+     x = as.Date(timeLine2$EFFDT),
+     pch = timeLine2[,"shape_shape"],
+     col = timeLine2[,"shape_color"],
+     cex = timeLine2[,"shape_size"]
+)
+
+mtext(side = 3, "Working on it", line = 2)
+
+# filter to the break type
+
+primaryBoundary <- timeLine2[timeLine2$boundary_type == "primary" & !is.na(timeLine2$boundary_type),]
+
+# select the entries in order
+
+entries <- primaryBoundary$EFFDT[primaryBoundary$boundary == "entry" ] |>
+  (\(x){ x[order(x)]})()
+
+# select the exits in order
+
+exits <- primaryBoundary$EFFDT[primaryBoundary$boundary == "exit" ] |>
+  (\(x){ x[order(x)]})()
+
+lapply(1:length(entries), function(x) {
+  
+  segments(
+    x0 = as.Date(entries[x]), 
+    y0 = 1.05,
+    x1 = as.Date(exits[x]),
+    y1 = 1.05,
+    lwd = 1.05,
+    col = "pink"
+    
+    
+  )
+  
+})
+
+segments(x0 = as.Date(entries[1]), 
+           y0 = 1.05,
+         x1 = as.Date(exits[1]),
+           y1 = 1.05,
+         lwd = 1.05,
+         col = "pink")
+
+# seems like I can use this as a test
+# plot the exited lines as well
+# look for a continuous duration
+
+# let's do it for all the kinds of breaks
+
+theBoundaries <- lapply(c("primary", "break", "leave"), function(x) {
+  
+  boundaryData <- timeLine2[timeLine2$boundary_type == x & !is.na(timeLine2$boundary_type),]
+
+  
+})
+names(theBoundaries) <- c("primary", "break", "leave")
+
+# extract entries and exits in order per boundary
+
+startAndstop <- lapply(theBoundaries, function(theData){ 
+
+returnList <- lapply(c("entry", "exit"), function(x) {
+  
+  if(x %in% theData$boundary) {
+dates <-  theData$EFFDT[theData$boundary == x ] |>
+    (\(b){ b[order(b)]})();
+return(dates)
+} else {
+  return(NULL) 
+  } 
+
+})
+
+  names(returnList) <-  c("entry", "exit")
+  return(returnList)
+  
+})
+
+
+# this is a worthwhile output by itself
+# I'd want a second function that will plot it
+
+# And, of course, manage concurrent jobs (!)
+
+# time to make this into a
+# a
+# it's own function
+
+# let's make it as granular as possible -- for a single PI
+
+# and this is a buncha list o'lists
+
+# missing the merge with actionFrame; gotta do it befor or after
+
+piSegments <- function(data, plotMap) {
+  
+  # This returns a list of break types per PI
+  # with the "entry" and "exit" dates
+  
+  # where "data" is the journeyData of a single PI
+  
+  
+  # first, merge plotMap
+  
+  data <- merge(data, plotMap, by = "ACTION", all.x = TRUE)
+  
+  # first, separate into the different boundary types
+  
+  boundaries <- c("primary","break","leave")
+  boundaryEvents <- c("entry","exit")
+  
+  journeyByBoundary <- lapply(boundaries, function(x) {
+    boundaryData <- data[data$boundary_type == x & !is.na(data$boundary_type),]
+  })
+  names(journeyByBoundary) <- boundaries
+  
+  # second, extract entry and exit dates
+  
+  startAndstop <- lapply(journeyByBoundary, function(theData){ 
+    
+    returnList <- lapply(boundaryEvents, function(x) {
+      
+      if(x %in% theData$boundary) {
+        dates <-  theData$EFFDT[theData$boundary == x ] |>
+          (\(b){ b[order(b)]})();
+        return(dates)
+      } else {
+        return(NULL) 
+      } 
+      
+    })
+    
+    names(returnList) <-  boundaryEvents
+    return(returnList)
+    
+  })
+  
+  return(startAndstop)
+  
+}
+
+# so far so good for singlePI's
+
+# let's plot it I guess
+
+plotJourney(data = journeyData[["single"]][journeyData[["single"]]$EMPLID == singlePIs[1],], plotMap = actionFrame)
+
+segment2 <- piSegments(data = journeyData[["single"]][journeyData[["single"]]$EMPLID == singlePIs[2],], plotMap = actionFrame
+                    )
+
+segments(x0 = as.Date(segment2[["primary"]][["entry"]][1]),
+         y0 = 0.95,
+         x1 = as.Date(segment2[["primary"]][["exit"]][1]),
+         y1 = 0.95,
+         lwd = 0.7,
+         col = "red"
+)  
+  
+segments(x0 = as.Date(segment2[["primary"]][["entry"]][2]),
+         y0 = 0.95,
+         x1 = as.Date(segment2[["primary"]][["exit"]][2]),
+         y1 = 0.95,
+         lwd = 0.7,
+         col = "red"
+)    
+
+# well, let's .... shouldn't be too bad
+
+plotJourney(data = journeyData[["single"]][journeyData[["single"]]$EMPLID == singlePIs[2],], plotMap = actionFrame)
+
+lapply(segment2, function(bobble) {lapply(1:length(bobble[["entry"]]), function(line_segment){ 
+  
+  if(length(bobble[["entry"]])>0 ){
+  
+  segments(x0 = as.Date(bobble[["entry"]][line_segment]),
+           y0 = 0.95,
+           x1 = as.Date(bobble[["exit"]][line_segment]),
+           y1 = 0.95,
+           lwd = 1.2,
+           col = "dodgerblue")
+  } else {NULL}
+  
+  })}) 
+
+# maybe I want a loop after all
+
+# man I'm dragging my feet on this one.
+
+# EMPL_RCD
+
+# should 
+
+#####
+#####
+
+# Thoughts, 7.22.2025
+
+# So this is what I have:
+#  - An internal validity check that compares "entries" to "exits"
+#  - A formula that tallies up "entries" and "exits"
+#  - A visualization that shows individual actions, including "entries" and "exits"
+#  - A formula that extracts "entries" and "exits" per individual
+
+#  - An idea to test whether intervals between entry/exit overlap
+
+# This is the situation I have / the data available:
+#  - Many employees have a single job at a time, making headcount calculation straightforward
+#  - Many employees have multiple concurrent jobs, indicated by EMPL_RCD,
+#    but in a way that is inconsistent
+#  - ACTION and ACTION_REASONs that describe these, but again in a way that's inconsistent
+
+# What I'd like to do:
+#  - Find a way to test the concurrent jobs for consistency and re-align
+#    when the EMPL_RCD shifts meaning
+
+# What I think I'll do:
+#  - Iteratively, improving on all of these:
+#    - Assign entry/exit to the 184 ACTION/ACTION_REASONS
+#    - Examine graphically
+#    - Toggle rule assignment
+#    - Toggle internal validity checks
+
+
+# This is what I don't have:
+#  - Management of XFR/ transfers or promotions (DO THIS NEXT)
+
+# First, let's assign entry/exit via function
 
