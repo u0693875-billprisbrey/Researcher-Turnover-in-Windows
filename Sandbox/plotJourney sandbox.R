@@ -15,8 +15,12 @@ plotJourney <- function(data, plotMap){
   
   # where data is the journeyData for a single EMPLID
   # where plotMap is the actionFrame or actionReasonFrame with color, shape, and size specified
+
+  # merge plotMap if necessary
   
+  if(!all(c("shape_color", "shape_shape", "shape_size") %in% colnames(data))) {
   timeLine <- merge(data, plotMap, by = c("ACTION", "ACTION_REASON") , all.x = TRUE)
+  } else {timeLine <- data}
   
   # create jitter
   yPos <- ave(as.numeric(timeLine$EFFDT), timeLine$EFFDT, FUN = function(dates) {

@@ -24,7 +24,7 @@ universityBoundaries <- function(data) {
   ##########
   
   # second, put the data in order
-  timeline <- timline[order(timeline$EFFDT),]
+  timeline <- timeline[order(timeline$EFFDT),]
   
   # simplify to just the "primary" boundary type and select columns
   base_primary <- timeline[timeline$boundary_type == "primary" & !is.na(timeline$boundary_type),c("EFFDT","ACTION","ACTION_REASON","boundary_type","boundary")]
@@ -38,7 +38,17 @@ universityBoundaries <- function(data) {
                            exit = base_primary$EFFDT[order(base_primary$EFFDT) & base_primary$boundary == "exit"]
   )
   
+  ###########
+  ## CHECK ##
+  ###########
+  
   # I should do a double-check here and kick out "Anomaly" warning
+  
+  # rows and columns are in chronological order
+  check1 <- apply(baseEvents, 1, function(x){ (diff(as.Date(x))) >= 0 }  )
+  check2 <- apply(baseEvents, 2, function(x){ (diff(as.Date(x))) >= 0  } )
+  if(any(c(check1,check2) == FALSE)){ return("Anomaly")}
+  
   
   ##############
   ## EVALUATE ##
@@ -102,8 +112,13 @@ universityBoundaries <- function(data) {
   
   base_primary$univ_exit[exit_match] <- TRUE
   
+  # I could combine these into a "university" column
+  base_primary$univ_boundary <- ifelse(base_primary$univ_entry|base_primary$univ_exit, TRUE, NA)
+  
   # Move this information back to the journey data
   univData <- merge(timeline, base_primary, by = c("EFFDT","ACTION","ACTION_REASON","boundary_type","boundary"), all.x = TRUE)
+  
+  # The next step is to create "adj" columns, as this is a multi-step process
   
   return(univData)
   

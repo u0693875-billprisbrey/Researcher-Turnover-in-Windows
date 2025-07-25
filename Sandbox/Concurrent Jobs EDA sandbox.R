@@ -1121,4 +1121,95 @@ base_primary$univ_exit[exit_match] <- TRUE
 # now I need to turn these many steps into a formula
 # and I'll worry about break and leave another day
 
+# ok, let's trouble-shoot the formula:
+
+universityBoundaries(journeyData[["conc"]][journeyData[["conc"]]$EMPLID == fewPIs[6],])
+
+journeyData[["conc"]][journeyData[["conc"]]$EMPLID == fewPIs[6],] |>
+  universityBoundaries() |>
+  #plotJourney(plotMap = assignBoundaries(actionReasonFrame))
+  plotJourney()
+
+# ok, now I need to modify the exit/entry by the the T/F I created
+# do I do that in the plot?  
+# I don't want to over-write a column
+# do I create a new column?
+
+# I'll experiment with a "boundary_adj" column
+
+# fewPIs[3] is struggling, possibly due to being a current employee
+
+univ6 <- journeyData[["conc"]][journeyData[["conc"]]$EMPLID == fewPIs[6],] |>
+  universityBoundaries()
+
+univ6$boundary_adj <- NA
+
+primaryEntryFilter <- univ6$boundary_type == "primary" & univ6$univ_entry & !is.na(univ6$univ_entry) 
+univ6$boundary_adj[primaryEntryFilter] <- univ6$boundary[primaryEntryFilter]
+
+primaryExitFilter <- univ6$boundary_type == "primary" & univ6$univ_exit & !is.na(univ6$univ_exit) 
+univ6$boundary_adj[primaryExitFilter] <- univ6$boundary[primaryExitFilter]
+
+
+# I don't think "HCJ" can ever be a "primary" entry
+
+# I think I'm bumping up on a fourth category of boundaries--
+# "university" boundary
+# so then I have "university", "primary", "break", "leave"
+# and "primary" can apply to concurrent jobs, but "university" doesn't
+
+# this means I have a new column of "university_boundary"
+# as a boundary can be both primary AND university
+
+# man I do a lot of sitting back and thinking
+
+# rather than a "boundary_adj" I think I'm going to have to have a 
+# "boundary_university"
+# and I'll mess with HCJ there (....?)
+
+# that, or I add a category -- "primary, university" and maybe I DO over-write?
+# I hate over-writing, esp when I'm still trouble-shooting
+
+# ok, I think I know what I want.
+
+# playing from the top
+
+univ6 <- journeyData[["conc"]][journeyData[["conc"]]$EMPLID == fewPIs[6],] |>
+  universityBoundaries()
+
+univ6$boundary_adj <- NA
+univ6$boundary_type_adj <- NA
+
+primaryEntryFilter <- univ6$boundary_type == "primary" & 
+  univ6$univ_entry & 
+  !is.na(univ6$univ_entry) &
+  !univ6$ACTION_REASON %in% c("HCJ") 
+
+univ6$boundary_adj[primaryEntryFilter] <- univ6$boundary[primaryEntryFilter]
+univ6$boundary_type_adj[primaryEntryFilter] <- rep(paste(c("primary", "university"), collapse = ", "), length = sum(primaryEntryFilter)  )
+
+primaryExitFilter <- univ6$boundary_type == "primary" & 
+  univ6$univ_exit & 
+  !is.na(univ6$univ_exit) 
+
+
+univ6$boundary_adj[primaryExitFilter] <- univ6$boundary[primaryExitFilter]
+univ6$boundary_type_adj[primaryExitFilter] <- rep(paste(c("primary", "university"), collapse = ", "), length = sum(primaryExitFilter)  )
+
+# bring in the other values
+univ6$boundary_adj[!primaryEntryFilter] <- univ6$boundary[!primaryEntryFilter]
+univ6$boundary_adj[!primaryExitFilter] <- univ6$boundary[!primaryExitFilter]
+
+univ6$boundary_type_adj[!primaryEntryFilter] <- univ6$boundary_type[!primaryEntryFilter]
+univ6$boundary_type_adj[!primaryExitFilter] <- univ6$boundary_type[!primaryExitFilter]
+
+
+# ok, I'm changing my mind here
+# I think I'll add "university" back into my boundary_type columns,
+# so it's a kind of over-writing.
+
+# let's save to Git, and start changing things around.
+
+
+
 
