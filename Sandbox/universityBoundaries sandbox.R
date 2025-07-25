@@ -118,7 +118,11 @@ universityBoundaries <- function(data) {
   # Move this information back to the journey data
   univData <- merge(timeline, base_primary, by = c("EFFDT","ACTION","ACTION_REASON","boundary_type","boundary"), all.x = TRUE)
   
-  # The next step is to create "adj" columns, as this is a multi-step process
+  # modify the "primary" column if it's a university-wide action
+  universityFilter <- univData$univ_boundary & 
+    !is.na(univData$univ_boundary) & 
+    !univData$ACTION_REASON %in% c("HCJ")
+  univData$boundary_type[universityFilter] <- paste(univData$boundary_type[universityFilter], ", university")
   
   return(univData)
   

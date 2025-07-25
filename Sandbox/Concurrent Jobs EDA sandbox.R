@@ -1210,6 +1210,82 @@ univ6$boundary_type_adj[!primaryExitFilter] <- univ6$boundary_type[!primaryExitF
 
 # let's save to Git, and start changing things around.
 
+# ok, done, I over-wrote the boundaries.
+# Problem is that the assignBoundaries values are now off
+# It's annoyingly iterative -- I can't modify the original to use a value
+# that doesn't exist, and I don't want to re-apply the function.
 
+# do I create an "assignBoundaries" part 2?
+# and this is all based on a single EMPLID...
+# I already know it doesn't work for one of them.
+
+# And I haven't even started doing data science yet.
+
+# well, let's punch it out and see where I get
+
+univ6 <- journeyData[["conc"]][journeyData[["conc"]]$EMPLID == fewPIs[6],] |>
+  universityBoundaries()
+
+univ6$shape_size[univ6$boundary_type == "primary , university"] <- 2
+univ6$shape_size[univ6$boundary_type == "primary"] <- 0.75
+
+plotJourney(univ6)
+
+# well, that IS what I want.
+
+# now let's look at my other ones
+
+univ2 <- journeyData[["conc"]][journeyData[["conc"]]$EMPLID == fewPIs[2],] |>
+  universityBoundaries()
+
+univ2$shape_size[univ2$boundary_type == "primary , university"] <- 2
+univ2$shape_size[univ2$boundary_type == "primary"] <- 0.75
+
+plotJourney(univ2)
+
+# when I deal with XFR ("Transfer") I will also need to deal with "POS"
+
+univ4 <- journeyData[["conc"]][journeyData[["conc"]]$EMPLID == fewPIs[4],] |>
+  universityBoundaries()
+
+univ4$shape_size[univ4$boundary_type == "primary , university"] <- 2
+univ4$shape_size[univ4$boundary_type == "primary"] <- 0.75
+
+plotJourney(univ4)
+
+# looks good -- pretty straight-forward
+
+univ5 <- journeyData[["conc"]][journeyData[["conc"]]$EMPLID == fewPIs[5],] |>
+  universityBoundaries()
+
+univ5$shape_size[univ5$boundary_type == "primary , university"] <- 2
+univ5$shape_size[univ5$boundary_type == "primary"] <- 0.75
+
+plotJourney(univ5)
+
+# ok this one is weird
+# except it worked perfectly
+
+univ6 <- journeyData[["conc"]][journeyData[["conc"]]$EMPLID == fewPIs[6],] |>
+  universityBoundaries()
+
+univ6$shape_size[univ6$boundary_type == "primary , university"] <- 2
+univ6$shape_size[univ6$boundary_type == "primary"] <- 0.75
+
+plotJourney(univ6)
+
+# now let's look at the ones that didn't work
+
+univ1 <- journeyData[["conc"]][journeyData[["conc"]]$EMPLID == fewPIs[1],] |>
+  plotJourney(plotMap = assignBoundaries(actionReasonFrame))
+
+# looks like they are currently employed
+
+univ3 <- journeyData[["conc"]][journeyData[["conc"]]$EMPLID == fewPIs[3],] |>
+  plotJourney(plotMap = assignBoundaries(actionReasonFrame))
+
+# another one still employed
+
+# let's debug them
 
 
