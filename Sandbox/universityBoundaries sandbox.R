@@ -33,10 +33,24 @@ universityBoundaries <- function(data) {
   ## EXTRACT ##
   #############
   
+  entries <- base_primary$EFFDT[order(base_primary$EFFDT) & base_primary$boundary == "entry"]
+  exits <- base_primary$EFFDT[order(base_primary$EFFDT) & base_primary$boundary == "exit"]
+  
+  if(length(entries) == length(exits)+1) { 
+    exits <- c(exits, NA)
+  } else if (length(entries) > length(exits+1)) {
+      stop("Anomaly")
+    }
+  
   # extract entry and exit events as pairs
-  baseEvents <- data.frame(entry = base_primary$EFFDT[order(base_primary$EFFDT) & base_primary$boundary == "entry"],  
-                           exit = base_primary$EFFDT[order(base_primary$EFFDT) & base_primary$boundary == "exit"]
+  baseEvents <- data.frame(entry = entries,  
+                           exit = exits
   )
+  
+  # substitute today for the last value if it is NA
+  
+  if(is.na(baseEvents[nrow(baseEvents),ncol(baseEvents)])) {baseEvents[nrow(baseEvents),ncol(baseEvents)] <- today()}
+  
   
   ###########
   ## CHECK ##
@@ -45,9 +59,16 @@ universityBoundaries <- function(data) {
   # I should do a double-check here and kick out "Anomaly" warning
   
   # rows and columns are in chronological order
-  check1 <- apply(baseEvents, 1, function(x){ (diff(as.Date(x))) >= 0 }  )
-  check2 <- apply(baseEvents, 2, function(x){ (diff(as.Date(x))) >= 0  } )
-  if(any(c(check1,check2) == FALSE)){ return("Anomaly")}
+
+  forCheck <- baseEvents
+
+  # substitute today for the last value if it is NA
+  
+  if(is.na(forCheck[nrow(forCheck),ncol(forCheck)])) {forCheck[nrow(forCheck),ncol(forCheck)] <- today()}
+
+  check1 <- apply(forCheck, 1, function(x){ (diff(as.Date(x))) >= 0 }  )
+  check2 <- apply(forCheck, 2, function(x){ (diff(as.Date(x))) >= 0  } )
+  if(any(c(check1,check2) == FALSE)){ stop("Anomaly")}
   
   
   ##############
