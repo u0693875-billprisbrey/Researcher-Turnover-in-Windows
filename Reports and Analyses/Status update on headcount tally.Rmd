@@ -1,0 +1,175 @@
+---
+title: "Status update on headcount tally"
+author: "Bill Prisbrey"
+date: "2025-08-07"
+output: html_document
+---
+
+
+```{r settings, include = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=5, fig.width=7)
+
+# fig.height=6.75, fig.width=12) for ppt
+# fig.height=7, fig.width=10) typical report
+
+
+# adjust graphic parameters
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+# par(oldPar) #restore old parameters # restore old parameters after the plot
+
+library(kableExtra)
+
+```
+
+*PURPOSE:*  The purpose of this report is to update the status on accurately tallying headcount by highlighting a few of the complexities and issues.    
+
+*REPORT DATE:* 
+7 Aug 2025
+
+
+```{r}
+
+###############
+## FUNCTIONS ##
+###############
+
+source(here::here("Functions", "Turnover Functions.R"))
+source(here::here("Sandbox", "modifyBoundaries sandbox.R"))
+source(here::here("Sandbox", "universityBoundaries sandbox.R"))
+source(here::here("Sandbox", "assignBoundaries sandbox.R"))
+source(here::here("Sandbox", "plotJourney sandbox.R"))
+
+
+```
+
+
+```{r}
+
+###################
+## LOAD AND PREP ##
+###################
+
+###########
+## QUERY ##
+###########
+
+library(DBI)
+con.ds <- DBI::dbConnect(odbc::odbc(), 
+                         Driver = "oracle", 
+                         Host = "ocm-campus01.it.utah.edu", 
+                         SVC = "biprodusr.sys.utah.edu",
+                         UID = Sys.getenv("userid"),
+                         PWD = Sys.getenv("pwd"),
+                         Port = 2080)
+
+
+journeyQuery <- "select * from ds_hr.EMPL_AGE_RANGE_ACTION_MV_V WHERE EFFDT < TO_DATE('2025-08-01', 'YYYY-MM-DD') " # a view of the query
+
+journeyData <- dbGetQuery(con.ds, journeyQuery)
+
+
+actionReasonQuery <- "
+SELECT
+  ACTION,
+  ACTION_DESCR,
+  ACTION_REASON,
+  ACTION_REASON_DESCR,
+  COUNT(*) AS count
+FROM
+  ds_hr.EMPL_AGE_RANGE_ACTION_MV_V
+WHERE
+  EFFDT <= DATE '2025-08-01'
+GROUP BY
+  ACTION,
+  ACTION_DESCR,
+  ACTION_REASON,
+  ACTION_REASON_DESCR
+ORDER BY
+  count DESC
+"
+
+actionReasonFrame <- dbGetQuery(con.ds, actionReasonQuery)
+
+DBI::dbDisconnect(con.ds)
+
+##########
+## LOAD ##
+##########
+
+prepData <- readRDS(here::here("Data", "prepData17Apr2025.rds"))
+
+
+##########
+## PREP ##
+##########
+
+recordsPerEMPLID <- aggregate(EMPL_RCD ~ EMPLID, data = journeyData, function(x){length(unique(x))})
+actionsPerEMPLID <- aggregate(ACTION ~ EMPLID, data = journeyData, function(x)(paste(unique(x), collapse = ", ")) )
+
+# dupeRCD <- recordsPerEMPLID |> (\(x){x[x$EMPL_RCD > 1, "EMPLID", drop = TRUE]})()  
+# singleRCD <- unique(journeyData$EMPLID)[!unique(journeyData$EMPLID) %in% dupeRCD]
+
+journeyPopulation <- merge(recordsPerEMPLID, actionsPerEMPLID, by = "EMPLID")
+
+journeyPopulation$PI <- journeyPopulation$EMPLID %in% prepData$PROPOSAL_PI_EMPLID
+journeyPopulation$hcj <- grepl("HCJ|RCJ", actionsPerEMPLID$ACTION)
+journeyPopulation$singleRCD <- journeyPopulation$EMPL_RCD == 1
+journeyPopulation$singleJob <- !journeyPopulation$hcj & journeyPopulation$singleRCD
+journeyPopulation$workbreak <- grepl("SWB|RWB", actionsPerEMPLID$ACTION)
+journeyPopulation$leave <- grepl("RFL|LOA|LTO|PLA", actionsPerEMPLID$ACTION)
+
+
+```
+
+
+```{r}
+
+################
+## FLOWHCHART ##
+################
+
+library(flowchart)
+library(lubridate)
+
+journeyPopulation |>
+  as_fc(label = "Workforce population") |>
+  fc_filter(PI, label = "Principal investigators", show_exc = TRUE) |>
+  #fc_split(PI, label = c("Not PI", "PI")) |>
+  fc_split(singleJob, label = c("Concurrent jobs", "No concurrent jobs"), bg_fill = "ivory") |> 
+  fc_split(workbreak, label = c("No work break", "Work break"), bg_fill = "mintcream") |>
+  fc_split(leave, label = c("No leave", "leave"), bg_fill = "plum1") |>
+  fc_draw()
+
+```
+
+```{r}
+
+
+journeyData[journeyData$EMPLID == "00955489",] |>
+  universityBoundaries() |>
+  modifyBoundaries () |>
+  plotJourney()
+
+
+journeyData[journeyData$EMPLID == "00000767",] |>
+  universityBoundaries() |>
+  modifyBoundaries () |>
+  plotJourney()
+
+
+journeyData[journeyData$EMPLID == "00000006",] |>
+  universityBoundaries() |>
+  modifyBoundaries () |>
+  plotJourney()
+
+
+
+```
