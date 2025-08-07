@@ -1287,5 +1287,178 @@ univ3 <- journeyData[["conc"]][journeyData[["conc"]]$EMPLID == fewPIs[3],] |>
 # another one still employed
 
 # let's debug them
+debugonce(universityBoundaries)
+
+journeyData[["conc"]][journeyData[["conc"]]$EMPLID == fewPIs[1],] |>
+  plotJourney(plotMap = assignBoundaries(actionReasonFrame))
+
+univ1 <- journeyData[["conc"]][journeyData[["conc"]]$EMPLID == fewPIs[1],] |>
+   universityBoundaries()
+
+univ1$shape_size[univ1$boundary_type == "primary , university"] <- 2
+univ1$shape_size[univ1$boundary_type == "primary"] <- 0.75
+
+plotJourney(univ1)
+
+# Looks good!
+# let's do 3
+
+journeyData[["conc"]][journeyData[["conc"]]$EMPLID == fewPIs[3],] |>
+  plotJourney(plotMap = assignBoundaries(actionReasonFrame))
+
+univ3 <- journeyData[["conc"]][journeyData[["conc"]]$EMPLID == fewPIs[3],] |>
+  universityBoundaries()
+
+univ3$shape_size[univ3$boundary_type == "primary , university"] <- 2
+univ3$shape_size[univ3$boundary_type == "primary"] <- 0.75
+
+plotJourney(univ3)
+
+# Ok, this guy is still interesting
+# I don't think I've got it correct
+
+# ok, this speaks to the overall inconsistency of the data
+# He as action "REH" with reason "REH" when it should be "HIR", "HCJ"
+
+plotJourney(univ3[as.Date(univ3$EFFDT) > ymd("2023-01-01"),])
+
+# This makes it much clearer.
+# He left on a short work break from one job,
+# got rehired in another, quit that job,
+# then ended his break in the first job.
+
+
+# DANG this is hard to code!
+
+# First let's reverse the shapes for entry and exit for all
+# types for consistency
+
+# I recall that I needed some work on the anomaly detection--
+# it's really not working.
+
+# And maybe turn this into a "shiny" app.
+# If I want to get complicated, then I can write notes back
+# against an emplid
+
+plotJourney(univ3[as.Date(univ3$EFFDT) > ymd("2023-01-01"),])
+
+# uh oh.  I gotta look at this one closer
+
+View(univ3[as.Date(univ3$EFFDT) > ymd("2023-01-01"),])
+
+# nope, it's good. It was backwards in my head.
+
+# I wonder how often this happens -- 
+# they take a "short work break" from one job to take another?
+
+# And simply tallying entries and exits -- this would work.
+# I'd need to include SWB, but I'd minus for the SWB then add 
+# ...and it's fine.
+
+
+# I'm going to create a "modifyBoundaries" function
+
+
+journeyData[["conc"]][journeyData[["conc"]]$EMPLID == fewPIs[3],] |>
+  universityBoundaries() |>
+  modifyBoundaries () |>
+  plotJourney()
+
+# ok, so.....
+# ugh 
+
+# what happened is I didn't count the SWB as a university exit
+
+# I wonder how many PI's have a situation like this?
+# where they have a SWB, THEN their "concurrent job",
+# then they come back to their one job.
+
+journeyData[["conc"]][journeyData[["conc"]]$EMPLID == fewPIs[6],] |>
+  universityBoundaries() |>
+  modifyBoundaries () |>
+  plotJourney()
+
+# Let's look at a lot more examples than don't have break or leave
+# only hire/rehire
+
+
+noBreakorLeaveEMPLIDs <- journeyData[["conc"]]$EMPLID[!journeyData[["conc"]]$ACTION %in% c("LOA","LTO", "PLA", "RWB", "SWB")] |>
+  # unique() |>
+  # length()
+  sample(size = 100)
+
+
+journeyData[["conc"]][journeyData[["conc"]]$EMPLID == noBreakorLeaveEMPLIDs[1],] |>
+  universityBoundaries() |>
+  modifyBoundaries () |>
+  plotJourney()
+
+# Error:
+noBreakorLeaveEMPLIDs[1] # "00128220" Third concurrent job should have been a university entry
+noBreakorLeaveEMPLIDs[2] # "00955489" Concurrent job during SWB
+
+
+# I need to do a better job of filtering out the boundary actions per EMPLID
+
+actionsPerEmplid <- aggregate(ACTION ~ EMPLID, data = journeyData[["conc"]], function(x){paste(unique(x), collapse = ", ")})
+
+breakEMPLIDs <- actionsPerEmplid$EMPLID[grepl("SWB|RWB", actionsPerEmplid$ACTION)]
+  
+# > length(breakEMPLIDs)
+[1] 10224
+
+# > dim(actionsPerEmplid)
+ [1] 32054     2
+
+# like, one third have a SWB?  Wow!
+
+nobreakEMPLIDs <- actionsPerEmplid$EMPLID[!actionsPerEmplid$EMPLID %in% breakEMPLIDs]
+
+# I need to do the same with leave
+
+leaveEMPLIDs <- actionsPerEmplid$EMPLID[grepl("RFL|LOA|LTO|PLA", actionsPerEmplid$ACTION)]
+
+noleaveEMPLIDs <- actionsPerEmplid$EMPLID[!actionsPerEmplid$EMPLID %in% leaveEMPLIDs]
+
+
+breakAndLeaveEMPLIDs <- actionsPerEmplid$EMPLID[actionsPerEmplid$EMPLID %in% breakEMPLIDs & actionsPerEmplid$EMPLID %in% leaveEMPLIDs ]
+
+noBreakOrLeaveEMPLIDs <- actionsPerEmplid$EMPLID[!actionsPerEmplid$EMPLID %in% breakEMPLIDs & !actionsPerEmplid$EMPLID %in% leaveEMPLIDs ]
+
+
+journeyData[["conc"]][journeyData[["conc"]]$EMPLID == noBreakOrLeaveEMPLIDs[1],] |>
+  universityBoundaries() |>
+  modifyBoundaries () |>
+  plotJourney()
+
+
+noBreakOrLeaveEMPLIDs[1] # "00000006" # What a mess!  But o.k. in > 2013 time frame.
+                         # Being "volunteer faculty" and "adjunct professor"
+
+
+noBreakOrLeaveEMPLIDs[2] # wild.  Looks like a couple of unnecessary "entries" but the first "exit" looks ok
+
+noBreakOrLeaveEMPLIDs[3] # 2010 entry and exit look o.k. Looks like an extra exit before 2000
+
+noBreakOrLeaveEMPLIDs[7] # "00000611" # returns "Anomaly" # looks like a concurrent hire and still active in both; hence no exits
+
+# I think it's time to turn this into an App for ease of use.
+
+# Except even THAT is a couple of days, with iterations.
+# I want it in plotly etc
+
+
+journeyData[["conc"]][journeyData[["conc"]]$EMPLID == breakEMPLIDs[1],] |>
+  universityBoundaries() |>
+  modifyBoundaries () |>
+  plotJourney()
+
+
+breakEMPLIDs[1]  # "00000767"  That final termination looks correct,
+                 # but this is another really complicated one with 2 extra entries
+                 # including "exits" that weren't considered "university" exits
+                 # looks like another SWB to start a concurrent job,
+                 # then a SWB in -that- job !
+
 
 
