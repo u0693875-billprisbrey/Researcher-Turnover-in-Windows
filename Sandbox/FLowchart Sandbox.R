@@ -91,11 +91,16 @@ leaveEMPLIDs <- actionsPerEMPLID$EMPLID[grepl("RFL|LOA|LTO|PLA", actionsPerEMPLI
 
 journeyPopulation <- merge(recordsPerEMPLID, actionsPerEMPLID, by = "EMPLID")
 
+prepData <- readRDS(here::here("Data", "prepData17Apr2025.rds"))
+
+journeyPopulation$PI <- journeyPopulation$EMPLID %in% prepData$PROPOSAL_PI_EMPLID
 journeyPopulation$hcj <- grepl("HCJ|RCJ", actionsPerEMPLID$ACTION)
 journeyPopulation$singleRCD <- journeyPopulation$EMPL_RCD == 1
 journeyPopulation$singleJob <- !journeyPopulation$hcj & journeyPopulation$singleRCD
 journeyPopulation$workbreak <- grepl("SWB|RWB", actionsPerEMPLID$ACTION)
 journeyPopulation$leave <- grepl("RFL|LOA|LTO|PLA", actionsPerEMPLID$ACTION)
+
+
 
 journeyPopulation |>
   as_fc(label = "Workforce population") |>
@@ -111,6 +116,7 @@ journeyPopulation |>
 
 journeyPopulation |>
   as_fc(label = "Workforce population") |>
+  fc_split(PI, label = c("Not PI", "PI")) |>
   fc_split(singleJob, label = c("Concurrent jobs", "No concurrent jobs"), bg_fill = "ivory") |> 
   fc_split(workbreak, label = c("No work break", "Work break"), bg_fill = "mintcream") |>
   fc_split(leave, label = c("No leave", "leave"), bg_fill = "plum1") |>
@@ -121,7 +127,51 @@ journeyPopulation |>
 # And I'm really going to need to see the PI population
 # And I need consistency in my actions that are used to define leave and stuff
 
+journeyPopulation |>
+  as_fc(label = "Workforce population") |>
+  fc_filter(PI, label = "Principal investigators", show_exc = TRUE) |>
+  #fc_split(PI, label = c("Not PI", "PI")) |>
+  fc_split(singleJob, label = c("Concurrent jobs", "No concurrent jobs"), bg_fill = "ivory") |> 
+  fc_split(workbreak, label = c("No work break", "Work break"), bg_fill = "mintcream") |>
+  fc_split(leave, label = c("No leave", "leave"), bg_fill = "plum1") |>
+  fc_draw()
 
+# that's pretty good honestly
 
+# I think I'll make myself an "update" report for tomorrow
+# and focus on some graphics exploring headcount
 
+fc_offset <- 0.3
 
+journeyPopulation |>
+  as_fc(label = "Workforce population") |>
+  #fc_filter(PI, label = "Principal investigators", show_exc = TRUE) |>
+  fc_split(PI, label = c("Not PI", "PI"), offset = NULL) |>
+  fc_split(singleJob, label = c("Concurrent jobs", "No concurrent jobs"), bg_fill = "ivory", offset = 0) |> 
+  fc_split(workbreak, label = c("No work break", "Work break"), bg_fill = "mintcream", offset = 0.05) |>
+#  fc_split(leave, label = c("No leave", "leave"), bg_fill = "plum1", offset = 0.2) |>
+  fc_draw()
+
+fc_breakColor <- rgb(
+  t((col2rgb("aliceblue") + col2rgb("steelblue")) / 2),
+  maxColorValue = 255
+)
+
+fc_leaveColor <- rgb(
+  t((col2rgb("papayawhip") + col2rgb("coral")) / 2),
+  maxColorValue = 255
+)
+
+fc_wfColor <- rgb(
+  t((col2rgb("mistyrose") + col2rgb("#BE0000")) / 2),
+  maxColorValue = 255
+)
+
+journeyPopulation |>
+  as_fc(label = "Workforce population", bg_fill = fc_wfColor) |>
+  #fc_filter(PI, label = "Principal investigators", show_exc = TRUE) |>
+  fc_split(PI, label = c("Not PI", "PI"), offset = NULL) |>
+  fc_split(singleJob, label = c("Concurrent jobs", "No concurrent jobs"), bg_fill = "ivory", offset = NULL) |> 
+  fc_split(workbreak, label = c("No work break", "Work break"), bg_fill = fc_breakColor, offset = 0.05) |>
+  fc_filter(leave, label = c("leave"), bg_fill = fc_leaveColor, offset = NULL) |>
+  fc_draw()
