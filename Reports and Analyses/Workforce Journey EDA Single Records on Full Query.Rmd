@@ -240,12 +240,36 @@ journeyPopulation_pre <- merge(recordsPerEMPLID, actionsPerEMPLID, by = "EMPLID"
 
 journeyPopulation <- merge(journeyPopulation_pre, actionReasonsPerEMPLID, by = "EMPLID")
 
+journeyPopulation_prosaic <- journeyPopulation
+
+# PROSAIC
+journeyPopulation_prosaic$PI <- ifelse(journeyPopulation$EMPLID %in% prepData$PROPOSAL_PI_EMPLID,"PI","not_PI")
+
+journeyPopulation_prosaic$hcj <- ifelse(grepl("HCJ|RCJ", journeyPopulation_prosaic$ACTION_REASON), "hcj","not_hcj")
+
+journeyPopulation_prosaic$singleRCD <- ifelse(journeyPopulation_prosaic$EMPL_RCD == 1, "single_rcd","mult_rcd")
+
+journeyPopulation_prosaic$singleJob <- ifelse(journeyPopulation_prosaic$hcj == "not_hcj" & journeyPopulation_prosaic$singleRCD == "single_rcd", "exclusive", "concurrent")
+
+journeyPopulation_prosaic$workbreak <- ifelse(grepl("SWB|RWB", journeyPopulation_prosaic$ACTION), "wb","not_wb")
+
+journeyPopulation_prosaic$leave <- ifelse(grepl("RFL|LOA|LTO|PLA", journeyPopulation_prosaic$ACTION), "leave","not_leave")
+
+
+# PI (PI, not_PI)
+# hcj (hire_conc, not_hire_conc)
+# singleRD (single_rcd, mult_rcd)
+# singleJob (exclusive, concurrent)
+# workbreak (wb, no_wb)
+# leave (leave, no_leave)
+
+# TRUE/FALSE
 journeyPopulation$PI <- journeyPopulation$EMPLID %in% prepData$PROPOSAL_PI_EMPLID
 journeyPopulation$hcj <- grepl("HCJ|RCJ", journeyPopulation$ACTION_REASON)
 journeyPopulation$singleRCD <- journeyPopulation$EMPL_RCD == 1
 journeyPopulation$singleJob <- !journeyPopulation$hcj & journeyPopulation$singleRCD
-journeyPopulation$workbreak <- grepl("SWB|RWB", actionsPerEMPLID$ACTION)
-journeyPopulation$leave <- grepl("RFL|LOA|LTO|PLA", actionsPerEMPLID$ACTION)
+journeyPopulation$workbreak <- grepl("SWB|RWB", journeyPopulation$ACTION)
+journeyPopulation$leave <- grepl("RFL|LOA|LTO|PLA", journeyPopulation$ACTION)
 
 ```
 
@@ -604,11 +628,11 @@ A check for internal consistency compares the number of boundary actions per typ
 
 ## (1) DESCRIBE FILTERS ON THE QUERY WITH A FLOWCHART
 
-```{r}
+```{r eval = FALSE}
 
-################
-## FLOW CHART ##
-################
+########################
+## FLOW CHART SANDBOX ##
+########################
 
 journeyPopulation$singleJob <- factor(journeyPopulation$singleJob, levels = c(TRUE,FALSE))
 
@@ -659,10 +683,113 @@ journeyPopulation$singleJob <- factor(journeyPopulation$singleJob, levels = c(TR
 
 journeyPopulation$hcj <- factor(journeyPopulation$hcj, levels = c(TRUE,FALSE))
 
+PI (PI, not_PI)
+hcj (hire_conc, not_hire_conc)
+singleRD (single_rcd, mult_rcd)
+singleJob (exclusive, concurrent)
+workbreak (wb, no_wb)
+leave (leave, no_leave)
+
+# alright, from the top now
+
+popChart <- journeyPopulation_prosaic |>
+    as_fc(label = "Query population", bg_fill = "ghostwhite") |>
+  fc_split(singleJob, label = c("Concurrent", "Exclusive"), bg_fill = "honeydew", offset = -0.05) |> 
+    fc_split(hcj, label = c("HCJ|RCJ as reason", "No such reasons"), bg_fill = "beige", offset = 0.025) |> 
+  fc_split(singleRCD, label = c("Multiple records", "Single Record"), bg_fill = "whitesmoke", offset = 0.05) 
+
+fc_draw(popChart, title = "Population of interest defined")
+
+library(grid)
+
+grid.rect(
+  x = popChart$fc$x[3],
+  y = popChart$fc$y[1],
+  width = 0.2,
+  height = 0.7,
+  just = c("center","top"),
+  gp = gpar(col = "red", lwd = 3, fill = NA)
+)
+
+
+grid.text( "This report\ncovers employees\nwith exclusive jobs",
+  x = mean(c(popChart$fc$x[3], 1) ),
+  y = mean(c(popChart$fc$y[1], popChart$fc$y[9] )) ,
+  just = c("center","top"),
+  gp = gpar(col = "gray10", fontsize = 9, fontface = "italic")
+)
+
+# ALMOST ...
+# THERE ...
+
+# It would be nice to shift everything to the right
+# It would be nice to have titles for each level
+# And honestly I need to double-check this
+
+# lunch break, though
+
+# looks like I want the following
+
+library(grid)
+
+# Draw rectangle
+grid.rect(
+  x = 0.5,
+  y = 0.5,
+  width = 0.6,
+  height = 0.4,
+  gp = gpar(col = "red", lwd = 3, fill = NA)
+)
+
+# Add text inside rectangle
+grid.text(
+  "Highlighted branch",
+  x = 0.5,
+  y = 0.5,
+  gp = gpar(col = "red", fontsize = 14, fontface = "bold")
+)
+
+
 
 
 ```
  
+ 
+```{r} 
+ 
+################
+## FLOW CHART ##
+################
+
+popChart <- journeyPopulation_prosaic |>
+    as_fc(label = "Query population", bg_fill = "ghostwhite") |>
+  fc_split(singleJob, label = c("Concurrent", "Exclusive"), bg_fill = "honeydew", offset = -0.05) |> 
+    fc_split(hcj, label = c("HCJ|RCJ as reason", "No such reasons"), bg_fill = "beige", offset = 0.025) |> 
+  fc_split(singleRCD, label = c("Multiple records", "Single Record"), bg_fill = "whitesmoke", offset = 0.05) 
+
+fc_draw(popChart, title = "Population of interest defined")
+
+library(grid)
+
+grid.rect(
+  x = popChart$fc$x[3],
+  y = popChart$fc$y[1],
+  width = 0.2,
+  height = 0.7,
+  just = c("center","top"),
+  gp = gpar(col = "red", lwd = 3, fill = NA)
+)
+
+
+grid.text( "This report\ncovers employees\nwith exclusive jobs",
+  x = mean(c(popChart$fc$x[3], 1) ),
+  y = mean(c(popChart$fc$y[1], popChart$fc$y[9] )) ,
+  just = c("center","top"),
+  gp = gpar(col = "gray10", fontsize = 9, fontface = "italic")
+)
+
+```
+
 ## (2) DESCRIBE THE WORKFORCE JOURNEY DATA
 
 ### Data summary
