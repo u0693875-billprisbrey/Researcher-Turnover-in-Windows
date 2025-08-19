@@ -249,7 +249,7 @@ journeyPopulation_prosaic$hcj <- ifelse(grepl("HCJ|RCJ", journeyPopulation_prosa
 
 journeyPopulation_prosaic$singleRCD <- ifelse(journeyPopulation_prosaic$EMPL_RCD == 1, "single_rcd","mult_rcd")
 
-journeyPopulation_prosaic$singleJob <- ifelse(journeyPopulation_prosaic$hcj == "not_hcj" & journeyPopulation_prosaic$singleRCD == "single_rcd", "exclusive", "concurrent")
+journeyPopulation_prosaic$exclusiveJob <- ifelse(journeyPopulation_prosaic$hcj == "not_hcj" & journeyPopulation_prosaic$singleRCD == "single_rcd", "exclusive", "concurrent")
 
 journeyPopulation_prosaic$workbreak <- ifelse(grepl("SWB|RWB", journeyPopulation_prosaic$ACTION), "wb","not_wb")
 
@@ -259,7 +259,7 @@ journeyPopulation_prosaic$leave <- ifelse(grepl("RFL|LOA|LTO|PLA", journeyPopula
 # PI (PI, not_PI)
 # hcj (hire_conc, not_hire_conc)
 # singleRD (single_rcd, mult_rcd)
-# singleJob (exclusive, concurrent)
+# exclusiveJob (exclusive, concurrent)
 # workbreak (wb, no_wb)
 # leave (leave, no_leave)
 
@@ -267,7 +267,7 @@ journeyPopulation_prosaic$leave <- ifelse(grepl("RFL|LOA|LTO|PLA", journeyPopula
 journeyPopulation$PI <- journeyPopulation$EMPLID %in% prepData$PROPOSAL_PI_EMPLID
 journeyPopulation$hcj <- grepl("HCJ|RCJ", journeyPopulation$ACTION_REASON)
 journeyPopulation$singleRCD <- journeyPopulation$EMPL_RCD == 1
-journeyPopulation$singleJob <- !journeyPopulation$hcj & journeyPopulation$singleRCD
+journeyPopulation$exclusiveJob <- !journeyPopulation$hcj & journeyPopulation$singleRCD
 journeyPopulation$workbreak <- grepl("SWB|RWB", journeyPopulation$ACTION)
 journeyPopulation$leave <- grepl("RFL|LOA|LTO|PLA", journeyPopulation$ACTION)
 
@@ -279,13 +279,13 @@ journeyPopulation$leave <- grepl("RFL|LOA|LTO|PLA", journeyPopulation$ACTION)
 jData <- journeyData
 
 # No concurrent jobs
-journeySingleFilter <- journeyData$EMPLID %in%  journeyPopulation$EMPLID[journeyPopulation$singleJob]
+journeyExclusiveFilter <- journeyData$EMPLID %in%  journeyPopulation_prosaic$EMPLID[journeyPopulation_prosaic$exclusiveJob == "exclusive"]
 
 # PI's with no concurrent jobs
-piSingleFilter <- journeyData$EMPLID %in%  journeyPopulation$EMPLID[journeyPopulation$singleJob & 
+piexclusiveFilter <- journeyData$EMPLID %in%  journeyPopulation$EMPLID[journeyPopulation$exclusiveJob & 
                            journeyPopulation$PI]
   
-journeyData <- journeyData[journeySingleFilter,]
+journeyData <- journeyData[journeyExclusiveFilter,]
 
 ```
 
@@ -298,7 +298,7 @@ journeyData <- journeyData[journeySingleFilter,]
 
 # proportions(c(length(dupeRCD),length(singleRCD))) # 0.181 0.819
 
-journeySingleFilter <- journeyData$EMPLID %in% singleRCD & journeyData$EMPL_RCD == 0 & (!journeyData$ACTION_REASON %in% "HCJ")
+journeyExclusiveFilter <- journeyData$EMPLID %in% singleRCD & journeyData$EMPL_RCD == 0 & (!journeyData$ACTION_REASON %in% "HCJ")
 
 # NEEDS ATTENTION if I want to figure this out.  Not sure I really need this
 nonZeroFilter <- (journeyData$EMPLID %in% singleRCD) & journeyData$EMPL_RCD != 0 
@@ -309,7 +309,7 @@ jData <- journeyData
 
 # I should figure out how to incorporate this logic into a query
 
-journeyData <- journeyData[journeySingleFilter,]
+journeyData <- journeyData[journeyExclusiveFilter,]
 
 ```
 
@@ -608,7 +608,7 @@ Of particular interest are the so-called "boundary actions" that define entry an
 
 **SUMMARY:**   
 
-`r nrow(journeyData) |> (\(x){x+1})() |> format(big.mark=",")` rows covering dates between `r min(journeyData$EFFDT)` and `r max(journeyData$EFFDT)` are queried.
+`r nrow(jData) |> format(big.mark=",")` rows covering dates between `r min(journeyData$EFFDT)` and `r max(journeyData$EFFDT)` are queried.
 
 All employees had activity after a cut-off date of 1 January 2010.  All employees that had employee record values other than zero, or action reasons of "HCJ" ("Hire Concurrent Job"), are filtered out.  This removes employees who had concurrent positions or erroneous data entry. These employees will be treated separately due to their more complex work journeys.        
 
@@ -634,23 +634,23 @@ A check for internal consistency compares the number of boundary actions per typ
 ## FLOW CHART SANDBOX ##
 ########################
 
-journeyPopulation$singleJob <- factor(journeyPopulation$singleJob, levels = c(TRUE,FALSE))
+journeyPopulation$exclusiveJob <- factor(journeyPopulation$exclusiveJob, levels = c(TRUE,FALSE))
 
 journeyPopulation$hcj <- factor(journeyPopulation$hcj, levels = c(TRUE,FALSE))
 
 journeyPopulation |>
   as_fc(label = "Query population", bg_fill = "ghostwhite") |>
-    fc_split(singleJob, label = c("Concurrent jobs", "No concurrent jobs"), bg_fill = "honeydew") |>
+    fc_split(exclusiveJob, label = c("Concurrent jobs", "No concurrent jobs"), bg_fill = "honeydew") |>
   fc_split(hcj, label = c("HCJ|RCJ as reason", "No such reasons"), bg_fill = "beige") |>
   fc_split(singleRCD, label = c("Multiple records", "Single Record"), bg_fill = "whitesmoke") |>
-#  fc_split(singleJob, label = c("No concurrent jobs", "Concurrent jobs"), bg_fill = "ivory") |> 
+#  fc_split(exclusiveJob, label = c("No concurrent jobs", "Concurrent jobs"), bg_fill = "ivory") |> 
   fc_draw()
 
 # man still backwards
 
 journeyPopulation |>
   as_fc(label = "Query population", bg_fill = "ghostwhite") |>
-    fc_split(singleJob, label = c("Concurrent jobs", "No concurrent jobs"), bg_fill = "honeydew") |>
+    fc_split(exclusiveJob, label = c("Concurrent jobs", "No concurrent jobs"), bg_fill = "honeydew") |>
   fc_split(hcj, label = c("HCJ|RCJ as reason", "No such reasons"), bg_fill = "beige", sel_group = FALSE) |>
   fc_split(singleRCD, label = c("Multiple records", "Single Record"), bg_fill = "whitesmoke", , sel_group = c(TRUE)) |>
   fc_draw()
@@ -658,17 +658,17 @@ journeyPopulation |>
 
 journeyPopulation |>
   as_fc(label = "Query population", bg_fill = "oldlace") |>
-    fc_split(singleJob, label = c("No concurrent jobs", "Concurrent jobs"), bg_fill = "linen") |>
+    fc_split(exclusiveJob, label = c("No concurrent jobs", "Concurrent jobs"), bg_fill = "linen") |>
   fc_split(hcj, label = c("Dog", "Cat")) |>
   fc_split(singleRCD, label = c("Record", "Man")) |>
-#  fc_split(singleJob, label = c("No concurrent jobs", "Concurrent jobs"), bg_fill = "ivory") |> 
+#  fc_split(exclusiveJob, label = c("No concurrent jobs", "Concurrent jobs"), bg_fill = "ivory") |> 
   fc_draw()
 
 journeyPopulation |>
   as_fc(label = "Workforce population") |>
   fc_filter(PI, label = "Principal investigators", show_exc = TRUE) |>
   #fc_split(PI, label = c("Not PI", "PI")) |>
-  fc_split(singleJob, label = c("Concurrent jobs", "No concurrent jobs"), bg_fill = "ivory") |> 
+  fc_split(exclusiveJob, label = c("Concurrent jobs", "No concurrent jobs"), bg_fill = "ivory") |> 
   fc_split(workbreak, label = c("No work break", "Work break"), bg_fill = "mintcream") |>
   fc_split(leave, label = c("No leave", "leave"), bg_fill = "plum1") |>
   fc_draw()
@@ -679,14 +679,14 @@ journeyPopulation |>
 
 # Ok, let's get this to work CORRECTLY now
 
-journeyPopulation$singleJob <- factor(journeyPopulation$singleJob, levels = c(TRUE,FALSE))
+journeyPopulation$exclusiveJob <- factor(journeyPopulation$exclusiveJob, levels = c(TRUE,FALSE))
 
 journeyPopulation$hcj <- factor(journeyPopulation$hcj, levels = c(TRUE,FALSE))
 
 PI (PI, not_PI)
 hcj (hire_conc, not_hire_conc)
-singleRD (single_rcd, mult_rcd)
-singleJob (exclusive, concurrent)
+singleRCD (single_rcd, mult_rcd)
+exclusiveJob (exclusive, concurrent)
 workbreak (wb, no_wb)
 leave (leave, no_leave)
 
@@ -694,7 +694,7 @@ leave (leave, no_leave)
 
 popChart <- journeyPopulation_prosaic |>
     as_fc(label = "Query population", bg_fill = "ghostwhite") |>
-  fc_split(singleJob, label = c("Concurrent", "Exclusive"), bg_fill = "honeydew", offset = -0.05) |> 
+  fc_split(exclusiveJob, label = c("Concurrent", "Exclusive"), bg_fill = "honeydew", offset = -0.05) |> 
     fc_split(hcj, label = c("HCJ|RCJ as reason", "No such reasons"), bg_fill = "beige", offset = 0.025) |> 
   fc_split(singleRCD, label = c("Multiple records", "Single Record"), bg_fill = "whitesmoke", offset = 0.05) 
 
@@ -763,7 +763,7 @@ grid.text(
 
 popChart <- journeyPopulation_prosaic |>
     as_fc(label = "Query population", bg_fill = "ghostwhite") |>
-  fc_split(singleJob, label = c("Concurrent", "Exclusive"), bg_fill = "honeydew", offset = -0.05) |> 
+  fc_split(exclusiveJob, label = c("Concurrent", "Exclusive"), bg_fill = "honeydew", offset = -0.05) |> 
     fc_split(hcj, label = c("HCJ|RCJ as reason", "No such reasons"), bg_fill = "beige", offset = 0.025) |> 
   fc_split(singleRCD, label = c("Multiple records", "Single Record"), bg_fill = "whitesmoke", offset = 0.05) 
 
@@ -782,7 +782,7 @@ grid.rect(
 
 
 grid.text( "This report\ncovers employees\nwith exclusive jobs",
-  x = mean(c(popChart$fc$x[3], 1) ),
+  x = popChart$fc$x[3] + 0.67*diff(c(popChart$fc$x[3], 1) ),
   y = mean(c(popChart$fc$y[1], popChart$fc$y[9] )) ,
   just = c("center","top"),
   gp = gpar(col = "gray10", fontsize = 9, fontface = "italic")
