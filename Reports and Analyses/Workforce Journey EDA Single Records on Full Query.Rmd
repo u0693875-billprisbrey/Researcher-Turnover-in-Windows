@@ -12,6 +12,8 @@ output:
 
 # Notes to self:
 
+# On 8.18.2025, I am updating this report with a flow chart showing the filters and better logic defining the no concurrent jobs population.
+
 # As of 7.10.2025, this pulls yet another new query.  The view is populated by a new query that is populated with the full historical records available of everyone who has activity after Jan 1, 2010.
 
 # As of 7.8.2025, this pulls the new query.  This shifts the age younger, as you'd expect, and adds some 424 rows for some reason that might explain itself, or is irrelevant, or might be worth investigating and explaining.
@@ -225,12 +227,50 @@ journeyData$AGE_BAND <- factor(journeyData$AGE_BAND, levels =
 
 ```{r}
 
+# Create "journeyPopulation" for flow chart;
+# use this to identify employees with current and non-concurrent jobs
+
 # Identify count of records per EMPLID in order to separate employees with multiple
 
 recordsPerEMPLID <- aggregate(EMPL_RCD ~ EMPLID, data = journeyData, function(x){length(unique(x))})
+actionsPerEMPLID <- aggregate(ACTION ~ EMPLID, data = journeyData, function(x)(paste(unique(x), collapse = ", ")) )
+actionReasonsPerEMPLID <- aggregate(ACTION_REASON ~ EMPLID, data = journeyData, function(x)(paste(unique(x), collapse = ", ")) )
 
-dupeRCD <- recordsPerEMPLID |> (\(x){x[x$EMPL_RCD > 1, "EMPLID", drop = TRUE]})()  
-singleRCD <- unique(journeyData$EMPLID)[!unique(journeyData$EMPLID) %in% dupeRCD]
+journeyPopulation_pre <- merge(recordsPerEMPLID, actionsPerEMPLID, by = "EMPLID")
+
+journeyPopulation <- merge(journeyPopulation_pre, actionReasonsPerEMPLID, by = "EMPLID")
+
+journeyPopulation$PI <- journeyPopulation$EMPLID %in% prepData$PROPOSAL_PI_EMPLID
+journeyPopulation$hcj <- grepl("HCJ|RCJ", journeyPopulation$ACTION_REASON)
+journeyPopulation$singleRCD <- journeyPopulation$EMPL_RCD == 1
+journeyPopulation$singleJob <- !journeyPopulation$hcj & journeyPopulation$singleRCD
+journeyPopulation$workbreak <- grepl("SWB|RWB", actionsPerEMPLID$ACTION)
+journeyPopulation$leave <- grepl("RFL|LOA|LTO|PLA", actionsPerEMPLID$ACTION)
+
+```
+
+```{r}
+
+# holding onto the original data
+jData <- journeyData
+
+# No concurrent jobs
+journeySingleFilter <- journeyData$EMPLID %in%  journeyPopulation$EMPLID[journeyPopulation$singleJob]
+
+# PI's with no concurrent jobs
+piSingleFilter <- journeyData$EMPLID %in%  journeyPopulation$EMPLID[journeyPopulation$singleJob & 
+                           journeyPopulation$PI]
+  
+journeyData <- journeyData[journeySingleFilter,]
+
+```
+
+```{r eval=FALSE}  
+
+## ABANDONED LOGIC; NOW USE "JOURNEY POPULATION"
+
+ dupeRCD <- recordsPerEMPLID |> (\(x){x[x$EMPL_RCD > 1, "EMPLID", drop = TRUE]})()  
+ singleRCD <- unique(journeyData$EMPLID)[!unique(journeyData$EMPLID) %in% dupeRCD]
 
 # proportions(c(length(dupeRCD),length(singleRCD))) # 0.181 0.819
 
@@ -526,12 +566,13 @@ View(journeyData[journeyData$EFFDT == "2010-09-01" & journeyData$EMPLID == "0000
 ```
 
 
-**PURPOSE:**  The purpose of this report is to describe the "workforce journey" data for employees according to several filters:  First, that they have had some activity after Jan 1, 2010.  Second, that they only have had one employee record value of zero, meaning no concurrent jobs or possible mis-use of the "EMPL_RCD" field.
+**PURPOSE:**  The purpose of this report is to describe the "workforce journey" data for employees according to several filters:  First, that they have had some activity after Jan 1, 2010.  Second, that they only ever had one job, no concurrent jobs, and no multiple values for the "employee record" field.
 
 **OBJECTIVES:**   
 
-  1.  Describe the "Workforce Journey" data for employees who had some activity after the cut-off date of 1 Jan 2010 and never had a concurrent job after the cut-off date of 1 Jan 2010.    
-  2.  Define "boundary" actions and check for internal consistency.   
+  1.  Describe the filters applied to the query with a flowchart.
+  2.  Describe the "Workforce Journey" data for employees who had some activity after the cut-off date of 1 Jan 2010 and never had a concurrent job after the cut-off date of 1 Jan 2010.    
+  3.  Define "boundary" actions and check for internal consistency.   
 
 **EXECUTIVE SUMMARY:**
 
@@ -561,8 +602,68 @@ Boundary actions are defined as actions that signify entering or leaving the wor
 
 A check for internal consistency compares the number of boundary actions per type per employee.  There should never be more exits than entries, for example, and never more than one additional entry than exits.  A tabulation of entries and exits per employee shows a large number of employees with too many exits.  However, this tabulation is much lower for this query than for previous query iterations.  It bears further examination.   
 
+## (1) DESCRIBE FILTERS ON THE QUERY WITH A FLOWCHART
+
+```{r}
+
+################
+## FLOW CHART ##
+################
+
+journeyPopulation$singleJob <- factor(journeyPopulation$singleJob, levels = c(TRUE,FALSE))
+
+journeyPopulation$hcj <- factor(journeyPopulation$hcj, levels = c(TRUE,FALSE))
+
+journeyPopulation |>
+  as_fc(label = "Query population", bg_fill = "ghostwhite") |>
+    fc_split(singleJob, label = c("Concurrent jobs", "No concurrent jobs"), bg_fill = "honeydew") |>
+  fc_split(hcj, label = c("HCJ|RCJ as reason", "No such reasons"), bg_fill = "beige") |>
+  fc_split(singleRCD, label = c("Multiple records", "Single Record"), bg_fill = "whitesmoke") |>
+#  fc_split(singleJob, label = c("No concurrent jobs", "Concurrent jobs"), bg_fill = "ivory") |> 
+  fc_draw()
+
+# man still backwards
+
+journeyPopulation |>
+  as_fc(label = "Query population", bg_fill = "ghostwhite") |>
+    fc_split(singleJob, label = c("Concurrent jobs", "No concurrent jobs"), bg_fill = "honeydew") |>
+  fc_split(hcj, label = c("HCJ|RCJ as reason", "No such reasons"), bg_fill = "beige", sel_group = FALSE) |>
+  fc_split(singleRCD, label = c("Multiple records", "Single Record"), bg_fill = "whitesmoke", , sel_group = c(TRUE)) |>
+  fc_draw()
+
+
+journeyPopulation |>
+  as_fc(label = "Query population", bg_fill = "oldlace") |>
+    fc_split(singleJob, label = c("No concurrent jobs", "Concurrent jobs"), bg_fill = "linen") |>
+  fc_split(hcj, label = c("Dog", "Cat")) |>
+  fc_split(singleRCD, label = c("Record", "Man")) |>
+#  fc_split(singleJob, label = c("No concurrent jobs", "Concurrent jobs"), bg_fill = "ivory") |> 
+  fc_draw()
+
+journeyPopulation |>
+  as_fc(label = "Workforce population") |>
+  fc_filter(PI, label = "Principal investigators", show_exc = TRUE) |>
+  #fc_split(PI, label = c("Not PI", "PI")) |>
+  fc_split(singleJob, label = c("Concurrent jobs", "No concurrent jobs"), bg_fill = "ivory") |> 
+  fc_split(workbreak, label = c("No work break", "Work break"), bg_fill = "mintcream") |>
+  fc_split(leave, label = c("No leave", "leave"), bg_fill = "plum1") |>
+  fc_draw()
+
+# To get the behavior I want, I'm going to need the columns to have different names (not all "TRUE/FALSE")
+
+# I've stopped caring though
+
+# Ok, let's get this to work CORRECTLY now
+
+journeyPopulation$singleJob <- factor(journeyPopulation$singleJob, levels = c(TRUE,FALSE))
+
+journeyPopulation$hcj <- factor(journeyPopulation$hcj, levels = c(TRUE,FALSE))
+
+
+
+```
  
-## (1) DESCRIBE THE WORKFORCE JOURNEY DATA
+## (2) DESCRIBE THE WORKFORCE JOURNEY DATA
 
 ### Data summary
 
@@ -708,11 +809,11 @@ table(journeyData[,c("ACTION","VOLUNTARY_FLAG")], useNA = "always") # o.k.
 
 # actions per employee
 
-actionsPerEmplid <- aggregate(count ~ EMPLID + ACTION, 
+actionCountPerEmplid <- aggregate(count ~ EMPLID + ACTION, 
           data = transform(journeyData, count = 1), 
           FUN = sum)
 
-actionsPerEmplid[actionsPerEmplid$ACTION == "TER","count"] |> hist()
+actionCountPerEmplid[actionCountPerEmplid$ACTION == "TER","count"] |> hist()
 
 # can I align rehire and termination dates?
 # can I see if someone was involuntarily terminated multiple times?
