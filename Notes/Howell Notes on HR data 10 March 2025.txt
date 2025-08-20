@@ -1,0 +1,69 @@
+
+Talking with Dave Howell
+HR data
+around 3.10.2025
+
+
+Hire and termination dates to the schema.  hire date, re-hire date, and a termination date.
+
+Re-hire is always the most recent re-hire date.
+
+(The "hire" is the first, so it could be the date of first hiring as an undergraduate.)
+
+Name:
+
+VPR.D_PI_EMP_DT_VW
+
+SELECT * 
+FROM VPR.OSP_AWARDS AWARDS
+LEFT JOIN VPR.D_PI_EMP_DT_VW EMP_DATES 
+ON EMP_DATES.PI_EMPLID = AWARDS.AWARD_PI_EMPLID
+
+SELECT * 
+FROM VPR.OSP_PROPOSALS PROPOSALS
+LEFT JOIN VPR.D_PI_EMP_DT_VW EMP_DATES 
+ON EMP_DATES.PI_EMPLID = PROPOSALS.PROPOSAL_PI_EMPLID;
+
+Pull this in and do some EDA and then review for sanity.
+
+Last three columns:  Else is already in the proposals data.
+
+HIRE_DT, RE_HIRE_DT, TERMINATION_DT
+
+Academic rank goes back t0 2018, in "Proposals Data."   Data is unreliable before that.
+
+She wants more support; grow in her career.  She'll have direct reports while over there. (!  Really?  Wow!)
+
+UAIR increased by 50% as student affairs and academic affairs pulled in.  So they wanted to consolidate all of it.  
+
+Allison is like a Chief of Staff for Erin who has institutional knowledge and who knows everyone.  Erin is much more into the dashboards.  Allison is a good interpreter of leadership's requests.
+
+Four People:  
+Whitney, 
+Greg Francom, External Data sources.  New big data sets, largest linked, "Dimensions" for academic analytics.  U Mich program subscribed to and give them our data and they spit out reports.  Whitney did internal data and Greg did external data.  NSF HERD Survey (Higher Education Research and Development Survey).  Everybody has access to how it's parsed.  It's research expenditures.  Dimensions is hoping to do more benchmarking but data on publications and awards and patents and clinical trial data.  Greg manages all of that.  Dimensions is looking at the publications that faculty are putting out and compare to other institutions.  We are asked, "Social impact of research?"  Hard question to answer!  Through "Dimensions" data we can compare to peer institutions (35 other places, AAU with a med school attached.)
+Georgia Tech, Rutgers.Rajeet (Research Integrity and Compliance)
+Caden (not technically on team and he's doing the data engineering and managing the work flows)
+
+Rectionary: Proposals with Climate or Green New Deal or DEI component as they fund a lot of people.
+
+
+
+Big concern is F&A.  It isn't generated until the money is SPENT.  NIH is going to 15% -- and if all do that, it's a big hit for the University.
+
+Chrissie Thompson -- knows OSP data the best.  
+
+Brett Brown, met with Pres to talk about F&A, might have something there.
+
+Expense Data is a query that might need some verification.  It's a pre-made query from a library (FHRIL) written 10-15 years ago.  Financial Information Library, but it has HR queries in it now.
+
+
+
+
+
+
+
+
+
+
+ 
+

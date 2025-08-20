@@ -1,0 +1,91 @@
+OSP Next Steps
+5 March 2025
+
+Agenda items:
+
+- Retention R01 from  NIH lasts 5 yrs, do they stay at the U?  Do they get a second R01 ? 
+-
+
+* Advance to Phase 2 -- identifying how the award money is spent
+* Identify the super-stars and top performers.  Construct a Pareto.
+* Identify the stragglers and low performers.
+* Investigate the semester pattern by awarder.  Does it follow the NIH deadlines?
+* Look at renewals/resubmissions using the sponsor due date
+
+
+What's been done since the meeting? --> 
+She's in the mode of looking for other angles. Save money?  Go after other sponsors?  How do we fill in the gap with budget cuts?  Strategies to think about that we haven't done before.
+
+Driving motivation:  Efficiency?  How do we do better with what we've got?  Can people share labs, for example?
+
+Whitney is going to UAIR.  Here until Mar 21st, here for 2.5 weeks.  
+
+Grants and proposals at <$1500 are IRB fees. Industry Sponsored Proposals for $1,350 is the IRB fee.   They request those because they have IRB funding.  That exact $ amount esp with industry-sponsored things are the IRB fees.  Then they request add'l money for the grant.
+
+Christie Thompson pointed in the right direction.  
+
+Is the IRB fees 1:1 match with another proposal? --> No.
+
+The amount received will be greater than the IRB fees.
+
+IRB stands for Institutional Review Board.  All protocols reviewed for human research.   Our IRB is quite large and they provide external IRB reviews for projects that aren't necessarily at the U.  Projects need to be reviewed, so you can see other institutions with just the IRB fee.
+
+Housing an IRB is expensive, we have 40 people and it's large.
+
+One proposal record.  Filled out an e-proposal.  The requested dollar amount field was put in at $1350.  That's never updated after they receive the first notice of reward.  When a notice of award comes in through the door, they set up an e-reward. We record the amount sponsored by the notice of award.  Uses the DSS #.  That's the same ID number used to record the notice of award to receive funding. 
+
+The $1350 is ONLY/ALL that is recorded.  There could be a $5 M funds awarded that we have no record of "funds requested", but we would have records of funds spent against that DSS#.
+
+This is all very new to us -- we just learned this yesterday and we're learning.  Still looking into that data anomaly and we might need to clean up the data set.
+
+Some people will get an IRB review first, and then might never get the reward.
+
+OSP is NOT under UAIR.  She'll be filling a position for Student Success supporting two people -- Chase Hagood and Mark St. Andre (dotted line.) 
+
+
+We might have more partnerships with UAIR.  We'll see how it lands.  He consolidated a bunch of teams at U. Arizona.  50-60 people at U. Arizona, but our UAIR is only 25.
+
+
+GET POPULATION PER CLUSTER BARPLOT -- very nice!
+
+Schedule, Retention, How Money is Spent
+
+
+WHO ARE THE 20%?  Details and patterns!  What colleges?  Where do they reside?  Dep'ts and orgs?
+Academic rank?
+Retention would go nicely with this analysis
+
+Where they submit matters -- use "PROPOSAL_PI_APPOINTMENT_DEPT" .
+(Look a little bit at dep't, org)
+Might have different appointments over time.
+
+Should we proceed to funds spent? --> Overlap, gotta win to spend!  So top 20% awarded are the top 20% spent.
+
+Whitney:  Panic in research / we pulled a list of top 10% PI's and make sure they are ok without jumping ship.  Not much plan in supporting those under.  They make up 50% of award dollars.   Then 90% of PI's make up the bottom 50% of the award dollars.
+
+No names yet / just where.
+
+Lost Causes vs Potentials ?
+
+ -- Identify maximum number of initial consecutive losses before they take off.
+ -- Identify proportion of, say, first 7 proposals won and how predictive it is.
+
+Retention data:  Looking at PeopleSoft for hire and termination data.
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+

@@ -1,0 +1,139 @@
+PI Retention at the U
+5.29.2025
+
+ACTION ITEMS:
+- Kaidon to request all movement and action reasons data for the University (such as dates of hires/terminations/promotions/demotions/transfers and explanatory reasons.) (Here is the HR request link: https://go.utah.edu/cas/login?service=https%3A%2F%2Fwww.hr.utah.edu%2Fjiraforms%2Finformationrequest.php )
+- Kaidon to extract the "academic age" from Dimensions based on the date of their first publication
+- Dave to provide the OSP definition of a PI, and help to determine PI-adjacent or the nearly-PI or soon-to-be PI population.
+
+SUMMARY:
+- HR can provide access to all "movement" data with action reasons (all hire/termination/promotion/demotion/transfer dates with explanatory reasons.) 
+- Access to birthdate is denied due to advice from the Office of General Counsel to heavily restrict access.  Instead, five year bands are permissible and substituting the "academic birthday" as the date of the first publication as found in the Dimensions database could be substituted.
+- Defining the population of Principal Investigators:
+  - Dave says a PI is carefully defined per OSP specification, and he can provide the website
+  - Tatiana suggests that Becca has created a flow chart describing it.
+- What are the deliverables for this project and how will they be used? --> A report will be shared with Dr. Rothwell identifying the scope and potential of the opportunity.  This could inform a business case to address more specific action plans. 
+- Bill to update HR at his discretion, roughly when a milestone is met that is worth sharing.
+
+
+PURPOSE:  The purpose of this meeting is to discuss analyzing retention and turnover of principal investigators at the U.
+PEOPLE: Josna Kotturappa <josna.kotturappa@utah.edu>; Tatiana Topyrik <Tatiana.Topyrik@utah.edu>; Kirsten Allen <Kirsten.Allen@utah.edu>; DAVID RUSSELL HOWELL <dave.howell@utah.edu>; Greg Francom <greg.francom@utah.edu>; KAIDON MAX SPENCER <kaidon.spencer@utah.edu>
+PROCESS:
+- Review:
+   - Status of HR’s data and retention analyses (Josna/Tatiana/Kirsten)
+   - Documents related to retention of principal investigators (Bill)
+              - Business Framing / Analytical Framing
+              - Exploratory Data Analysis (Quick-and-dirty and current)
+  - Add’l data needs:
+              - Birthdates to calculate age
+              - Termination reasons (voluntary vs involuntary)
+              - Complete hire and termination dates 
+PAYOFF:  
+Improved collaboration and developing next steps that improve retention of principal investigators.
+
+
+NOTES:
+
+Tatiana:  Not a dep't specific or job-specific or project-specific, we want a university-wide metric.
+Narrow down a definition that would be acceptable for everyone and usable is a challenge.
+
+We have created our own retention statistic across campus.  Whether it is up to par with what we are trying to do, in terms of add'l data, and the correct dates, it is as correct as it is in PeopleSoft.  Whatever is in there is available and can provide from a data dump to a more customized solution.
+
+I'd like more specifics on what needs to be done.
+
+And also who the audience will be / consumers of the results.  
+
+Circle of life, and then loop back to the definitions and how usable they will be.  Dep'ts have rejected definitions in the past.  Hospital has a completely different definition of retention.
+
+Also understand their needs.
+
+[[
+HOW IS THE POPULATION DEFINED?
+DEFINE PI -- who is becoming one?
+
+We actually have an external data set -- Dimensions.
+]]
+
+
+Read Business and Analytic Framing.
+
+Tatiana:  What do you need?
+Bill:  From easy to hard:
+   - Full list of dates (hire, rehire, and termination dates)
+Kaidon: Data request put in through Collibra, and the request is going through their processes.
+Josna:  Collibra was approved, and I thought this meeting was to approve PPI data.
+Kirsten: We can give you all hire dates and termination dates and we can have access to that (with submit with request to the team.)
+Tatiana: We could take it a step further.  Instead of the hire/rehire/term dates, we could give you the action reason for all of the changes. Any type of promotions or demotions if digging into retention.  A data dump for all of the action reasons across their entire lifecycle with us.  Put that in the request for all actions and reasons.
+
+     - Birthdates.
+    We have been asked to protect.  Needs to be a very good business reason to release something like that.  Any type of audit, I don't think this will fly for this case.  Tell me more about why it's important.
+Bill:  We think age would be very explanatory, for both retirement and productivity.  Retirement would explain a lot.
+[Something I said was very frustrating to them.]
+Tatiana:  Retirement is provided.  And we have lots of literature on age's impact on retention.  It would help considerably but it is a protected piece of information.   I am a data custodian so let's ask the data steward, Josna.
+
+Kirsten:  You'll get "retirement."   Most of our terminations are not retirement at the U.  That's a smaller portion of our turnover.
+
+Bill:  We can proceed without it, but what is the bar? -->
+Tatiana:  We are being asked to protect this information by OGC, Office of General Counsel.  Primarily we release for federal reporting.  When we have a secure way to transmit this info (like SSN's as well).  We can work on bands.  As to how narrow the bands, GenZ leaving us more than Millennials, I think that can be an interesting metric to look at.   Anecdotally it seems to be, and kids are taught that they have to travel in their business schools and MBA's and we're seeing that in our data.  If we want to work on them, we can have that discussion.  Actual age in +/- 2 yrs might be too tight.
+
+Dave:  If we can get "bands" and provide a proxy through Dimensions we can look when a faculty's first publication date was.  Make some assumptions around the first publication date.  
+
+Bill:  Publication of PhD thesis? --> Can't do this  but their first publication. 
+
+Dave:  And look with their bands
+Tatiana:  Bands are 5 yrs, for descriptive purposes the aggregate counts for the collection of these job counts.  25-26 or whatever.  That would help us frame any 
+
+Greg:  "Dimensions" uses that first publication date to determine "Academic Age"
+
+Bill:  How hard to scrape Dimensions to get that? --> Kaidon:  About 80% of the way.  As far as percentage of people.
+
+Tatiana:  New boss, might change the world.
+
+Bill:  Update HR once a month?
+
+Tatiana: What type of output am I producing?  A dashboard we can refer to?  We'd love to see it.
+
+Bill:  First, -is- there a problem?  That's Phase I.  At that point, if there is a problem, and we can scope the impact, then we can start building a business case of *who* should do *what.*
+
+Tatiana:  Thinks defining a problem is reasonable.
+Bill:  How often to update HR? --> When you've got a milestone.  No need to do regular updates.
+
+Bill: How do we define the population?  What is a PI?
+Tatiana agrees.  Who is it?
+
+Dave:  OSP has a very specific definition.  Might be interested in expanding it, but that data is not really tracked in a reliable way. At least for the PI.
+
+Bill:  Who is "nearly" a PI?  How do they get into this population? How do they fall out?
+
+Dave:  OSP and GCA defines a PI as having an active award.  There's a whole page on the website on who can be a PI.  Has to be a faculty member, etc. 
+
+Tatiana:  Becca Baggett defined a flowchart on who is a PI.
+
+Bill:  Shows the data I have, with hiring going down in the last few years (COVID hiring freezes.)
+
+Bill:  We could just do the PI population.
+
+Tatiana:  Actually use all the data, so we can compare to non - PI data.
+
+Kaidon: A data dump? --> Tell us what you want.	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   
+
+

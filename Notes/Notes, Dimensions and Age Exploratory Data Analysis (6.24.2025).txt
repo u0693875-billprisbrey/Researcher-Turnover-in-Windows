@@ -1,0 +1,33 @@
+
+6.24.2025
+Dimensions and "Elements"
+
+2 weeks ago, Dimensions web app was starting to show educational background.  Because Dim and Elements owned by Dig Sci, they were linking between Dimensions data and Elements.  We use "Elements" as our internal tracking profile.
+
+Something about "Orchid" ID's (open source) attached to all publications.
+
+This means we could improve matching, and it could show us when they got a PhD and use that for academic age.
+
+We don't have access to the data  yet.  Orchid is a non-profit and we could develop an API to pull that data.
+
+Inconsistency:  1:1 match for multiple matches.
+
+One-to-one match means it should ..... (?)
+There could be multiple Dimensions profile data per person.  This is a weakness of Dimensions, as it tends to create duplicates internally.
+
+Dimensions create multiple Dimensions profiles per person, for some reason.  This creates multiple matches with a 1:1 match.
+
+The description of confidence level may be confusing in its description.	
+
+Kaidon: Dimensions data will be more supplementary; relevant for prolific researchers.
+
+Kaidon: We can create a view that limits to just our target population (~3000 EMPLID's.)
+
+Bill:  Definition of PI's and how they are managed? --> If a PI is changed, then they are attached to the project from the beginning.  A kind of re-writing of history.    Slowly changing dimensions.
+
+
+
+
+
+
+

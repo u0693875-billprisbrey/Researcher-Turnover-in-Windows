@@ -1,0 +1,129 @@
+Notes, Workforce Journey Data Exploratory Data Analysis
+6.27.2025
+
+PEOPLE:  Brian Gelsinger, Daniel Hinojosa, Dave Howell, Greg Francom, Kaidon Spencer, Bill Prisbrey
+
+ACTION ITEMS:
+Brian/Daniel to modify the query:
+	Define the age band according to the EFFDT, not the time of the query
+	Add fields for the job code, the job description, and the department
+	Add a flag for when a transfer (XFR) is a change in job code only (defined as a change from a four digit code to a six digit code)
+Bill to re-work the analysis with the clarifications and updated information
+ 
+SUMMARY:
+Age band: 
+  Can the age band be calculated at a set time, or at the time of the EFFDT instead of at the time of query? --> Yes, can modify the query to do that.
+
+Employee records:
+  Employee records identify concurrent positions.  They should have their own complete set of job actions (such as rehire (REH) and terminate (TER).)  The employee records starts at 0 where 1 is the first concurrent job.  If the employee exits job/employee record 0, then employee record 1 continues. If the employee starts another concurrent position, then this second position will be added as employee record 0 again.  Concurrent positions are added at the lowest employee record available.  Because they are not unique identifiers, HR will add the job code, job description, and department.
+  Some actions will apply across all jobs/employee records, causing the apparent duplication.  For example, a "leave" would apply to  both concurrent positions.
+
+Effective Sequence:
+  This applies if multiple actions occur on the same date.  It is the order that the actions are applied.
+
+Boundary actions:
+  If a "leave" action (LOA, PLA) has the reason "EXT" then it shouldn't be counted as another exit, because it's an extension.
+  Long-term disability (LTO) should be an exit.
+
+Extreme case:	
+  Some departments would add employee records as a way of managing pay distribution, and it doesn't mean a concurrent job or a different job.  This practice should be much less after 2013.  
+
+New job codes:
+  There is a slow movement from the old job codes (four digit) to the new job codes (six digits.)  These happen with action TRANSFER (XFR) and we can flag these for those reasons.
+
+Voluntary vs involuntary termination:  To be discussed at a later date.
+
+Other:
+  A "break" is for a non-benefit employee where a "leave" is for a benefited employee.
+  Some of the inconsistencies in exit/entries are due to people entering before the start of the query. --> Bill: I am aware, and should have clarified that in the report.
+  The data is much more consistent, accurate, and complete after 2013.
+  The transition to PeopleSoft started in 2009.  People employed during the transition had their work history transported to PeopleSoft.  But if they weren't employed during the transition, and were re-hired later, their employment history was lost.
+
+
+PURPOSE:  Review the data set describing all “actions” per employee (which I’m calling the “workforce journey” data); clarify definitions and situations; and process and interpret correctly.
+PROCESS:
+              - Review Exploratory Data Analysis Report (to be sent)
+              - Discuss field definitions
+                            * Esp “EMPL_RCD” and “EFFSEQ”
+              - Review “entry” and “exit” definitions (table below)
+              - Go over specific situations and questions (below)
+PAYOFF:
+  - Bill has clarity on interpreting and making steps for additional processing
+
+Specific situations and questions:
+•	EMPLID “00028879” on EFFDT == “2010-01-16” shows identical rows except for the EMPL_RCD field.
+•	EMPLID “00029479” on EFFDT == “2011-07-16” show them returning from leave twice, were terminated, and transferred all in one day (and the employment records continue until they retired in 2022.)
+•	EMPLID “00002624” on EFFDT == “2021-03-16” added a “Hire Concurrent Job”, which suggests I should not consider this action as a boundary action.
+I have interpreted the following actions as “boundary” actions that define exiting or entering the workforce at the U:
+ACTION	ACTION_DESCR	boundary	boundary_type
+SWB	Short Work Break	exit	break
+RWB	Return from Work Break	entry	break
+PLA	Paid Leave of Absence	exit	leave
+RFL	Return from Leave	entry	leave
+LOA	Leave of Absence	exit	leave
+LTO	Long Term Disability	exit	leave
+TER	Termination	exit	primary
+HIR	Hire	entry	primary
+REH	Rehire	entry	primary
+RET	Retirement	exit	primary
+RWP	Retirement with Pay	exit	primary
+
+
+NOTES:
+Age band on EFFDT
+Add JOB CODE, JOB DESCR, and DEP'T
+NICE TO HAVE: Add "JOB CODE" concordance or translation, if job code changes but it's the same job and the description is the same.
+Add a flag for when a XFR is a change in job code only (same job, new system)  (Defined as a change from a four digit code to a six digit code.)
+
+
+Query calculates age band at the query time.
+Dave:  Can we calculate it on the EFFDT ?  --> Maybe the HIR date or RET date?
+Brian:  But EFFDT should be fine.  
+Daniel: So Every row has it's unique age band? --> Yes. It's very different to hire a PI at age 55 as age 25
+
+Brian:
+EMPL_RCD --  If employees hold multiple positions, esp with faculty, or a staff with two part tiem jobs in two diff't departments, then they have multiple employment records.  If hired into one role and hold one role entire duration, then they have one employment record that starts with zero.  But multiple simultaneous then they'll have multiple employee records.  
+
+We don't like to see a lot of multiple employee records, as it's complicated, but that's how we designate different positions. 
+
+Action of rehire (REH) and reason of Rehire Concurrent Job (RCJ) --
+  Probably multiple records, where one is terminated but they still are an active employee on one record.  At some point re-hired into that record.  
+ 
+Bill:  if REH matches to a new EMPL_RCD, then it's a concurrent job, right? --> YES.  A "rehire" is always on an existing record.
+
+Daniel:  Anything prior to 2010 wasn't included, so that's some of the mis-match explained.  
+
+Brian:  If EMPL_RCD 0 and 1, at some point job 1 is terminated.  So every EMPL_RCD should have a complete PRIMARY pair.
+
+Bill: Paid Leave of Absence? --> For ALL employee records.   Could explain some duplications.
+
+Brian:  If they have employee record 0, then an employee record 1, and quits employee record 0 then 1 continues. If REH rehired again with another concurrent position, then Employee Record 0 will start up again!   It will always go to the lowest employee record number.  So we lose a unique identifier for a position.
+
+Bill: Employee Records always mean concurrent jobs? --> Always means CONCURRENT positions. 
+
+Kaidon:  Job code changes with job changes? --> Brian:  Yes, and EMPL_RCD is always zero. 
+
+Bill:  Can we get the job code with this data set? --> Brian:  Job code and dep't ID.  
+
+Brian:  What about the new job codes?  As they've changed?  
+
+Daniel:  You'll see a XFR transfer to a new job code, even if the job is the same but just the code has changed.  
+
+EFFSEQ? --> Brian:  Multiple actions on the same effdt, then it has EFFSEQ, which means the order of actions.  So return from leave was done first, and then the transfer.   Previously only given max seq, in this case give all of them.
+
+
+Extensive job history individual-->
+Brian:
+  ELEVEN employee records.  Not "o.k.", educated the departments who used this as payment distributions and not as they should be used.  This is the case for this individual as having same empl_rcd with same job code in the same dep't.  Looks like using it for "distribution purposes" then actually designating different positions. 
+Daniel:  ACTIONs were  DTA and "distribution change" and "pay change" then terminated.  No transfers or supervisor changes. It's an older practice.    
+
+"BREAKS" are for non-benefit employees
+
+
+MODIFY PLO/LOA with reason "EXT" (Extension) is -NOT- an new exit
+
+We don't like to go  back before 2013, per Kirsten.  Things are much more consistent after that.
+
+If someone was a current employee when switch to PeopleSoft happened, then prior data was entered.  If they left prior to PeopleSoft, and then came back as an employee -after- PeopleSoft, then prior work history was not entered and they are a HIR instead of a REH.   PeopleSoft switch started in 2009.  
+
+Daniel:  2013 is the beginning of "complete" records with high confidence.

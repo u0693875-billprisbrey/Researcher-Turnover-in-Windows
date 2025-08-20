@@ -1,0 +1,91 @@
+Notes, "PI Turnover:  Progress Meeting"
+6.9.2025
+
+
+PURPOSE:  The purpose of this meeting is to review project status and determine next steps
+PROCESS:
+-- Review action items from prior meeting:
+     - Dave Howell on PI definitions and PI-adjacent population
+     - Kaidon Spencer on acquiring full HR data of movement and action reasons for all individuals with activity after Jan 1, 2010
+     - Kaidon to update on obtaining “academic age” from Dimensions data
+-- Bill to share “Exploratory Data Analysis – Intermediate” (draft to be sent out)
+PAYOFF:
+Determine next steps and advance the project
+
+ACTION ITEMS:
+Kaidon to send:
+    --  Explanation of age confidence levels in email
+    --  Query of "Dimensions" data with naming convention as described by Dave
+In another meeting:
+    --  Conduct an overview of the "Dimensions" data
+
+Bill:
+    -- Expand verbal description to clarify what percentage of the institutions is in "prolific" (otherwise it reads as if I've just 'discovered' the institutes.) 
+    -- Add "unassigned" to the graphs describing the clusters (count, population, etc) because they also appear on the "turnover" graphic.
+
+SUMMARY:
+
+- HR is in progress in providing the query to the data; I may need Brian Harris' permission to access it.
+- Regarding the PI definition:  Because we use slowly-changing dimension tables, we might be over-writing PI fields as projects transfer from one to the next.  Losing the turnover signal that we're trying to find.  We end up with things like a PI's first reward before they are hired.
+- Dimensions data:
+  Kaidon provides an overview.  The team discusses "confidence" in matching a PI to a publication, establishing "academic age."
+- Bill wonders:  Can we extract the number of publications per institution? --> Dave suggests we set up a separate meeting to get an overview of Dimensions data.
+- Bill walks through three cluster documents (one dimensional filter based on count, two dimensional "rate", and multi-dimensional "complex")
+    -- Bill should clarify in verbal description what percentage of "Prolific" cluster #5 belongs to the institutions
+- Bill walks through the intermediate retention exploratory analysis
+    -- Because the clusters don't include changes over time, it shows that there are no additions to Cluster 5 "Prolific" because we didn't hire someone in the last three years who matched ten years' of activity of our other "Prolific" PI's.
+    -- The team discusses adding changes over time to the clustering, or using machine learning to "predict" who could be Cluster 5 / looks like they should be in Cluster 5 
+
+
+
+NOTES:
+
+Ok to invite Gratiana to these meetings.
+
+Kaidon to send explanation of confidence levels in email
+    --  Query of "Dimensions" data with naming convention as described by Dave
+
+Should we include columns that define the confidence levels? Like PubMed ID?
+Break into "Min Pub" and "Max Pub"
+
+
+"CONFIDENCE_DESC"             
+"Likely incorrect: Duplicate Names with no middle name or good department information available"
+"Ambiguous or incorrect match"
+"Moderate confidence: One-to-many Name + Dept matches, strong Name + Middle Name match, or manually validated"
+"Very low confidence: Common/duplicate Name-only match; no department info"
+"Low confidence: Likely correct Name match with limited department info"
+"High confidence: ORCID, PubMed, or exact Name + Department (1:1 match)"
+
+
+Number of publications per ID ?
+Number of publications per INSTITUTION ?
+Set up a diff't meeting to discuss--
+
+PI DEFINITIONS ?
+
+Still working on it.  SCIF application.  And "urgent request" for a data budget.
+Following up with OSP (and he's low on their priority list.)  
+
+We might be over-writing PI definitions as projects transfer from one to the next.  Losing the turnover signal.
+And we end up with the first reward before they are hired.
+
+Interesting things on HR data set -- very curious on how it influences it
+
+
+Un-assigned:  They should show up on my graphs describing the clusters (% of PI's, count of proposals, etc) (since they show up on turn-over)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,34 @@
+Quick Convo with HR on headcount
+Brian Gelsinger
+8.07.2025
+
+Headcount is usually a snapshot of an "as-of" date
+It's a distinct count of employee ID's as of whatever date we're looking at
+Ignores employee records.  Only way to get a headcount.
+
+If only looking at a certain population, say by job code or department, we can narrow that down--
+But headcount is just a distinct count of employee ID's. 
+
+Could work for a date range.
+
+An "avg" count over 10 yrs is a snapshot headcount for several dates in a year.
+Then that can be expanded.
+
+This multiple employee records -- kinda have to ignore those or take them out of the equation.  
+
+Has a Tableau dashboard, I could get access, that would show headcounts YoY.
+
+Can I do snapshots given a set of EMPLIDs, like my PI's?  --> Sure.  But out of 3,000 EMPLID's, am I looking at certain dep'ts or job codes?  Or if they were there at any capacity at the U?
+
+They do have some turnover reporting.  Daniel or Tatiana might have more background on that, on a project throughout the years.  Basic turnover reports and YoY headcount dashboard that can be broken down into terminations from U or terminations per record.	
+
+How is Tableau dashboard and snapshot data diff't than my "journey" data? --> Same data.
+
+
+How does it define active employees?  --> Active job record or if on leave
+
+
+Looks at most recent action prior to a particular date -- if it's not a termination, then they are active.  
+
+Termination dates by record, and overall.  
+
