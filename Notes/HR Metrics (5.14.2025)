@@ -1,0 +1,84 @@
+HR Metrics
+5.14.2025
+
+Now that I'm happy with my calculation and plot of headcount, turnover, and delta ....
+
+What other metrics can I calculate?
+
+According to https://whatfix.com/blog/employee-churn/
+
+What I'm calling "turnover" I should more accurately call "churn" per their reference table:
+
+Metric // Voluntary or Involuntary?	// Do you plan to backfill the role? //	Formula
+
+  Employee Attrition	
+  Voluntary	
+  No	
+  (Average number of departures in a given period / Average number of employees in that period) * 100
+
+ Employee Turnover	
+ Both	
+ Yes	
+ (Year, quarter, or month employee departures/ average headcount) * 100
+ 
+ Employee Churn	
+ Both	
+ Either	
+ (Number of employees left/ total number of employees remaining during a year, quarter, or month) * 100
+    
+    
+Since I lost the format when copying the table, here it is in some words:
+
+"Attrition" is voluntary loss of employees that you don't intend on replacing (backfilling).
+
+"Turnover" is both voluntary and involuntary departures that you intend on replacing.
+
+"Churn" is everything:  all departures (voluntary and involuntary) regardless of whether you intend to replace them.
+
+A quick bit of googling finds that these defintions aren't universal.
+
+And chatGPT gave me this interesting set of metrics:
+
+Metric //	What it Tracks //	Formula
+Turnover Rate	
+Exits	
+Exits / Avg Headcount
+
+Hire Rate	
+Additions	
+Hires / Avg Headcount
+
+Growth Rate	
+Net growth	
+(End HC - Start HC) / Start HC
+
+Churn Rate	
+Movement (in + out)	
+(Hires + Exits) / Avg Headcount
+
+Stability Index	
+Retention	
+HC ≥1yr Tenure / HC one year ago
+
+
+They include hires in their "churn" rate.
+
+So should I re-name my "turnover" to "churn?"
+
+Maybe for clarity I'll calculate:
+Hire rate
+Term rate
+Delta rate
+
+...and not worry about "turnover" or "churn"
+
+"Growth rate" is intriguing --- really is.  Worth calculating?
+
+And what about plotting?
+Now I have two more plots.
+Do I make it adjustable so I can select which ones and in which order?
+How much work would that be?
+
+
+
+    

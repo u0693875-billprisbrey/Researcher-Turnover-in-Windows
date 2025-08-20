@@ -1,0 +1,107 @@
+Resolving system discrepancies
+7.7.2025
+
+ACTION ITEMS: 
+- Kaidon to locate a data steward and get Bill access to ps_project_table .
+- Kaidon to explore ps_project_table and validate alignment, such as the date of PICH change.
+- Assuming it is good, then modify OSP data warehouse workflow or create a view so Bill can look at PICH changes via the view.
+
+
+SUMMARY:
+- The eAwards data table is not a "system of record" for financial purposes, while the OSP data warehouse only pulls from PeopleSoft tables that are designated as "system of record" for finance.
+- Due to this, there are a lot of discrepancies with our data warehouse, and Dave/Kaidon does not recommend it be used to track changes in PI's.
+- Dave recalls a table, "ps_project_table", that appears to have the changes we are looking for.  Kaidon will investigate.
+
+PURPOSE:  The purpose of this meeting is to discuss discrepancies between various tables and develop investigation steps to identify changes in PI
+PROCESS:
+  Discuss Kaidon’s findings and next steps (below)
+PAYOFF:
+  Determine next steps in identifying PI changes per proposal or award
+
+Problems:
+(Copying from a text message from Kaidon):
+- Only 640/901 of the awards with PI changes are in the eAward tables, [and] only 312 of them record more than one PI in their transactions, so there is still some disconnect between eAward and the tables powering the OSP DW.
+
+The eAward table poorly reconciles with the OSP data warehouse
+   - Proposal ID’s are apparently not consistent
+   - The PI emplid in the eAward table does not match the PI emplid in the OSP data warehouse
+   - Many of the awards identified with “PI Change” aren’t in the eAwards table, and many of those don’t have a corresponding change in PI
+
+Resolution steps (From a text conversation with Kaidon):
+•	Cross reference the eAward final PI with OSP DW PI
+•	Update the OSP DW workflows to track PI Changes over time
+•	Figure out the Venn Diagram between relevant systems and data sources (eAward, eProposal, ps_gm_awd_% tables) 
+o	This will likely involve meeting with people from different teams that know more about these systems
+
+
+NOTES:
+
+(Due to the comlicated table names, it was difficult to take notes.)
+
+- Bill walks through the agenda and the "problems" from the meeting invite (above.)
+- Kaidon discusses the different tables.  Recommends not using eAward.
+  Dave: eAwards is not "accounting", system of record. PeopleSoft -is- data of record.  
+        GSA needs to know who is financially responsible at the end of day.  That's critical.  Isabella would have some insight into it.
+- Kaidon: I was hopeful that the history in eAward would be more comprehensive and reliable.  But maybe it's not a good data source to use.  Differences between CIS apps, and eAwards, and PeopleSoft, and ends up in the tables powering the OSP data warehouse.
+- Dave shows off CIS/Finance.  (But all his access has been taken away.)
+
+- overlap between eProposal, eAward, ...?
+
+- eProposal has the "prop" tables.  A button is pressed and writes that data to new tables, V1 and F1 version of the award.  F1 is picked up by GSA .... (kind of hard to follow.)
+
+eProposal is connected to "PeopleSoft" table? --> Sort of, all hosted in the exa-distance (??)  Anything with "uu" prefix is a custom table.
+
+Why so many awards in PSGM but not in eAwards or eProposals? --> Dave: Don't know.  Not every award will have a corresponding proposal.  Like a PI that transfers to us.  How big is the discrepancy? --> Kaidon:  Pretty big.
+
+Maybe eAward existed after a certain date?  Maybe something like that going on? --> Isabella could help explain the pipeline.  I've never had to deal with the data.  Not considered the data record.  Discusses "tables of record."
+
+Kaidon:  Tracking PI changes, the eAward data set won't be helpful.  After modifying the OSP data workflow, I'll try that going forward.  Unless there's some needle-in-a-haystack table somewhere.
+
+
+It's not fed into the OSP data warehouse.    eAward is not the system of record.  PeopleSoft is the system of record for -finance.-
+ 
+ 
+eAward is the system of record for [[something else.]] Unclear why there is so much discrepancy with PeopleSoft.
+
+Kaidon (...)
+
+Dave:  GCA really looks at the project level.
+
+Kaidon: two different PI's rolling up to the same contract.  Looks like the PI from the primary project will be the PI at the proposal level.
+
+Dave: PI's and co-PI's.  Whatever project is flagged as primary should be considered the PI for the reward.
+
+Kaidon:  Co-PI assumption-- I can bring it in.  a proposal with three projects, a main PI and two co-PI's.
+
+Dave:  And see who is on it previously? We could create a fact table, Type 2, slowly changing.  That's another way we could do it.  We could discuss it during "code review."  There's not a lot of data modellers on the team that do this right now.  Dominic has done a lot on the student side.  I don't know that Rob (?) has a lot of experience with this kind of data modeling.
+
+Kaidon: Not understand the flow of the data.  
+
+Bill:  It would be nice to get a flowchart of these tables?  How the data flows and why they are?
+
+Bill: What's the strategy for finding the PI changes?
+  A script that applies to [[acronym]]. Huh? 
+
+Looking at a peoplesoft table, (system of record), whos a change reason (PICH) but not change_from or change_to, but we have two projects associated with this contract.  Then we have a name in the "COMMENTS" field.
+Other "COMMENTS" don't have a name or unid in the field.  
+
+
+Bill:  Looks like the historical data is -lost- short of finding a magic table/needle-in-the-haystack that has all the information we need.  (Kaidon nods.)
+
+Dave:  I went through a rabbit hole on this one. . . ps_project_team .  It does have start and end dates. I don't know if it's in BIPR.  Discusses a screenshot from a year ago.	
+
+Looking at a project with TWO PI's !  And two EMPLID's!  Maybe we have it.
+
+Bill:  And if their EMPLID's are associated with a project at all, then they must be important, and we should include them in our target population.
+
+Dave:  Look at the translate table. 
+
+Bill:  Can I have access to the table? --> Data stewardship.  Theresa Ashman was the data steward, and it was being done by 3 people (committee) and now a CDO if that will go back to him.  Unclear what stewardship of financial data is.
+
+Dave:  Could be using the PI in a different context.  --> PI-adjacent is still interesting.
+
+Kaidon: We have 3,200 unique PI's in this data.  Roughly the same as the 2,900 in my proposal data.	
+
+Kaidon/Dave:  Use this as a view, or as bridge table?  Maybe a view is o.k. that Bill has access to.
+
+Dave:  See if the dates are lining up. The PICH dates should align.

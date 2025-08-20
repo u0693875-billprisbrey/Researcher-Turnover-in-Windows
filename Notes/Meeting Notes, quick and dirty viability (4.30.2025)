@@ -1,0 +1,107 @@
+Notes
+Turnover Quick'n'Dirty Viability
+4.30.2025
+
+Attendance:  Bill Prisbrey, Dave Howell, Greg Francom
+
+Action Items:
+- Dave to investigate negative and zero values for rehire-to-termination intervals (after Bill sends a list.)
+- Dave to investigate:
+	- Obtaining information that could describe voluntary and involuntary separation (who was fired vs who quit)
+	- Obtaining birthdates from HR (so we can see if the declining number of PI's correlates with old age and retirement.)
+- Bill to investigate: 
+	- Proposal submission dates against the hire/rehire/termination intervals
+	- Number of PI's submitting each year
+	- Tighten up interval definitions and aggregations
+	- Fix x-axis graph labeling
+	- "Tendrils" on the per-week graph of active PI's
+	- Compare the mean proposal award and see if it is climbing (to verify the declining number of PI's since COVID.)
+	- Compare counts of hire/rehire/termination dates on the same graphic
+	- Compare PI's submitting proposals against this view for completion's sake
+
+Summary: 
+- Bill asks how the view with the HR data is defined; what defines a PI for inclusion in this view?
+- Rehire date is after the termination date in one case, and on the same day for a few others.  Dave will investigate. 	
+- The lack of an initial termination date to pair with the initial hire date causes some confusion and guess-work as to when people are actually actively researching.  For example, if someone worked for a semester as a janitor as an undergrad, and then came back 15 years later as a researcher, the data will count her in the denominator of the turnover calculation for those 15 years.  This means the turnover calculation is incorrect.
+- Bill wonders:  Can we identify voluntary vs involuntary separation?  --> Dave thinks there might be a "reason for update" field with a code attached to it in PS_JOB.
+- The number of active PI's has declined since COVID.  Dave thinks this may be age and retirement.  Dave will try and get the birthday so we can include.
+- The turnover has increased every year, dramatically increasing in 2024.
+- This is a quick'n'dirty report with some problems:
+	- The definition of "active researchers" has problematic assumptions as described above. 
+	- The headcount of active researchers (between hire and termination date) by week has "tendrils" that need to be explained.
+	- X-axis labels are shifted and interval aggregations need to be double-checked.
+	- Kruskal-Wallis is not a very sensitive test nor the most appropriate for a time series
+- A visual inspection of the "per cluster" trends shows two clusters moving together, one cluster consistently below the others, and two clusters with volatile and large turn-over.  This invites a closer look.   
+
+
+
+PURPOSE:  Share initial findings from a first look at turnover
+PROCESS:
+  - Share exploratory data analysis of retention data
+ - Share quick’n’dirty comparisons of turn-over calculations
+PAYOFF:
+  Team is updated on progress
+
+
+Notes:
+
+PI_INDICATOR -- Means they ARE a PI.
+We also have a SPO or Sponosored Project Officer who walks through a proposal
+Someone can be a SPO and PI
+IS_PI -- Same as PI_INDICATOR (?)  One is a Boolean.  Not sure
+
+There's a table in PS soft called "PeopleJob" with hire and re-hire data.
+
+How did PIs get into this view?  Is it because their PI_INDICATOR is TRUE, and if so, how is PI_INDICATOR defined?  Is it because their EMPLID was identified as a PI submitting a proposal?
+
+  
+Dave will send me the query/provenance.
+
+create or replace view VPR.D_PI_EMP_DT_VW asSELECT     pi."PI_DIM_KEY",    pi."PI_EMPLID",    pi."PI_FIRST_NAME",    pi."PI_MIDDLE_NAME",    pi."PI_LAST_NAME",    pi."PI_NAME",    pi."PI_EMAIL_ADDRESS",    pi."PI_PHONE",    pi."PI_INDICATOR",    pi."IS_PI",    pi."PI_LOAD_DATE_TIME",    pi."PI_UPDATE_DATE_TIME",    emp.hire_dt,    emp.rehire_dt,    emp.termination_dtFROM osp.d_pi_vw piLEFT JOIN uuetl_hr.PS_UU_EMPLOYMENT_VW emp ON pi.pi_emplid = emp.emplid
+
+
+Taking from PS_UU_EMPLOYMENT_VW
+
+PI_DIM_KEY -- primary key for fact table (Kimball's).  It will be unique per person, but not the EMPLID.  DIM_KEY just increments by one, and is present in the fact table.
+
+LOAD/UPLOAD enables tracking of the data.
+
+Looking at "durations" -- 
+Some people had 50 yrs until "rehire" and came back as an emeritus.
+
+We only have their most recent termination date.
+Dave HAD a termination date, then it was erased when he was re-hired.
+
+Negative value might be a sabbatical.  Re-hire date is in the future, for the faculty point.
+
+When REHIRE_DT == TERMINATION_DT
+
+HR data tends to be pretty clean.
+
+Send some of the emplids to Dave/ sleuth it.
+
+
+Proposal data only goes back 10 yrs --- 
+
+VOLUNTARY SEPARATION vs INVOLUNTARY SEPARATION ...?
+
+PI's aren't necessarily faculty members.  Faculty are typically Jan 1st and July 1st. 
+
+For Dave:
+CAN WE IDENTIFY VOLUNTARY vs INVOLUNTARY SEPARATION? 
+"Reason for termination" field in PS_JOB (data update field with a code attached to it.)
+
+
+Figure out what the "tendrils" are on week-by-week.
+
+Declining PI's and increasing alarming/interesting.
+
+- Let's look at AGE when they terminate.  Is this a demographic artifact?
+
+- Let's look at proposal data.  Are active PI's submitting proposals decreasing since COVID?
+
+
+GET BIRTHDATES.
+GET VOLUNTARY/INVOLUNTARY SEPARATION.
+
+Create a table of HIRE DATES/REHIRE DATES like I've done for TERMINATION DATES.  Has that gone down?

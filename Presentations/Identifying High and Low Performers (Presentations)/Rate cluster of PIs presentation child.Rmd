@@ -1,0 +1,656 @@
+---
+output: 
+  powerpoint_presentation:
+    reference_doc: Reference_Template_vB0.pptx
+---
+
+```{r include = FALSE}
+
+# This is a child ppt presentation that describes simple clustering based on rates
+
+```
+
+```{r include = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE, fig.height=6.75, fig.width=12)
+
+# adjust graphic parameters
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+# par(oldPar) #restore old parameters # restore old parameters after the plot
+
+```
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+source(here::here("Prep scripts", "Adjusting prepData and loading things.R"))
+
+###############
+## LIBRARIES ##
+###############
+
+library(viridis)
+library(pheatmap)
+
+######################
+## CALCULATE PER PI ##
+######################
+
+piEmplid <- calculateWinRates(data = prepData, categoryColumn = "PROPOSAL_PI_EMPLID", functionList = list(mean = mean, median = median)) |> (\(x){ x[[1]] })()
+# really starting to hate the list nature and why do I want "call" ?
+
+piEmplid$count.total <- apply(piEmplid[,c("win.count","loss.count")], 1, sum, na.rm = TRUE )
+piEmplid$sum.total <- apply(piEmplid[,c("win.sum","loss.sum")], 1, sum, na.rm = TRUE )
+
+##########
+## PREP ##
+##########
+
+piEmplid$emplid <- row.names(piEmplid)
+filterThreeCount <- piEmplid$count.total > 3
+piMap <- data.frame(college = row.names(piEmplid), abbrv = row.names(piEmplid), color = NA, pch = 19, cex = 0.3 )
+
+#######################
+## TEST FOR NORMALCY ##
+#######################
+
+normalTest <- apply(piEmplid[filterThreeCount,!colnames(piEmplid) %in% c("emplid", "count_cut","rate_cluster","totals_cluster", "rate_cluster")], 2, function(x) shapiro.test(x)$p.value) |>
+  (\(x){any(x > 0.05) })() # FALSE
+
+# unsurprisingly --- let's log transform before z-transform
+
+
+#####################
+## CREATE CLUSTERS ##
+#####################
+
+ratePCA <- piEmplid[filterThreeCount,] |>
+  (\(x){return(data.frame(row.names = rownames(x),
+                          sum.rate = x[,"sum.rate"],
+                          count.rate = x[,"count.rate"]                 )
+  ) })() |>
+  scale() |>
+  PCA(graph = FALSE)
+
+rateHCPC <- ratePCA |>
+  HCPC(nb.clust = 8, graph = FALSE)
+
+
+```
+
+
+```{r}
+             
+# Manage colors
+
+rateClusterColors <- c("peru", "darkseagreen", "darkcyan", "slateblue", "goldenrod", "indianred", "mediumaquamarine", "firebrick")
+
+clusterRateMapping <- piMap
+clusterRateMapping[,"pch"] <- rep(19, nrow(clusterRateMapping))
+clusterRateMapping[,"color"] <- rateClusterColors[rateHCPC$data.clust$clust[match(clusterRateMapping[,"college"], row.names(rateHCPC$data.clust))] ]
+
+```
+
+
+
+```{r}
+
+# Merge clusters back into piEmplid
+piEmplid <- merge(piEmplid, rateHCPC$data.clust[,"clust", drop = FALSE], by.x = "emplid", by.y= "row.names")
+
+row.names(piEmplid) <- piEmplid$emplid
+names(piEmplid)[names(piEmplid) == "clust"] <- "rate_cluster" 
+
+
+# Merge into prepData
+prepData <- merge(prepData, piEmplid[,c("emplid","rate_cluster")], by.x = "PROPOSAL_PI_EMPLID", by.y = "emplid", all.x = TRUE)
+
+```
+
+
+
+```{r}
+
+# Calculate win rates
+
+rateClusterWins <- calculateWinRates(prepData, categoryColumn = "rate_cluster", functionList = list(mean = mean, median = median)) |>
+  (\(x){
+    return(x$summary[match(levels(prepData$rate_cluster), row.names(x$summary)),])
+  })()
+
+rateClusterWins$color <- rateClusterColors
+
+rateClusterWins$population <- aggregate(emplid ~ rate_cluster,  data = piEmplid, length )[,2]
+
+rateClusterWins$pop_perc <- round(100*(rateClusterWins$population / sum(rateClusterWins$population)),1)
+
+
+rateClusterWins$sum_perc <- round(100*(rateClusterWins$win.sum/sum(rateClusterWins$win.sum)),1)
+
+rateClusterWins$count_total <- apply(rateClusterWins[,c("win.count","loss.count")], 1, sum)
+
+rateClusterWins$count_perc <- round(100*(apply(rateClusterWins[,c("win.count","loss.count")], 1, sum)/sum(apply(rateClusterWins[,c("win.count","loss.count")], 1, sum))),1)
+
+
+medianPIbyCluster <- aggregate(win.sum ~ rate_cluster, data = piEmplid, median) # for plot
+
+```
+
+
+```{r}
+
+# Population heatmaps and table
+
+piNames <- row.names(piEmplid)[piEmplid$count.total > 3]
+piFilter <- prepData$PROPOSAL_PI_EMPLID %in% piNames
+
+collegePopulation <- unique(prepData[piFilter, c("PROPOSAL_PI_EMPLID", "college","rate_cluster" )])
+
+# > length(unique(collegePopulation[,1]))
+# [1] 1672
+# > length((collegePopulation[,1]))
+# [1] 1922
+
+# I think I'll just allow the duplication
+
+```
+
+```{r}
+
+# cluster bounds
+
+clusterBounds <- aggregate(cbind(sum.rate,count.rate) ~ rate_cluster, data = piEmplid, function(x){c(max = max(x),min = min(x))} )
+
+```
+
+
+# SIMPLE CLUSTERS BASED ON WIN RATES
+
+# SECTIONS
+
+  (1) Summary   
+  (2) Method    
+  (3) Clusters verbally described 
+  (4) Clusters visually described
+  (5) Table of aggregated values by cluster   
+  (6) Hierachical clustering on principal components    
+  (7) Clusters displayed on scatter plots   
+  (8) Variable relevance per cluster   
+  (9) Clusters over time    
+  (10) Cluster populations by college and major institutions    
+  
+# 1. SUMMARY
+
+This shows principal investigators sorted into eight clusters using only two criteria: the win rates by count of proposal and sum of funds requested.    
+  
+
+# 2. METHOD
+
+First, principal investigators (PI's) with three or fewer proposals are filtered out.  `r format(table(filterThreeCount)[1], big.mark = ",")` principal investigators (`r  round(100*proportions(table(filterThreeCount))[1], 0) `%) are removed and `r format(table(filterThreeCount)[2], big.mark = ",")` principal investigators (`r  round(100*proportions(table(filterThreeCount))[2], 0) `%) are kept.    
+
+Second, two variables are calculated per principal investigator:    
+
+  * Rate of proposals won (count rate)        
+  * Rate of funds requested won (sum rate)    
+
+Third, the rates are centered and scaled.
+
+Fourth, principle components are extracted.
+
+Fifth, hierarchical clustering using Euclidean distance and Ward's method is used to produce eight clusters.
+
+The clusters are named, described verbally and visually, and the cluster populations by colleges and major institutions are shown.  
+
+# 3. CLUSTERS VERBALLY DESCRIBED
+
+**CLUSTER 1: ROCK BOTTOM**    
+  Principal investigators in Cluster 1 have less than ~20% win rates by both count and sum.
+  
+  It has a population of `r rateClusterWins[1,"population"]` PIs (`r rateClusterWins[1,"pop_perc"]`%) and accounts for only `r rateClusterWins$sum_perc[1] `% of total requested funds won.
+
+**CLUSTER 2: DOMINANT**     
+  Principal investigators in Cluster 2 have less than ~40% win rates by both count and sum.
+
+  It has the largest share of the population and proposals submitted, as well as a large share of funds awarded. 
+
+  It has a population of `r rateClusterWins[2,"population"]` PIs (`r rateClusterWins[2,"pop_perc"]`%) and accounts for `r rateClusterWins$sum_perc[2] `% of total requested funds won.     
+  
+**CLUSTER 3: BIG WHIFF**    
+  Principal investigators in Cluster 3 have less than ~30% win rates by sum and less than ~70% win rate by count.   
+  
+  They have a respectable win rate by count but lose the larger proposals. 
+
+  Cluster 3 has a population of `r rateClusterWins[3,"population"]` PIs (`r rateClusterWins[3,"pop_perc"]`%) and accounts for  `r rateClusterWins$sum_perc[3] `% of total requested funds won.
+  
+**CLUSTER 4:  MONEY**    
+  Principal investigators in Cluster 4 have less than ~60% win rates by sum and less than ~50% win rates by count.
+
+  It has the largest share of funds requested won.
+
+  Cluster 4 has a population of `r rateClusterWins[4,"population"]` PIs (`r rateClusterWins[4,"pop_perc"]`%) and accounts for  `r rateClusterWins$sum_perc[4] `% of total requested funds won.
+  
+**CLUSTER 5:  MISSING THE BIG WINS**    
+Principal investigators in Cluster 5 have less than ~50% win rates by sum and greater than ~50% win rates by count.
+
+They have an excellent win rate by count but like Cluster 3, they lose the larger proposals.
+
+Cluster 5 has a population of `r rateClusterWins[5,"population"]` PIs (`r rateClusterWins[5,"pop_perc"]`%) and accounts for a large majority (`r rateClusterWins$sum_perc[5] `%) of total requested funds won. 
+
+**CLUSTER 6: BRONZE MEDAL**
+
+Principal investigators in Cluster 6 have greater than ~40% win rates by sum and less than ~65% win rates by count.
+
+Their win rates by sum are in third place behind Clusters 7 and 8.  And compared to Clusters 3 and 5, they win the large proposals.
+
+Cluster 6 has a population of `r rateClusterWins[6,"population"]` PIs (`r rateClusterWins[6,"pop_perc"]`%) and accounts for a large majority (`r rateClusterWins$sum_perc[6] `%) of total requested funds won.
+
+**CLUSTER 7:  SILVER MEDAL**    
+Principal investigators in Cluster 7 have greater than ~50% win rates by sum and greater than ~60% win rates by count. They have the second-highest win rates.
+
+
+Cluster 7 has a population of `r rateClusterWins[7,"population"]` PIs (`r rateClusterWins[7,"pop_perc"]`%) and accounts for a large majority (`r rateClusterWins$sum_perc[7] `%) of total requested funds won.
+
+**CLUSTER 8:  GOLD MEDAL**   
+Principal investigators in Cluster 8 have greater than ~80% win rates by sum and greater than ~65% win rates by count. They have the highest win rates.
+
+Cluster 8 has a population of `r rateClusterWins[8,"population"]` PIs (`r rateClusterWins[8,"pop_perc"]`%) and accounts for a large majority (`r rateClusterWins$sum_perc[8] `%) of total requested funds won.
+
+
+# 4. CLUSTERS VISUALLY DESCRIBED
+
+```{r}
+
+# fig.height = 4.5, fig.width = 9
+
+#########################################
+## THREE PROPORTION BARS AND A BOXPLOT ##
+#########################################
+
+
+####################
+## POPULATION BAR ##
+####################
+
+par(bg = "ivory",
+    fg = "gray10",
+    oma = c(0,0,3,0),
+    mar = c(3,3,3,1),
+    mfrow= c(2,2))
+
+# dummy graph to create the background
+
+theBat <- barplot(
+  rateClusterWins[,"population"],
+  xlab = "",
+  ylab = "",
+  yaxt = "n",
+  xaxt = "n"
+)
+
+# now define the proper par("usr") values
+    default_rect_args <- list(
+      xleft = par("usr")[1], 
+      ybottom = par("usr")[3], 
+      xright = par("usr")[2], 
+      ytop = par("usr")[4],
+      col = "gray90",
+      border = NA
+    )
+  
+    rect_args = list()
+      
+    # draw background color
+    rect_args <- modifyList(default_rect_args, rect_args)
+    do.call("rect", rect_args)
+
+grid(nx = NA, ny = NULL, col = "gray99", lwd = 2)
+
+par(new = TRUE)
+
+theBar <- barplot(
+  rateClusterWins[,"population"],
+  col = rateClusterWins[,"color"],
+  las = 2
+)
+
+mtext(text = row.names(rateClusterWins),
+      line = 1,
+      at = theBar,
+      side = 1,
+      cex = 1.5,
+      font =2,
+      col = rateClusterWins[,"color"])
+
+mtext(side = 3,
+      cex = 1.75,
+      line = 0.309,
+      text = "Population"
+      )
+
+text(x = theBar,
+     y = rateClusterWins[,"population"],
+     cex = rep(0.9,8),
+     pos = c(3,1,3,3,3,3,3,3),
+     font = 2,
+     col = c(rep("gray10",8),"gray90"),
+     labels = paste0(rateClusterWins$pop_perc,"%")
+     )
+
+
+###############
+## FUNDS BAR ##
+###############
+
+# adjust margins
+
+par(mar = c(3,5,3,1))
+
+# dummy graph to create the background
+
+theBat <- barplot(
+  rateClusterWins[,"win.sum"],
+  xlab = "",
+  ylab = "",
+  yaxt = "n",
+  xaxt = "n"
+)
+
+# now define the proper par("usr") values
+    default_rect_args <- list(
+      xleft = par("usr")[1], 
+      ybottom = par("usr")[3], 
+      xright = par("usr")[2], 
+      ytop = par("usr")[4],
+      col = "gray90",
+      border = NA
+    )
+  
+    rect_args = list()
+      
+    # draw background color
+    rect_args <- modifyList(default_rect_args, rect_args)
+    do.call("rect", rect_args)
+
+grid(nx = NA, ny = NULL, col = "gray99", lwd = 2)
+
+par(new = TRUE)
+
+theBar <- barplot(
+  rateClusterWins[,"win.sum"],
+  col = rateClusterWins[,"color"],
+  las = 2
+)
+
+mtext(text = row.names(rateClusterWins),
+      line = 1,
+      at = theBar,
+      side = 1,
+      cex = 1.5,
+      font = 2,
+      col = rateClusterWins[,"color"]
+        )
+
+mtext(side = 3,
+      cex = 1.75,
+      line = 0.309,
+      text = "Funds requested won"
+      )
+
+text(x = theBar,
+     y = rateClusterWins[,"win.sum"],
+     pos = c(3,3,3,1,rep(3,4)),
+     cex = rep(0.9,8),
+     font = 2,
+     col = c(rep("gray10",8),"gray90"),
+     labels = paste0(rateClusterWins$sum_perc,"%")
+     )
+
+# float the median over THAT !
+
+mtext(text = "Proportions and proposal amounts per cluster",
+      side = 3,
+      line = 0.309,
+      font = 2,
+      cex = 2,
+      outer = TRUE)
+
+###############
+## COUNT BAR ##
+###############
+
+# adjust margins
+
+par(mar = c(3,4,3,1),
+    oma = c(0,0,0,0))
+
+# par(bg = "ivory",
+#    fg = "gray10",
+#    oma = c(0,0,0,0),
+#    mar = c(3,3,3,1)
+#    )
+
+# dummy graph to create the background
+
+theBat <- barplot(
+  rateClusterWins[,"count_total"],
+  xlab = "",
+  ylab = "",
+  yaxt = "n",
+  xaxt = "n"
+)
+
+# now define the proper par("usr") values
+    default_rect_args <- list(
+      xleft = par("usr")[1], 
+      ybottom = par("usr")[3], 
+      xright = par("usr")[2], 
+      ytop = par("usr")[4],
+      col = "gray90",
+      border = NA
+    )
+  
+    rect_args = list()
+      
+    # draw background color
+    rect_args <- modifyList(default_rect_args, rect_args)
+    do.call("rect", rect_args)
+
+grid(nx = NA, ny = NULL, col = "gray99", lwd = 2)
+
+par(new = TRUE)
+
+theBar <- barplot(
+  rateClusterWins[,"count_total"],
+  col = rateClusterWins[,"color"],
+  las = 2
+)
+
+mtext(text = row.names(rateClusterWins),
+      line = 1,
+      at = theBar,
+      side = 1,
+      cex = 1.5,
+      font = 2,
+      col = rateClusterWins[,"color"]
+        )
+
+mtext(side = 3,
+      cex = 1.75,
+      line = 0.309,
+      text = "Count of proposals"
+      )
+
+text(x = theBar,
+     y = rateClusterWins[,"count_total"],
+     pos = c(3,1, rep(3,6) ),
+     cex = rep(0.9,8),
+     font = 2,
+     col = c(rep("gray10",8),"gray90"),
+     labels = paste0(rateClusterWins$count_perc,"%")
+     )
+
+
+#############
+## BOXPLOT ##
+#############
+
+par(mar = c(3,4,3,1))
+
+# par(bg = "ivory",
+#    fg = "gray10",
+#    oma = c(0,0,0,0),
+#    mar = c(3,4,4,1))
+    
+#    ,
+#    mfrow= c(1,1))
+
+boxplot(log(PROPOSAL_TOTAL_SPONSOR_BUDGET) ~ rate_cluster,
+        data = prepData,
+        names = rep("", length(unique(prepData$rate_cluster[!is.na(prepData$rate_cluster)])) ),
+        yaxt = "n",
+        ylab = ""
+        )
+
+# now define the proper par("usr") values
+    default_rect_args <- list(
+      xleft = par("usr")[1], 
+      ybottom = par("usr")[3], 
+      xright = par("usr")[2], 
+      ytop = par("usr")[4],
+      col = "gray90",
+      border = NA
+    )
+  
+    rect_args = list()
+      
+    # draw background color
+    rect_args <- modifyList(default_rect_args, rect_args)
+    do.call("rect", rect_args)
+
+grid(nx = NA, ny = NULL, col = "gray99", lwd = 2)
+
+par(new = TRUE)
+
+theBox <- boxplot(log(PROPOSAL_TOTAL_SPONSOR_BUDGET) ~ rate_cluster,
+        data = prepData,
+        col = rateClusterWins$color,
+        names = rep("",length(unique(prepData$rate_cluster[!is.na(prepData$rate_cluster)])) ),
+        ylab = "",
+        las = 1
+        )
+
+mtext(text = c("Proposal funds requested", "Funds requested (log)" ),
+      side = c(3,2),
+      font = c(1,1),
+      cex = c(1.75,1.5),
+      line = c(0.309, 2.427)
+      
+      )
+
+mtext(text = row.names(rateClusterWins),
+      line = 1,
+      at = 1:8,
+      side = 1,
+      cex = 1.5,
+      font = 2,
+      col = rateClusterWins[,"color"]
+        )
+
+```
+
+# 4. CLUSTERS DESCRIBED BY COUNT AND SUM    
+
+```{r}
+
+# Simple bars describing the clusters
+
+par(oma = c(0,0,3,0), mfrow = c(2,1))
+
+plotWinRates(rateClusterWins,
+             agg = "count",
+             line = "count.rate",
+             bar_params = list(mar = c(2,7,4,5)),
+             bar_args = list(las = 1),
+             bar_mtext_args = list(
+               text = c("Proposals per cluster",
+                        "",
+                        "Count of proposals"
+                        ),
+               line = c(1.618,0,5),
+               col = c("gray10", "gray10", "gray10"),
+               font = c(1,3,1),
+               cex = c(1.75,1.25,1.15),
+               side = c(3,3,2)
+                        ),
+             bar_legend_args = list(x = "topleft")
+             )
+
+mtext(text = "Clusters described by count and sum",
+      side = 3,
+      line = 0.309,
+      font = 2,
+      cex = 2,
+      outer = TRUE)
+
+plotWinRates(rateClusterWins,
+             agg = "sum",
+             line = "sum.rate",
+             bar_params = list(mar = c(2,7,4,5)),
+             bar_args = list(las = 1),
+             bar_mtext_args = list(
+               text = c("Funds requested per cluster",
+                        "",
+                        "Sum of funds requested"
+                        ),
+               line = c(1.618,0,5),
+               col = c("gray10", "gray10", "gray10"),
+               font = c(1,3,1),
+               cex = c(1.75,1.25,1.15),
+               side = c(3,3,2)
+                        ),
+             bar_legend_args = list(x = "topleft")
+)
+
+```
+
+# RATE SCATTER PLOT
+
+```{r}
+
+# Rate scatter plot
+
+par(oma = c(0,3,4,0), mfrow =c(1,1))
+
+yBYx(data = piEmplid,  
+     x_axis = "count.rate", 
+     y_axis = "sum.rate", 
+     detailMapping = clusterRateMapping, 
+     log = NA, 
+     scatter_text_args = list(
+       labels = "",
+       cex = 1.618),
+     scatter_mtext_args = list(text = c("", "Fraction of proposals won", "Fraction of funds requested won"), 
+                               cex = c(1.75,1.5,1.5),
+                               font = c(0,0,0)   ))
+
+text(x = rateClusterWins$count.rate,
+     y = rateClusterWins$sum.rate,
+     labels = row.names(rateClusterWins),
+     cex = 2,
+     font = 2,
+     col = rateClusterWins$color
+) 
+
+mtext(text = "Sum rate and count rate" , outer = TRUE, font = 2, cex = 2, line = 0.309) 
+
+```
+

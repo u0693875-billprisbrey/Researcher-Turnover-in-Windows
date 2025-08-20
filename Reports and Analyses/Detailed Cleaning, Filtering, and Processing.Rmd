@@ -1,0 +1,592 @@
+---
+title: "Detailed Cleaning, Filtering, and Processing"
+author: "Bill Prisbrey"
+date: "2024-10-02"
+output:
+  html_document:
+    keep_md: true
+---
+
+```{r programmers.note, include=FALSE}
+
+# This is copied over from Grants Exploratory.
+
+# This has been updated to query for a date less than or equal to April 17 2025, but I am keeping the fiscal year filter to less than or equal to FY 2023.  This is because the Trump administration halted Notice of Awards in January 2025, meaing FY 2024 data is still incomplete.
+
+
+# Although this is currently a stand-alone RMD, this is eventually meant to be an appendix to other reports that describes the filtering, cleaning, and processing in much more detail.
+
+# I don't know how much I want to go into descriptive statistics here.  I guess there will be some.
+
+# I have limited the award and proposal queries to 2 Oct 2024.
+
+```
+
+
+**PURPOSE:**  The purpose of this document is to describe in detail cleaning, filtering, and processing of proposals data.
+
+**OBJECTIVES:**
+
+  1.  Describe the initial data set.
+  2.  Briefly list the cleaning and processing steps.
+  3.  Describe the cleaning and processing steps in detail.     
+  4.  Describe the cleaned data set.
+
+
+
+```{r settings, include = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE, fig.height=7, fig.width=7)
+
+# adjust parameters
+
+old.par <- par(no.readonly = TRUE)
+
+par(cex.main = 2,
+    cex.lab = 2,
+    cex.axis = 1.5,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+# par(old.par) #restore old parameters # restore old parameters after the plot
+
+library(tidyverse)
+library(skimr)
+library(plotly)
+library(RColorBrewer)
+library(scales)
+library(kableExtra)
+#library(tm)
+library(caret)
+library(xgboost)
+library(FactoMineR)
+
+```
+
+```{r functions, include=FALSE}
+
+lapply(list.files(here::here("Functions"), full.names = TRUE), source)
+
+
+# source(here::here("Functions","Exploring Grants Functions.R"))
+
+# source(here::here("Functions","Draw Confusion Matrix vC5.R"))
+
+```
+
+
+```{r connect}
+
+library(odbc)
+library(DBI)
+
+keyring::keyring_unlock(keyring = "BIPR", password = "Excelsior!")
+
+con.ds <- DBI::dbConnect(odbc::odbc(),
+                         Driver = "oracle",
+                         Host   = "ocm-campus01.it.utah.edu",
+                         SVC    = keyring::key_list(keyring = "BIPR")[1,1],
+                         UID    = keyring::key_list(keyring = "BIPR")[1,2],
+                         PWD    = keyring::key_get(keyring = "BIPR", service = keyring::key_list(keyring = "BIPR")[1,1]), 
+                         Port   = 2080)
+
+```
+
+
+```{r query}
+
+# I should put a time stamp on these queries.
+# That is, not "SELECT *" and pull everything, but limit the query to today somehow.
+
+fiscalQuery <- "SELECT * 
+              FROM GRANTS_CONTRACT_BY_ORG_FY_VW
+"
+
+awardQuery <- "SELECT *
+              FROM OSP_AWARDS_VW
+              WHERE AWARD_RECEIVED_DATE <= TO_DATE('2025-04-17', 'YYYY-MM-DD')
+"
+
+# WHERE AWARD_RECEIVED_DATE <= '2024-10-02'
+
+propQuery <- "SELECT *
+              FROM OSP_PROPOSALS_VW
+              WHERE PROPOSAL_UPLOAD_DATE <= TO_DATE('2025-04-17', 'YYYY-MM-DD')
+"
+
+fedQuery <- "SELECT * FROM VPR.OSP_FEDERALLY_SPONSORED_PROPOSALS_VW"
+
+fiscData <- dbGetQuery(con.ds,
+                      fiscalQuery)
+
+awardData <- dbGetQuery(con.ds,
+                       awardQuery)
+
+propData_pre <- dbGetQuery(con.ds,
+                       propQuery)
+
+fedData <- dbGetQuery(con.ds,
+                      fedQuery)
+
+DBI::dbDisconnect(con.ds)
+
+```
+
+```{r check.query, eval=FALSE}
+
+lapply(list(fed = fedData, prop = propData_pre, award = awardData, fisc = fiscData), dim)
+
+
+```
+
+### **(1) INITIAL DATA DESCRIPTION**
+
+As of 2 October 2024, the raw proposal data contains `r nrow(propData_pre) |> format(big.mark = ",")` rows with `r ncol(propData_pre) |> format(big.mark = ",")` columns.  It ranges from the year `r min(propData_pre$PROPOSAL_UPLOAD_DATE_FISCAL_YEAR, na.rm=TRUE)` to `r max(propData_pre$PROPOSAL_UPLOAD_DATE_FISCAL_YEAR, na.rm=TRUE)`.  It contains `r length(unique(propData_pre$PROPOSAL_ID)) |> format(big.mark = ",")` unique proposals submitted by `r length(unique(propData_pre$PROPOSAL_PI_EMPLID)) |> format(big.mark = ",")` principal investigators from `r length(unique(propData_pre$PROPOSAL_ORG)) |> format(big.mark = ",")` organizations belonging to `r length(unique(propData_pre$PROPOSAL_COLLEGE)) |> format(big.mark = ",")` college-level units.
+
+### **(2) CLEANING AND PROCESSSING STEPS BRIEF**
+
+  (a) Identify win/loss status per proposal.
+  (b) Remove a proposal with unusual values.
+  (c) Sum monetary values over all budget periods per proposal.
+  (d) Filter out proposals with no budget listed (an empty value) or a total sponsor budget less than $150.
+  (e) Include the name of the highest government agency for each federally-sponsored grant.       
+  (f) Filter out proposals before FY 2014 or after FY 2023.
+  (g) Keep certain columns and remove others.
+
+
+### **(3) CLEANING AND PROCESSSING STEPS DETAIL**
+
+```{r win.loss.initial}
+
+# Calculate win/loss
+
+# Establish a win column
+propData_pre$win <- ifelse(propData_pre$PROPOSAL_ID %in% awardData$AWARD_ID, "win", "loss")
+
+propData_pre$win <- factor(propData_pre$win, levels = c("win","loss"))
+
+rawWin <- propData_pre[,c("PROPOSAL_ID", "win")] |>
+  unique() |>
+  (\(x){table(x[,c("win")], useNA = "always")})()
+
+```
+
+#### (a) Identify win/loss
+
+A "win/loss" column is added to the proposal data based on the absence or presence of the proposal ID in the "awards" data.   
+
+Overall, this raw data has a `r rawWin |> proportions() |> (\(x){round(x[1] * 100,1)})() `% win rate.
+
+```{r win.plot, fig.height = 3}
+
+par(mar = c(4,5,3,1))
+thePlot <- propData_pre[,c("PROPOSAL_ID", "PROPOSAL_UPLOAD_DATE_FISCAL_YEAR", "win")] |>
+  unique() |>
+  (\(x){table(x[,c("PROPOSAL_UPLOAD_DATE_FISCAL_YEAR","win")], useNA = "always")})() |>
+  (\(x){barplot(t(x),
+                main = "Proposal wins and losses by fiscal year",
+                las = 2,
+                col = c(rgb(128,0,128, alpha = 0.75*255, maxColorValue = 255),rgb(255,127,0,alpha = 0.5*255, maxColorValue = 255))
+                
+                
+                )})()
+  
+  
+legend("topleft", 
+       legend = c("Win","Loss"),
+       pch = 15,
+       pt.cex = 2,
+       col = c(rgb(128,0,128, alpha = 0.75*255, maxColorValue = 255), rgb(255,127,0,alpha = 0.5*255, maxColorValue = 255) )#,
+       #fill = c("blue","red")
+       )  
+  
+
+
+
+```
+
+#### (b) Remove unusual proposal
+
+A single proposal that is duplicated with "NA" values for college and organization for unclear reasons is removed.
+
+
+```{r multiOrg}
+
+# proposal ID with multiple organizations
+
+dupeOrgs <- table(unique(propData_pre[,c("PROPOSAL_ID","PROPOSAL_ORG")]), useNA = "always") |> rowSums() |> (\(x) {x[x>1]})()
+
+multiOrg <- names(dupeOrgs)# "10072452" 
+
+multiOrgFilter <- !propData_pre$PROPOSAL_ID %in% multiOrg
+
+# This is a closer look at the proposal ID that was filtered out.
+
+propData_pre[propData_pre$PROPOSAL_ID %in% multiOrg, c("PROPOSAL_ID",              "PROPOSAL_PI_NAME",                                           "PROPOSAL_SHORT_TITLE",
+       "PROPOSAL_UPLOAD_DATE_FISCAL_YEAR",
+       "PROPOSAL_COLLEGE",
+       "PROPOSAL_ORG"
+       )] |>
+  kbl(caption = "Proposal with Multiple Organization Values Is Filtered Out",
+      col.names = c("PROPOSAL_ID", "PI_NAME","SHORT_TITLE", "FISCAL_YEAR", "COLLEGE", "ORG")) |>
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+
+
+```
+
+
+#### (c) Sum monetary values
+
+```{r money}
+
+# Multiple rows per proposal ID
+multiRows <- table(propData_pre[,c("PROPOSAL_ID","PROPOSAL_ORG")], useNA = "always") |> rowSums() |> (\(x) {x[x>1]})()
+
+# Identify money columns
+
+moneyColumns <- c("PROPOSAL_BUDGET_PERIOD", "PROPOSAL_DIRECT_COST", "PROPOSAL_FA_COST", "PROPOSAL_TOTAL_SPONSOR_BUDGET", "PROPOSAL_UNIVERSITY_COSTSHARE", "PROPOSAL_3RD_PARTY_COSTSHARE")
+
+moneyColumnFilter <- !colnames(propData_pre) %in% moneyColumns
+
+# Remove proposals with multiple organizations
+propData <- unique(propData_pre[multiOrgFilter, ])
+
+# Remove budget periods of -1 or 0
+propData <- propData[propData$PROPOSAL_BUDGET_PERIOD > 0,]
+
+# money data
+propMoney <- propData_pre[multiOrgFilter, c(moneyColumns, "PROPOSAL_ID", "win")]
+
+summedColumns <- colnames(propMoney)[-1*which(colnames(propMoney) %in% c("PROPOSAL_BUDGET_PERIOD", "PROPOSAL_ID", "win") )]# [c(-1,-7,-8)]
+
+propSum <- aggregate(propMoney[,summedColumns], by = list(PROPOSAL_ID = propMoney$PROPOSAL_ID, win = propMoney$win), sum)
+
+propSum$PROPOSAL_ID <- factor(propSum$PROPOSAL_ID)
+
+# Calculate proportionsof TOTAL_SPONSOR_BUDGET for select columns
+
+calc_cols <- c("PROPOSAL_DIRECT_COST", "PROPOSAL_FA_COST", "PROPOSAL_UNIVERSITY_COSTSHARE", "PROPOSAL_3RD_PARTY_COSTSHARE")
+
+# Calculate new columns as a proportion of the total sponsor budget
+propSum[paste0(calc_cols, "_prop")] <- sapply(calc_cols, function(col) propSum[[col]] / propSum$PROPOSAL_TOTAL_SPONSOR_BUDGET)
+
+
+
+```
+
+Out of `r length(unique(propData_pre$PROPOSAL_ID)) |> format(big.mark = ",")` unique proposals, `r length(multiRows) |> format(big.mark = ",")` (`r (length(multiRows) / length(unique(propData_pre$PROPOSAL_ID))) |> round(2) |> (\(x){x*100})()  `%)  have multiple rows.
+
+These multiple rows per proposal reflect different monetary values over different budget periods.  These varying values include the budget period itself, direct cost, facilities and administrative (F&A) cost, total sponsor budget, university cost share, and third-party cost share.
+
+Monetary values for proposals that have multiple budget periods are summed over all periods per proposal.  The monetary values are also calculated as a fraction of the "total sponsor budget", and these fractions are merged back into the proposals data.
+
+Budget periods typically (but not necessarily) reflect years, with a steep decline after five years.
+
+Budget periods of -1 and 0 are filtered out.  This consists of `r length(unique(propData_pre$PROPOSAL_ID[propData_pre$PROPOSAL_BUDGET_PERIOD <= 0])) ` proposals with a total sponsor budget of \$`r sum(propData_pre$PROPOSAL_TOTAL_SPONSOR_BUDGET[propData_pre$PROPOSAL_BUDGET_PERIOD <= 0]) |> format(big.mark = ",")`.
+
+
+```{r budget.periods}
+
+#table(propData_pre$PROPOSAL_BUDGET_PERIOD, useNA = "always") |>
+#  proportions() |> 
+#  round(4) |>
+#  kbl(caption = "Table of budget periods in raw proposal data",
+#      col.names = c("Budget period","Fraction of total count")) |>
+#  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+
+# wow, what does this mean?
+
+periodCount <- aggregate(PROPOSAL_ID ~ PROPOSAL_BUDGET_PERIOD, data = propData_pre, (\(x){length(unique(x))}))
+
+# Get the median for multiple columns
+budgetAggregation <- lapply(summedColumns, \(x){aggregate(get(x) ~ PROPOSAL_BUDGET_PERIOD, data = propData_pre, median, na.rm=TRUE)}) |>
+  do.call(cbind, args = _)
+
+row.names(budgetAggregation) <- budgetAggregation[,1]
+
+budgetAggregation <- budgetAggregation[,!colnames(budgetAggregation) %in% "PROPOSAL_BUDGET_PERIOD"]
+
+colnames(budgetAggregation) <- summedColumns
+
+# ok, cool
+
+# like, do I care?
+
+jCat <- merge(budgetAggregation, periodCount, by.x="row.names", by.y = "PROPOSAL_BUDGET_PERIOD")
+
+row.names(jCat) <- jCat[,1] # establish row names
+jCat <- jCat[,-1] # remove redundant column
+jCat <- jCat[,c(ncol(jCat), 1:(ncol(jCat)-1))] # re-order columns
+jCat <- jCat[order(as.numeric(row.names(jCat))),] # re-order rows
+
+jCat |>
+  kbl(caption = "Count of proposals and median monetary values per budget period in raw proposal data",
+      col.names = c("Budget period", 
+                    "Proposal count", 
+                    "Direct cost",
+                    "FA cost",
+                    "Total budget",
+                    "University cost share",
+                    "Third pary cost share"
+                    )
+      ) |>
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+
+```
+
+
+
+
+
+```{r prep}
+
+# prepare to merge the categorical data by isolating unique categorical variables
+
+keepCategories <- c(
+  
+# "EPROPOSAL_DIM_KEY",                       
+# "PROPOSAL_ID",                             
+ "PROPOSAL_SHORT_TITLE",                    
+# "PROPOSAL_TYPE_CODE",                      
+ "PROPOSAL_TYPE",                           
+# "PROPOSAL_STATUS_CODE",                    
+# "PROPOSAL_STATUS", # presumably a leak                         
+# "PROPOSAL_PURPOSE_CODE",                   
+ "PROPOSAL_PURPOSE",                        
+# "PROPOSAL_RECIPIENT_FUNDING_TYPE_CODE",    
+ "PROPOSAL_RECIPIENT_FUNDING_TYPE",         
+ "PROPOSAL_COST_SHARE_INDICATOR",           
+ "PROPOSAL_FANDA_WAIVER_INDIVATOR",         
+ "PROPOSAL_FANDA_OFF_CAMPUS_RATE_INDICATOR",
+ "PROPOSAL_UPLOAD_DATE_FISCAL_YEAR",        
+ "PROPOSAL_PI_EMPLID",                      
+ "PROPOSAL_PI_NAME",                        
+## "PROPOSAL_IS_CURRENT_UU_EMP", # not a yes/no           
+# "PROPOSAL_PI_APPOINTMENT_DEPT_ID",         
+ "PROPOSAL_PI_APPOINTMENT_DEPT",            
+# "PROPOSAL_PI_APPOINTMENT_COLLEGE_ID",      
+ "PROPOSAL_PI_APPOINTMENT_COLLEGE",         
+# "PROPOSAL_PI_ACADEMIC_RANK_CD",            
+ "PROPOSAL_PI_ACADEMIC_RANK",               
+ "PROPOSAL_PI_TENURE_STATUS",               
+ "PROPOSAL_PI_FACULTY_CATEGORY",            
+ "PROPOSAL_PI_FACULTY_SUBCATEGORY",         
+ "PROPOSAL_PI_ACADEMIC_RANK_LEVEL",         
+ "PROPOSAL_PI_RANK_SORTED",                 
+ "PROPOSAL_PI_FACULTY_LINE_SORTED",         
+"PROPOSAL_ORG", # too many at 732 values, but I'll remove later.
+# "PROPOSAL_ORGID",                          
+ "PROPOSAL_DEPT",                           
+# "PROPOSAL_DEPTID",                         
+ "PROPOSAL_COLLEGE",                        
+# "PROPOSAL_COLLEGEID",                      
+ "VPR_PROPOSAL_COLLEGE",                    
+# "VPR_PROPOSAL_COLLEGEID",                  
+ "PROPOSAL_VP",                             
+# "PROPOSAL_VPID",                           
+ "VPR_PROPOSAL_VP",                         
+# "VPR_PROPOSAL_VPID",                       
+ "PROPOSAL_SPONSOR_ID",                     
+ "PROPOSAL_SPONSOR_NAME",                   
+ "PROPOSAL_SPONSOR_TYPE_CODE",              
+ "PROPOSAL_SPONSOR_TYPE",                   
+ "PROPOSAL_IACUC_IRB_DIM_KEY",              
+ "PROPOSAL_SPO_EMPLID",                     
+ "PROPOSAL_SPO_NAME"                       
+# "win"
+)
+
+# prepare to merge the date columns by isolating dates
+
+keepDates <- c(
+  "PROPOSAL_CREATION_DATE",
+  "PROPOSAL_OSP_RECEIVED_DATE",
+  "PROPOSAL_OSP_REVIEW_DATE",
+  "PROPOSAL_UPLOAD_DATE",
+  "PROPOSAL_PROJECT_START_DATE",
+  "PROPOSAL_PROJECT_END_DATE",
+  "PROPOSAL_SPONSOR_DUE_DATE"
+)
+
+theData <- merge(propSum, unique(propData[,c(keepCategories, keepDates, "PROPOSAL_ID")]), by = "PROPOSAL_ID")
+
+# merge the federal sponsor data in
+
+keepGovt <- c("HIGHEST_GOVERNMENT_AGENCY_ACRONYM",                  "NEXT_HIGHEST_GOVERNMENT_AGENCY_ACRONYM")
+
+theData <- merge(theData, 
+                 fedData[, c(keepGovt, "PROPOSAL_ID")], 
+                 by = "PROPOSAL_ID", 
+                 all.x = TRUE)
+
+# ok, let's do some cleaning and some substituting
+
+# let's filter out zero budgets, small budgets, and early proposals
+
+zeroFilter <- theData$PROPOSAL_TOTAL_SPONSOR_BUDGET != 0 &!is.na(theData$PROPOSAL_TOTAL_SPONSOR_BUDGET)
+
+smallFilter <- theData$PROPOSAL_TOTAL_SPONSOR_BUDGET >= 150 &!is.na(theData$PROPOSAL_TOTAL_SPONSOR_BUDGET)
+
+dateFilter <- theData$PROPOSAL_UPLOAD_DATE_FISCAL_YEAR >= 2014 &
+  theData$PROPOSAL_UPLOAD_DATE_FISCAL_YEAR <= 2023 &
+  !is.na(theData$PROPOSAL_UPLOAD_DATE_FISCAL_YEAR)
+
+cleanData <- theData[zeroFilter & smallFilter & dateFilter,]
+
+# replace category NA values with "NNN" (there's a lot of them)
+
+cleanData[,c(keepCategories, keepGovt)][is.na(cleanData[,c(keepCategories,keepGovt)])] <- "NNN"
+
+# create factors
+cleanData[] <- lapply(cleanData, function(x) if(is.character(x)) as.factor(x) else x)
+
+cleanData$PROPOSAL_IACUC_IRB_DIM_KEY <- factor(cleanData$PROPOSAL_IACUC_IRB_DIM_KEY)
+
+cleanData$PROPOSAL_UPLOAD_DATE_FISCAL_YEAR <- factor(cleanData$PROPOSAL_UPLOAD_DATE_FISCAL_YEAR)
+
+```
+
+### (d) Remove proposals with low and missing budgets
+
+Proposals with total sponsor budget values less than \$150 or with no value ("NA") are filtered out.  This removes `r sum(!zeroFilter)` proposals (`r round(100*proportions(table(zeroFilter))[1], 0) `%) with zero or NA values and `r sum(!smallFilter) |> format(big.mark = ",")` proposals (`r round(100*proportions(table(smallFilter))[1], 0) `%) with values between \$0 and \$150.
+
+```{r zero.budget, fig.height = 3.5}
+
+# I worked on this visualization already
+
+hist(log(theData$PROPOSAL_TOTAL_SPONSOR_BUDGET[zeroFilter & smallFilter]),
+     main = "Histogram of total sponsor budget (log) after filtering",
+     xlab = "Log of total sponsor budget",
+     col = "lightblue")
+
+```
+
+### (e) Include federal agencies
+
+The names of sponsoring federal agencies are included.
+
+```{r feds.table}
+
+table(theData[, "HIGHEST_GOVERNMENT_AGENCY_ACRONYM"], useNA = "always") |>
+  kbl(caption = "Table of proposals per government agency",
+      col.names = c("Agency", "Count")) |>
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+
+
+```
+
+
+
+### (f) Remove some fiscal years
+
+```{r missing.dates}
+
+# finding NA values in the other date columns
+
+theNA <- which(apply(cleanData[,keepDates], 1, function(x) {any(is.na(x))})) 
+
+missingDates <- cleanData$PROPOSAL_ID[theNA]
+
+#View(cleanData[theNA, c(keepDates, "PROPOSAL_ID")])
+
+```
+
+Proposals before fiscal year 2014 or after fiscal year 2023 are excluded. Missing values ("NA") are also filtered out.  
+
+The data before 2014 is not believed to be as carefully maintained, with a win rate much lower than later years.  As well, a time lag between submitting a proposal and receiving an award can be over a year.  The new Trump administration of January 2025 halted Notice of Awards, meaning the 2024 data and later is not yet complete.
+
+The proposals (`r format(length(missingDates), big.mark = ",")`) with missing values in the other "date" columns are kept and will be managed with feature engineering and imputed values.
+
+```{r dateFilter, fig.height = 3}
+
+# filtered out dates graphic
+par(mar = c(4,5,3,1))
+thePlot <- propData[,c("PROPOSAL_ID", "PROPOSAL_UPLOAD_DATE_FISCAL_YEAR")] |>
+  unique() |>
+  (\(x){table(x[,"PROPOSAL_UPLOAD_DATE_FISCAL_YEAR"], useNA = "always")})() |>
+  (\(x){
+  barplot(x,
+          main = "Fiscal years removed from data set",
+          las = 2,
+          ylab = "Count of proposals",
+          col = ifelse(as.numeric(names(x)) %in% c(2014:2023), "blue","red"))})()
+legend("topleft", 
+       legend = c("Kept","Removed"),
+       pch = 15,
+       pt.cex = 2,
+       col = c("blue","red")#,
+       #fill = c("blue","red")
+       )  
+  
+
+```
+
+
+### (g) Select columns
+
+Certain columns are kept and others are excluded.  Many of the discarded columns are repetitive  (representing an identification number where the name was kept instead).  Other discarded columns may represent a "data leak" that contains information about whether the proposal was won (such as "PROPOSAL_STATUS"). Other columns ("PROPOSAL_PI_FACULTY_LINE_CAREER_BREAKOUT" and "PROPOSAL_PI_APPOINTMENT_SNAPSHOT_DT") have a very high proportion of missing values.  
+
+```{r columns}
+
+colnames(cleanData) |>
+  kbl(caption = "Kept columns", col.names = "Kept column names") |>
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE, fixed_thead = T) |>
+  scroll_box(height = "300px")
+
+
+colnames(propData)[!colnames(propData) %in% colnames(cleanData)] |>
+  kbl(caption = "Discarded columns", col.names = "Discarded column names") |>
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE, fixed_thead = T) |>
+  scroll_box(height = "300px")
+
+```
+
+
+### **(4) CLEANED DATA DESCRIPTION**
+
+The cleaned proposal data contains `r nrow(cleanData) |> format(big.mark = ",")` rows with `r ncol(cleanData) |> format(big.mark = ",")` columns.  It ranges from the fiscal year `r min(as.numeric(as.character(cleanData$PROPOSAL_UPLOAD_DATE_FISCAL_YEAR, na.rm=TRUE)))` to `r max(as.numeric(as.character(cleanData$PROPOSAL_UPLOAD_DATE_FISCAL_YEAR, na.rm=TRUE)))`.  It contains `r length(unique(cleanData$PROPOSAL_ID)) |> format(big.mark = ",")` unique proposals submitted by `r length(unique(cleanData$PROPOSAL_PI_EMPLID)) |> format(big.mark = ",")` principal investigators from `r length(unique(cleanData$PROPOSAL_ORG)) |> format(big.mark = ",")` organizations belonging to `r length(unique(cleanData$PROPOSAL_COLLEGE)) |> format(big.mark = ",")` college-level units.    
+
+Overall, `r table(cleanData$win) |> proportions() |> (\(x) {round(x[1],2)  *100 })() `% of the proposals won.
+
+
+```{r skim}
+
+skim(cleanData)
+
+```
+
+```{r federal.agencies}
+
+# make this box scrollable DONE
+# put this in alphabetical order
+
+unique(fedData[, c(
+               "HIGHEST_GOVERNMENT_AGENCY_ACRONYM",
+               "HIGHEST_GOVERNMENT_AGENCY",
+               "NEXT_HIGHEST_GOVERNMENT_AGENCY_ACRONYM",
+               "NEXT_HIGHEST_GOVERNMENT_AGENCY",
+               "SPONSOR_ID",
+               "SPONSOR_NAME"
+)
+               ]) |>
+  (\(x) {x[order(x[,"HIGHEST_GOVERNMENT_AGENCY_ACRONYM"]),]} )() |>
+  
+  kbl(caption = "Federal agencies") |>
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE, fixed_thead = T) |>
+  scroll_box(height = "300px")
+
+
+```
+
+```{r saveData, eval=FALSE}
+
+# This section is meant to be operated manually.
+# It saves the cleaned data
+# However, I don't want that on Git so I'll need to figure out how to use ".gitignore"
+
+# saveRDS(cleanData, here::here("Data","cleanData17Apr2025.rds"))
+
+```
+
+
+

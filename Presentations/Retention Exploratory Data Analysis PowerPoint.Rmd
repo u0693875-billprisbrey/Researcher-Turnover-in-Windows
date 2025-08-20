@@ -1,0 +1,716 @@
+---
+title: "Retention Exploratory Data Analysis PowerPoint"
+author: "Bill Prisbrey"
+date: "2025-05-29"
+output: 
+  powerpoint_presentation:
+    reference_doc: Reference_Template_vB0.pptx
+---
+
+
+```{r programmers.notes, include = FALSE}
+
+# The initial purpose of this is to create some slides of my graphics for sharing in meetings.
+
+# It may become a stand-alone presentation or it may just be a place to create ppt slides as needed.
+
+```
+
+
+```{r settings, include = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE, fig.height=6.75, fig.width=12)
+
+# adjust graphic parameters
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+# par(oldPar) #restore old parameters # restore old parameters after the plot
+
+library(lubridate)
+
+```
+
+
+```{r}
+
+# Copy and paste from Retention EDA document
+# as I don't have this currently set up in a "prep" script
+
+```
+
+
+
+```{r}
+
+###########
+## QUERY ##
+###########
+
+# Obtain retention data
+
+keyring::keyring_unlock(keyring = "BIPR", password = "Excelsior!")
+
+library(DBI)
+con.ds <- DBI::dbConnect(odbc::odbc(), Driver = "oracle", Host = "ocm-campus01.it.utah.edu", 
+                         SVC = keyring::key_list(keyring = "BIPR")[1, 1], UID = keyring::key_list(keyring = "BIPR")[1, 
+                                                                                                                    2], PWD = keyring::key_get(keyring = "BIPR", service = keyring::key_list(keyring = "BIPR")[1, 
+                                                                                                                                                                                                               1]), Port = 2080)
+retentionQuery <- "
+SELECT *
+FROM VPR.D_PI_EMP_DT_VW EMP_DATES
+"
+
+retData <- dbGetQuery(con.ds,
+                      retentionQuery)
+
+
+DBI::dbDisconnect(con.ds)
+
+
+
+
+```
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+# PREP SCRIPT
+
+source(here::here("Prep scripts","Adjusting prepData and loading things.R"))
+
+
+# PER PI
+
+piClusters <- lapply(list.files(here::here("Robjects", "Clustering PIs"), full.names = TRUE), readRDS)
+
+###########
+## MERGE ## 
+###########
+
+piEmplid <- Reduce(function(x, y) {
+  merged <- merge(x, y, by = "emplid", all = FALSE)
+  merged <- merged[, !duplicated(sub("\\.x$|\\.y$", "", names(merged)))]  # Remove duplicate columns
+  
+  # Rename columns to remove ".x"
+  names(merged) <- sub("\\.x$", "", names(merged))
+  
+  merged
+}, piClusters)
+# piEmplid <- Reduce(function(x, y) merge(x, y, by = "emplid", all = FALSE), piClusters)
+# piEmplid <- do.call(merge, piClusters)
+
+
+
+prepData <- merge(prepData, piEmplid[,c("emplid","complex_cluster","rate_cluster")], by.x =  "PROPOSAL_PI_EMPLID", by.y = "emplid", all.x = TRUE)
+
+##########
+## PREP ##
+##########
+
+piEmplid$combined_cluster <-  factor(paste(piEmplid$complex_cluster, piEmplid$rate_cluster, sep = ", "))
+
+prepData$combined_cluster <- factor(paste(prepData$complex_cluster, prepData$rate_cluster, sep = ", "))
+
+###############
+## LIBRARIES ##
+###############
+
+library(viridis)
+library(pheatmap)
+
+#########
+## MAP ##
+#########
+
+piMap <- data.frame(college = row.names(piEmplid), abbrv = row.names(piEmplid), color = NA, pch = 19, cex = 0.7 )
+
+# I need the college map of colors
+
+fullEmplid <- calculateWinRates(data = cleanData, categoryColumn = "PROPOSAL_PI_EMPLID") |>
+  (\(x){x[[1]]})()
+
+fullEmplid$count.total <- apply(fullEmplid[,c("win.count","loss.count")],1,sum)
+
+filterTwoCount <- fullEmplid$count.total >= 2
+# filterThreeCount <- piEmplid$count.total > 3
+
+
+```
+
+
+```{r}
+             
+# Manage colors
+
+#############
+## COMPLEX ##
+#############
+
+complexClusterColors <- c("forestgreen", "deepskyblue", "goldenrod",  
+                            "firebrick", "darkslategray", "chartreuse",  
+                            "slateblue", "darkkhaki", "coral")
+
+names(complexClusterColors) <- c(as.character(1:5),"unassigned") # I'll surely regret this
+
+clusterComplexMapping <- piMap
+clusterComplexMapping[,"pch"] <- rep(19, nrow(clusterComplexMapping))
+
+clusterComplexMapping[,"color"] <- complexClusterColors [piEmplid$complex_cluster]
+
+# clusterComplexMapping[,"color"] <- complexClusterColors[complexHCPC$data.clust$clust[match(clusterComplexMapping[,"college"], row.names(complexHCPC$data.clust))] ]
+
+##############
+## COMBINED ##
+##############
+
+combinedClusterColors <- c("forestgreen", "deepskyblue", "goldenrod",  
+  "firebrick", "darkslategray", "chartreuse",  
+  "slateblue", "darkkhaki", "coral",  
+  "mediumorchid", "dodgerblue", "tomato",  
+  "orchid", "darkseagreen", "sienna",  
+  "royalblue", "indianred", "seagreen",  
+  "peru", "cadetblue", "plum",  
+  "midnightblue", "lawngreen", "darkorange",  
+  "lightsteelblue")
+
+clusterCombinedMapping <- piMap
+clusterCombinedMapping[,"pch"] <- rep(19, nrow(clusterCombinedMapping))
+
+clusterCombinedMapping[,"color"] <- combinedClusterColors [piEmplid$combined_cluster]
+
+
+
+################
+## PERCENTILE ##
+################
+
+percentileColors <- viridis(10,direction = -1)[c(1:7,10)]
+percentileMapping <- piMap
+
+percentileMapping[,"pch"] <- rep(19, nrow(percentileMapping))
+
+percentileMapping[,"color"] <- percentileColors[as.numeric(cut(piEmplid$win.sum_percentile, breaks = seq(0.2,1,by=0.1)))]
+
+#############
+## COLLEGE ##
+#############
+
+collegeAbbrv <- cbind(
+  college = c(sweet16, bigInst, "other"),
+  abbrv = c("Arch",
+            "Educ",
+            "FinArt",
+            "Health",
+            "Hum",
+            "Nurs",
+            "Pharm",
+            "Science",
+            "SocBeh",
+            "SocWrk",
+            "Bus",
+            "Law",
+            "Tran",
+            "Dent",
+            "Med",
+            "Engr",
+            "EGI",
+            "Hunt",
+            "SCI",
+            "CVRTI",
+            "ICSE",
+            "CTSI",
+            "other"
+  ),
+  color = c(
+    "lightslategray",
+    "orange",
+    "cyan", 
+    "hotpink", 
+    "brown", 
+    "darkgoldenrod", 
+    "gold", 
+    "green",
+    "navy", 
+    "magenta", 
+    "olivedrab4", 
+    "salmon", 
+    "darkgreen",
+    "yellowgreen", 
+    "red",
+    "blue",
+    "chocolate", 
+    "purple",
+    "violet", 
+    "khaki",
+    "deepskyblue3",
+    "chartreuse",
+    "darkmagenta"
+  ),
+  pch = c(
+    1,14,15,2,3,4,17,6,5,8,9,10,11,12,13,0,16,7,18, 23, 24, 25, 20  
+    
+    
+  ),
+  
+  cex = rep(NA, length(c(sweet16, bigInst, "other")) )
+)
+
+collegeColors <- setNames(collegeAbbrv[,"color"], collegeAbbrv[,"abbrv"])
+
+```
+
+```{r}
+
+##############################
+## ACTIVE PROPOSING PERIODS ##
+##############################
+
+minDate <- aggregate(PROPOSAL_UPLOAD_DATE ~ PROPOSAL_PI_EMPLID, data = prepData, FUN =  function(x) {as.Date(min(x))})
+
+maxDate <- aggregate(PROPOSAL_UPLOAD_DATE ~ PROPOSAL_PI_EMPLID, data = prepData, FUN = function(x) {as.Date(max(x))})
+
+activeProposing <- merge(minDate, maxDate, by = "PROPOSAL_PI_EMPLID")
+names(activeProposing) <- c("PROPOSAL_PI_EMPLID", "PROPOSAL_UPLOAD_DATE.min", "PROPOSAL_UPLOAD_DATE.max")
+
+activeProposing <- merge(activeProposing, retData[,c("PI_EMPLID", "HIRE_DT", "REHIRE_DT", "TERMINATION_DT")],
+               by.x = "PROPOSAL_PI_EMPLID",
+               by.y = "PI_EMPLID",
+               all.x = TRUE)
+
+```
+
+# RAW DATES IN VIEW
+
+```{r}
+
+## Tabulation of raw dates in the view
+## Annual with individual graphics for 
+##  - hires over time
+##  - Re-hires over time
+##  - terminations over time
+
+
+# Raw numbers, yearly, individual graphics
+
+plotPar <- par(mfrow = c(3,1), 
+               bg = "ivory", 
+               fg = "gray20",
+               mar = c(2, 4.1, 2, 0.3)
+               )
+
+#mar = c(2, 4.1, 1.1, 0.1)) # c(5.1,4.1,4.1,2.1)
+
+table(year(retData$HIRE_DT)) |>
+  (\(x){ 
+    x[names(x) != "NA-NA"]
+    })() |>
+  plot(ylab = "Count of hires",
+       main = "Hires over time",
+       type = "l",
+       col = "chocolate4")
+
+
+table(year(retData$REHIRE_DT)) |>
+  (\(x){ 
+    x[names(x) != "NA-NA"]
+    })() |>
+  plot(ylab = "Count of re-hires",
+       main = "Re-hires over time",
+       type = "b",
+       col = "chocolate4")
+
+
+
+table(year(retData$TERMINATION_DT)) |>
+  (\(x){ 
+    x[names(x) != "NA-NA"]
+    })() |>
+  plot(ylab = "Count of terminations",
+       main = "Terminations over time",
+       type = "b",
+       col = "chocolate4")
+
+
+
+par(plotPar)
+
+
+```
+
+# SEASONALITY
+
+```{r}
+
+## SEASONALITY
+
+# I like this graphic.
+# Convert it to three lines for my three date columns.
+# Maybe move this after "dates" and before "intervals."
+
+weeklyTerms <- table(week(retData$TERMINATION_DT))
+weeklyHires <- table(week(retData$HIRE_DT))
+weeklyRehires <- table(week(retData$REHIRE_DT))
+
+yLim <- c(min(c(weeklyTerms, weeklyHires,weeklyRehires), na.rm = TRUE), max(c(weeklyTerms, weeklyHires,weeklyRehires), na.rm = TRUE) )
+
+plotPar <- par(bg = "ivory", fg = "gray20")
+
+plot(weeklyTerms,
+     ylim = yLim,
+     type = "n",
+     ylab = "",
+     las = 1,
+     xlab = "week of year")
+
+points(weeklyHires,
+       type = "l",
+       col = "purple")
+
+points(weeklyRehires,
+       type = "l",
+       col = "orange")
+
+points(weeklyTerms,
+       type = "l",
+       col = "firebrick")
+
+mtext(side = 3,
+      "Workforce flow has strong seasonality\nwith most activity happening in Week 26",
+      font =2,
+      cex = 1.384,
+      line = 1)
+
+legend("topleft",
+       legend = c("hire","rehire","termination"),
+       col = c("purple","orange", "firebrick"),
+       pch = 15,
+       pt.cex = 2)
+
+par(plotPar)
+
+
+
+table(week(retData$TERMINATION_DT)) |>
+  plot(xlab = "week of year",
+       ylab = "Count of terminations per week",
+       main = "PIs are mostly terminated around June 30th")
+
+
+
+```
+
+
+
+```{r}
+
+########################
+## CALCULATE TURNOVER ##
+########################
+
+calendar <- c("day","week", "month", "quarter", "year")
+
+fullSpan <- lapply(calendar, function(x){
+  
+  calculateMetrics(calendar = x,
+                   minDate = ymd("1960-01-01"),
+                   maxDate = today(),
+                   data = retData)
+  
+})
+names(fullSpan) <- calendar
+
+midSpan <- lapply(calendar, function(x){
+  
+  calculateMetrics(calendar = x,
+                   minDate = ymd("2013-01-01"),
+                   maxDate = today(),
+                   data = retData)
+  
+})
+names(midSpan) <- calendar
+
+earlySpan <- lapply(calendar, function(x){
+  
+  calculateMetrics(calendar = x,
+                   minDate = ymd("2000-01-01"),
+                   maxDate = ymd("2020-12-31"),
+                   data = retData)
+  
+})
+names(earlySpan) <- calendar
+
+lateSpan <- lapply(calendar, function(x){
+  
+  calculateMetrics(calendar = x,
+                   minDate = ymd("2020-01-01"),
+                   maxDate = today(),
+                   data = retData)
+  
+})
+names(lateSpan) <- calendar
+
+```
+
+
+# FULL SPAN
+
+```{r}
+
+###############
+## FULL SPAN ##
+###############
+
+plotMetrics(
+  data = fullSpan[["year"]],
+  plotList = "all",
+  title_mtext_params = list(text = "Approximate PI Headcount\nrehire dates ignored", line = -1.618),
+  cumulative_plot_params = list(mar = c(0,6,3,1))
+)
+
+```
+
+# MID SPAN
+
+```{r}
+
+##############
+## MID SPAN ##
+##############
+
+plotMetrics(
+  data = midSpan[["year"]],
+  plotList = "all",
+    title_mtext_params = list(text = "Approximate PI Headcount\nrehire dates ignored", line = -1.618),
+  cumulative_plot_params = list(mar = c(0,6,3,1))
+)
+
+
+```
+
+
+
+
+
+```{r}
+
+#########################
+## TURNOVER BY COLLEGE ##
+#########################
+
+colleges <- unique(prepData$college)
+collegePIs <- lapply(colleges, function(x) unique(prepData$PROPOSAL_PI_EMPLID[prepData$college == x]))
+names(collegePIs) <- colleges
+
+collegeMetrics <- lapply(collegePIs, function(x){
+  
+  calculateMetrics(data=retData[retData$PI_EMPLID %in% x,],
+                   minDate = ymd("2013-01-01"),
+                   maxDate = today(), 
+                     calendar = "year")
+  
+})
+
+
+```
+
+
+```{r}
+
+#########################
+## TURNOVER BY CLUSTER ##
+#########################
+
+complex_clusters <- levels(prepData$complex_cluster)
+
+complexPIs <- lapply(complex_clusters, function(x) unique(prepData$PROPOSAL_PI_EMPLID[prepData$complex_cluster == x & !is.na(prepData$complex_cluster)]))
+names(complexPIs) <- complex_clusters
+
+# add the unassigned PI's, or NA values for prepData$complex_cluster
+
+complexPIs[["unassigned"]] <- unique(prepData$PROPOSAL_PI_EMPLID[is.na(prepData$complex_cluster)])
+
+complexMetrics <- lapply(complexPIs, function(x){
+  
+  calculateMetrics(data=retData[retData$PI_EMPLID %in% x,],
+                    minDate = ymd("2013-01-01"),
+                    maxDate = today(), 
+                    calendar = "year")
+  
+})
+
+```
+
+# BY CLUSTER
+
+```{r}
+
+#########################
+##        PLOT OF      ##
+## METRICS PER CLUSTER ##
+#########################
+
+plotMetrics(data = complexMetrics,
+            plotList = "all",
+            term_points_params = list(type = "l", lwd=2),
+            hire_points_params = list(type = "l"),
+            metric_legend_params = list(x="topleft"),
+            delta_legend_params = list(plot=FALSE),
+            featureMap = complexClusterColors,
+            title_mtext_params = list(text = "Head count metrics per cluster")
+            )
+
+```
+
+# UNASSIGNED CLUSTER
+
+```{r}
+
+#########################
+##        PLOT OF      ##
+## METRICS PER UNASSIGNED CLUSTER ##
+#########################
+
+plotMetrics(data = complexMetrics["unassigned"],
+            plotList = "all",
+            term_points_params = list(type = "l", lwd=2),
+            hire_points_params = list(type = "l"),
+            metric_legend_params = list(x="topleft"),
+            delta_legend_params = list(plot=FALSE),
+            featureMap = complexClusterColors,
+            title_mtext_params = list(text = "Head count metrics per cluster")
+            )
+
+```
+
+# CLUSTER 2 AND 4
+
+```{r}
+
+#########################
+##        PLOT OF      ##
+## METRICS PER 2 and 4 CLUSTER ##
+#########################
+
+plotMetrics(data = complexMetrics[c(2,4)],
+            plotList = "all",
+            term_points_params = list(type = "l", lwd=2),
+            hire_points_params = list(type = "l"),
+            metric_legend_params = list(x="topleft"),
+            delta_legend_params = list(plot=FALSE),
+            featureMap = complexClusterColors,
+            title_mtext_params = list(text = "Head count metrics per clusters 2 and 4")
+            )
+```
+
+# CLUSTER 1 AND 3
+
+```{r}
+
+#########################
+##        PLOT OF      ##
+## METRICS PER 1 and 3 CLUSTER ##
+#########################
+
+plotMetrics(data = complexMetrics[c(1,3)],
+            plotList = "all",
+            term_points_params = list(type = "l", lwd=2),
+            hire_points_params = list(type = "l"),
+            metric_legend_params = list(x="topleft"),
+            delta_legend_params = list(plot=FALSE),
+            featureMap = complexClusterColors,
+            title_mtext_params = list(text = "Head count metrics per clusters 1 and 3")
+            )
+
+```
+
+# CLUSTER 5
+
+```{r}
+
+#########################
+##        PLOT OF      ##
+## METRICS PER 5 CLUSTER ##
+#########################
+
+plotMetrics(data = complexMetrics[5],
+            plotList = "all",
+            term_points_params = list(type = "l", lwd=2),
+            hire_points_params = list(type = "l"),
+            metric_legend_params = list(x="topleft"),
+            delta_legend_params = list(plot=FALSE),
+            featureMap = complexClusterColors,
+            title_mtext_params = list(text = "Head count metrics per cluster 5")
+            )
+
+```
+
+# COLLEGE OF MEDICINE
+
+```{r}
+
+#########################
+##        PLOT OF      ##
+## METRICS PER COLLEGE ##
+#########################
+
+# Medicine
+
+plotMetrics(data = collegeMetrics[c("Med")],
+            plotList = "all",
+            term_points_params = list(type = "l", lwd=2),
+            hire_points_params = list(type = "l"),
+            metric_legend_params = list(x="left"),
+            delta_legend_params = list(x="left"),
+            featureMap = collegeColors,
+            title_mtext_params = list(text = "Head count metrics (Medicine)")
+            )
+
+```
+
+# NEXT THREE LARGEST
+
+```{r}
+
+# Next three
+
+plotMetrics(data = collegeMetrics[c("Hunt","Engr","Science")],
+            plotList = "all",
+            term_points_params = list(type = "l", lwd=2),
+            hire_points_params = list(type = "l"),
+            metric_legend_params = list(x="left"),
+            delta_legend_params = list(x="bottomleft"),
+            featureMap = collegeColors,
+            title_mtext_params = list(text = "Head count metrics (three large organizations)")
+            )
+```
+
+# REMAINDER OF COLLEGES AND INSTITUTIONS
+
+```{r eval=FALSE}
+
+# Everyone else
+
+plotMetrics(data = collegeMetrics[!names(collegeMetrics) %in% c("Med", "Hunt","Engr","Science")],
+            plotList = "all",
+            term_points_params = list(type = "l", lwd=2),
+            hire_points_params = list(type = "l"),
+            metric_legend_params = list(x = "top"),
+            metric_legend2_params = list(plot = FALSE),
+            delta_legend_params = list(plot = FALSE),
+            featureMap = collegeColors,
+            title_mtext_params = list(text = "Head count metrics (remaining organizations)")
+            )
+
+
+```
+
+

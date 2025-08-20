@@ -1,0 +1,787 @@
+---
+title: "Quick and Dirty Retention Exploratory Data Analysis"
+author: "Bill Prisbrey"
+date: "2025-04-25"
+output: html_document
+---
+
+
+
+```{r include=FALSE}
+
+# Notes for author
+
+# More thoughts:  
+#  - Kruskal wallis is a nice general purpose first-look test, but I should probably find something more appropriate.
+#  - Digging into how the intervals were aggregated should be informative (am I sure I'm doing it right?)
+
+
+# Thoughts:
+
+# - Re-name this as "exploratory data analysis" and summarize the new data view.  "Skimr" and a couple of histograms.
+# - I'll probably uncover some data inconsistencies.
+# - Use my new "activePI" function to calculate the number of active PI's every week.
+# - Create a dataframe that is week-by-week active PI's
+# - Use prepData to align publishing periods with hire or re-hire period EVENTUALLY
+# - Lack of an initial termination date could be problematic
+
+```
+
+
+**PURPOSE:**  The purpose of this document is a "quick-and-dirty" or "back-of-the-envelope" exploration.  It briefly describes the retention data and superficially calculate and compare principal investigator turnover.  It will be used to determine if this project is worth pursuing and guide further data collection and transformation steps.   
+
+**OBJECTIVES:**   
+
+  1.  Describe the retention data.
+  2.  Calculate and compare turnover    
+      a.  By colleges    **DONE**  
+      b.  By departments **NOT DONE**   
+      c.  By PI clusters **DONE**    
+      d.  By percentiles **TO BE DONE**    
+  2.  Determine if there are differences and if they merit continuation of the project.         
+  
+
+**NOTES FROM REVIEW MEETING:**
+
+This report was reviewed on 4.30.2025 with the following action item and summary.
+
+Action Items:
+- Dave to investigate negative and zero values for rehire-to-termination intervals (after Bill sends a list.)
+- Dave to investigate:
+	- Obtaining information that could describe voluntary and involuntary separation (who was fired vs who quit)
+	- Obtaining birthdates from HR (so we can see if the declining number of PI's correlates with old age and retirement.)
+- Bill to investigate: 
+	- Proposal submission dates against the hire/rehire/termination intervals
+	- Number of PI's submitting each year
+	- Tighten up interval definitions and aggregations
+	- Fix x-axis graph labeling
+	- "Tendrils" on the per-week graph of active PI's
+	- Compare the mean proposal award and see if it is climbing (to verify the declining number of PI's since COVID.)
+	- Compare counts of hire/rehire/termination dates on the same graphic
+	- Compare PI's submitting proposals against this view for completion's sake
+
+Summary: 
+- Bill asks how the view with the HR data is defined; what defines a PI for inclusion in this view?
+- Rehire date is after the termination date in one case, and on the same day for a few others.  Dave will investigate. 	
+- The lack of an initial termination date to pair with the initial hire date causes some confusion and guess-work as to when people are actually actively researching.  For example, if someone worked for a semester as a janitor as an undergrad, and then came back 15 years later as a researcher, the data will count her in the denominator of the turnover calculation for those 15 years.  This means the turnover calculation is incorrect.
+- Bill wonders:  Can we identify voluntary vs involuntary separation?  --> Dave thinks there might be a "reason for update" field with a code attached to it in PS_JOB.
+- The number of active PI's has declined since COVID.  Dave thinks this may be age and retirement.  Dave will try and get the birthday so we can include.
+- The turnover has increased every year, dramatically increasing in 2024.
+- This is a quick'n'dirty report with some problems:
+	- The definition of "active researchers" has problematic assumptions as described above. 
+	- The headcount of active researchers (between hire and termination date) by week has "tendrils" that need to be explained.
+	- X-axis labels are shifted and interval aggregations need to be double-checked.
+	- Kruskal-Wallis is not a very sensitive test nor the most appropriate for a time series
+- A visual inspection of the "per cluster" trends shows two clusters moving together, one cluster consistently below the others, and two clusters with volatile and large turn-over.
+
+**CONCLUSIONS AND NEXT STEPS:**
+
+Several aspects of this report were intriguing:   
+
+  - The increasing turnover, especially the spike in 2024       
+  - The decline in PI headcount since COVID   
+  - The visual inspection of turnover by cluster showing two clusters moving together and one cluster with a consistently lower turnover 
+  
+As well, many aspects of this report deserve a better treatment, including attempting to eliminate the guess-work introduced by the hire/rehire dates.
+
+Due to these reasons, it was decided to continue investigating turnover by principal investigators.    
+
+  
+```{r include = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE, fig.height=7, fig.width=10)
+
+# adjust graphic parameters
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+```
+
+```{r}
+
+###########
+## QUERY ##
+###########
+
+# Obtain retention data
+
+keyring::keyring_unlock(keyring = "BIPR", password = "Excelsior!")
+
+library(DBI)
+con.ds <- DBI::dbConnect(odbc::odbc(), Driver = "oracle", Host = "ocm-campus01.it.utah.edu", 
+                         SVC = keyring::key_list(keyring = "BIPR")[1, 1], UID = keyring::key_list(keyring = "BIPR")[1, 
+                                                                                                                    2], PWD = keyring::key_get(keyring = "BIPR", service = keyring::key_list(keyring = "BIPR")[1, 
+                                                                                                                                                                                                               1]), Port = 2080)
+retentionQuery <- "
+SELECT *
+FROM VPR.D_PI_EMP_DT_VW EMP_DATES
+"
+
+retData <- dbGetQuery(con.ds,
+                      retentionQuery)
+
+
+DBI::dbDisconnect(con.ds)
+
+
+
+
+```
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+# PREP SCRIPT
+
+source(here::here("Prep scripts","Adjusting prepData and loading things.R"))
+
+
+# PER PI
+
+piClusters <- lapply(list.files(here::here("Robjects", "Clustering PIs"), full.names = TRUE), readRDS)
+
+###########
+## MERGE ## 
+###########
+
+piEmplid <- Reduce(function(x, y) {
+  merged <- merge(x, y, by = "emplid", all = FALSE)
+  merged <- merged[, !duplicated(sub("\\.x$|\\.y$", "", names(merged)))]  # Remove duplicate columns
+  
+  # Rename columns to remove ".x"
+  names(merged) <- sub("\\.x$", "", names(merged))
+  
+  merged
+}, piClusters)
+# piEmplid <- Reduce(function(x, y) merge(x, y, by = "emplid", all = FALSE), piClusters)
+# piEmplid <- do.call(merge, piClusters)
+
+
+
+prepData <- merge(prepData, piEmplid[,c("emplid","complex_cluster","rate_cluster")], by.x =  "PROPOSAL_PI_EMPLID", by.y = "emplid", all.x = TRUE)
+
+##########
+## PREP ##
+##########
+
+piEmplid$combined_cluster <-  factor(paste(piEmplid$complex_cluster, piEmplid$rate_cluster, sep = ", "))
+
+prepData$combined_cluster <- factor(paste(prepData$complex_cluster, prepData$rate_cluster, sep = ", "))
+
+###############
+## LIBRARIES ##
+###############
+
+library(viridis)
+library(pheatmap)
+
+# I'll probably want my per-cluster wins as well
+
+# I am going to want to bring in the colors
+
+filterThreeCount <- piEmplid$count.total > 3
+
+piMap <- data.frame(college = row.names(piEmplid), abbrv = row.names(piEmplid), color = NA, pch = 19, cex = 0.7 )
+
+
+```
+
+
+```{r}
+
+# This section over-writes the functions loaded from the document Turnover Functions.R upon sourcing the prep script, as these functions will be improved and changed.  
+
+# Rather, the functions that were used to support this document on original publication and update after review on 4.30.2025 are found below.
+
+activePI <- function(investigation.date,
+                     target = "HIRE_DT",
+                     data){
+  
+  # this uses "retData" which is the view of hire and termination dates.
+  # it returns a count of people who are "active" on a certain date
+  # where active is defined as a date between hire and termination dates,
+  # or after the hire date and the termination date is NA
+  
+  intervalCondition <- investigation.date >= data[,target] & investigation.date <= data[,"TERMINATION_DT"]
+  naCondition <- investigation.date >= data[,target] & is.na(data[,"TERMINATION_DT"])   
+  
+  
+  activeCondition <- intervalCondition|naCondition
+  
+  
+  
+  return(activeCondition)
+  
+}
+
+
+calculateTurnover <- function(data, interval = "week") {
+  
+  # This function returns a dataframe with the count of people 
+  # active, in the re-hire period, or exiting, and 
+  # calculates the turn-over as the count of people exiting divided
+  # by the count of active researchers in the "hire" period.
+  
+  # This was an original function that has been re-written by chatGPT.
+  # It needs some double-checking and comparison to confirm 
+  # how it's aggregating per period.
+  
+  
+  
+  # Ensure TERMINATION_DT is properly formatted
+  term_dates <- data[,"TERMINATION_DT"]
+  
+  # Choose the floor and ceiling functions based on interval
+  if (interval == "week") {
+    start_date <- floor_date(min(term_dates, na.rm = TRUE), "week", week_start = 1)
+    end_date   <- ceiling_date(max(term_dates, na.rm = TRUE), "week", week_start = 1)
+    by_seq     <- "1 week"
+  } else if (interval == "month") {
+    start_date <- floor_date(min(term_dates, na.rm = TRUE), "month")
+    end_date   <- ceiling_date(max(term_dates, na.rm = TRUE), "month")
+    by_seq     <- "1 month"
+  } else if (interval == "quarter") {
+    start_date <- floor_date(min(term_dates, na.rm = TRUE), "quarter")
+    end_date   <- ceiling_date(max(term_dates, na.rm = TRUE), "quarter")
+    by_seq     <- "3 months"
+  } else if (interval == "semester") {
+    start_date <- floor_date(min(term_dates, na.rm = TRUE), "6 months")
+    end_date   <- ceiling_date(max(term_dates, na.rm = TRUE), "6 months")
+    by_seq     <- "6 months"
+  } else if (interval == "year") {
+    start_date <- floor_date(min(term_dates, na.rm = TRUE), "year")
+    end_date   <- ceiling_date(max(term_dates, na.rm = TRUE), "year")
+    by_seq     <- "1 year"
+  } else {
+    stop("Unsupported interval. Choose from: 'week', 'month', 'quarter', 'semester', 'year'.")
+  }
+  
+  # Sequence of investigation dates
+  turnover <- data.frame(termDT = seq(from = start_date, to = end_date, by = by_seq))
+  
+  # Helper to count hires or rehires
+  countActive <- function(date, target) {
+    activePI(investigation.date = date, target = target, data = data) |> 
+      table() |> 
+      (\(x) if ("TRUE" %in% names(x)) x["TRUE"] else 0)()
+  }
+  
+  # Populate hires and rehires
+  turnover$hire   <- sapply(turnover$termDT, countActive, target = "HIRE_DT")
+  turnover$rehire <- sapply(turnover$termDT, countActive, target = "REHIRE_DT")
+  
+  # --- Exit calculation ---
+  # Create interval labels for each termination date
+  makeLabel <- function(dates) {
+    if (interval == "week") {
+      paste(year(dates), week(dates), sep = "-W")
+    } else if (interval == "month") {
+      paste(year(dates), month(dates), sep = "-M")
+    } else if (interval == "quarter") {
+      paste(year(dates), quarter(dates), sep = "-Q")
+    } else if (interval == "semester") {
+      sem <- ifelse(month(dates) <= 6, 1, 2)
+      paste(year(dates), sem, sep = "-S")
+    } else if (interval == "year") {
+      as.character(year(dates))
+    }
+  }
+  
+  exit_labels <- makeLabel(term_dates)
+  exit_table <- table(exit_labels)
+  exit_df <- as.data.frame(exit_table, stringsAsFactors = FALSE)
+  
+  # Build labels for turnover sequence
+  turnover$label <- makeLabel(turnover$termDT)
+  
+  # Merge exits into turnover
+  turnover <- merge(turnover, exit_df, by.x = "label", by.y = "exit_labels", all.x = TRUE)
+  names(turnover)[names(turnover) == "Freq"] <- "exit"
+  
+  # Replace NA exits with 0
+  turnover$exit[is.na(turnover$exit)] <- 0
+  
+  # Calculate turnover
+  turnover$to <- turnover[,"exit"]/turnover[,"hire"]
+  
+  return(turnover)
+}
+
+
+```
+
+
+```{r}
+             
+# Manage colors
+
+#############
+## COMPLEX ##
+#############
+
+complexClusterColors <- c("forestgreen", "deepskyblue", "goldenrod",  
+                            "firebrick", "darkslategray", "chartreuse",  
+                            "slateblue", "darkkhaki", "coral")
+
+clusterComplexMapping <- piMap
+clusterComplexMapping[,"pch"] <- rep(19, nrow(clusterComplexMapping))
+
+clusterComplexMapping[,"color"] <- complexClusterColors [piEmplid$complex_cluster]
+
+# clusterComplexMapping[,"color"] <- complexClusterColors[complexHCPC$data.clust$clust[match(clusterComplexMapping[,"college"], row.names(complexHCPC$data.clust))] ]
+
+##############
+## COMBINED ##
+##############
+
+combinedClusterColors <- c("forestgreen", "deepskyblue", "goldenrod",  
+  "firebrick", "darkslategray", "chartreuse",  
+  "slateblue", "darkkhaki", "coral",  
+  "mediumorchid", "dodgerblue", "tomato",  
+  "orchid", "darkseagreen", "sienna",  
+  "royalblue", "indianred", "seagreen",  
+  "peru", "cadetblue", "plum",  
+  "midnightblue", "lawngreen", "darkorange",  
+  "lightsteelblue")
+
+clusterCombinedMapping <- piMap
+clusterCombinedMapping[,"pch"] <- rep(19, nrow(clusterCombinedMapping))
+
+clusterCombinedMapping[,"color"] <- combinedClusterColors [piEmplid$combined_cluster]
+
+
+
+################
+## PERCENTILE ##
+################
+
+percentileColors <- viridis(10,direction = -1)[c(1:7,10)]
+percentileMapping <- piMap
+
+percentileMapping[,"pch"] <- rep(19, nrow(percentileMapping))
+
+percentileMapping[,"color"] <- percentileColors[as.numeric(cut(piEmplid$win.sum_percentile, breaks = seq(0.2,1,by=0.1)))]
+
+```
+
+# DURATIONS
+
+```{r}
+
+#########################
+## CALCULATE INTERVALS ##
+#########################
+
+library(lubridate)
+
+# This is the initial time between "hire date" and "re-hire date"
+retData$initial <- time_length(interval(retData$HIRE_DT, retData$REHIRE_DT), unit = "year")
+
+# This is the time between "re-hire date" and "termination date"
+retData$rehire <- time_length(interval(retData$REHIRE_DT, retData$TERMINATION_DT), unit = "year")
+
+# This is the time from initial hire to termination date
+retData$hire <- time_length(interval(retData$HIRE_DT, retData$TERMINATION_DT), unit = "year")
+
+
+```
+
+```{r}
+
+#######################
+## DISPLAY INTERVALS ##
+#######################
+
+histPar <- par(mfrow = c(3,1), mar = c(2, 4.1, 1.1, 0.1)) # c(5.1,4.1,4.1,2.1)
+
+hist(retData$initial,
+     main = "Duration in years after hire until rehire",
+     ylab = "Count",
+     xlab = "", # "Duration in years",
+     col = "lightgreen")
+legend("topright", legend = paste( sum(is.na(retData$initial)), "NA values"), bty = "n", text.col = "red")
+
+hist(retData$rehire,
+     main = "Duration in years after rehire until termination",
+     ylab = "Count",
+     xlab = "", # "Duration in years",
+     col = "seagreen")
+legend("topright", legend = paste( sum(is.na(retData$rehire)), "NA values"), bty = "n", text.col = "red")
+
+
+hist(retData$hire,
+     main = "Duration in years after hire until termination",
+     ylab = "Count",
+     xlab = "", # "Duration in years",
+     col = "darkgreen")
+legend("topright", legend = paste( sum(is.na(retData$hire)), "NA values"), bty = "n", text.col = "red")
+
+par(histPar)
+
+```
+
+Duration thoughts:    
+
+  - The lack of a termination date before the re-hire date introduces guess-work.   
+  - Some researchers are apparently hired as students and re-hired later in their career.    
+  - Some researchers are apparently hired in retirement after their career. 
+  - These durations need to be aligned with proposal submission dates.    
+  - This shows that we currently have 2,994 active principal investigators.   
+
+# TERMINATION DATES
+
+```{r}
+
+plotPar <- par(bg = "ivory", fg = "gray20")
+table(week(retData$TERMINATION_DT)) |>
+  plot(xlab = "week of year",
+       ylab = "Count of terminations per week",
+       main = "PIs are mostly terminated around June 30th")
+
+
+```
+
+```{r}
+
+
+table(paste(year(retData$TERMINATION_DT), week(retData$TERMINATION_DT), sep = "-")) |>
+  (\(x){ 
+    x[names(x) != "NA-NA"]
+    })() |>
+  plot(ylab = "Count of terminations",
+       main = "Terminations over time",
+       col = "chocolate4")
+
+# par(plotPar)
+
+```
+
+# ACTIVE PRINCIPAL INVESTIGATORS
+
+
+```{r}
+
+########################
+## CALCULATE TURNOVER ##
+########################
+
+turnover_wk <- calculateTurnover(data = retData, interval = "week")
+
+turnover_qt <- calculateTurnover(data = retData, interval = "quarter")
+
+turnover_yr <- calculateTurnover(data = retData, interval = "year")
+
+
+```
+
+```{r}
+
+plotPar <- par(bg = "ivory", fg = "gray20")
+
+plot(turnover_wk$hire,
+     cex = 0.3,
+     main = "Count of PI's between hire and termination date",
+     col="sienna",
+     ylab = "Count of active PIs",
+     xlab = "",
+     xaxt = "n")
+
+ticks = seq(from = 0, to = nrow(turnover_wk), length.out = 12)
+axis(side = 1,
+     at = ticks,
+     labels = turnover_wk$label[ticks+1],
+     las = 2)
+
+```
+
+Discussion points:    
+
+  - Some aspects of this graph appear to be mis-aligned due to how counts per interval were aggregated:
+    - Axis labels  
+    - Points not along the main curve   
+    - This needs to be investigated   
+  - The general pattern of an increasing count of PI's that peaked around the year 2020 and declined since needs to be confirmed    
+  - Because the total money requested won has increased, this would mean the average per PI has increased.  This could be one double-check. 
+  
+# TURNOVER
+
+```{r}
+
+
+plotPar <- par(bg = "ivory", fg = "gray20")
+
+plot(turnover_wk$exit,
+     cex = 0.3,
+     main = "Count of PI's terminated",
+     type = "l",
+     col="darkorange2",
+     ylab = "Count of terminated PIs",
+     xlab = "",
+     xaxt = "n")
+
+ticks = seq(from = 0, to = nrow(turnover_wk), length.out = 12)
+axis(side = 1,
+     at = ticks,
+     labels = turnover_wk$label[ticks+1],
+     las = 2)
+
+
+```
+
+```{r}
+
+qt_sc <- turnover_qt[,-(1:2)] |>
+  scale()
+
+yr_sc <- turnover_yr[,-(1:2)] |>
+  scale()
+
+
+```
+
+
+```{r}
+
+plot(1,
+     ylim = c(min(qt_sc),max(qt_sc)),
+     xlim = c(0,nrow(qt_sc)),
+     type = "n",
+     xaxt = "n",
+     xlab = "",
+     ylab = ""
+)
+
+lines(qt_sc[,1], col = "sienna")
+lines(qt_sc[,3], col = "darkorange2")
+
+legend("topleft",
+       legend = c("Active PIs","Turn-over"),
+       col = c("sienna","darkorange2"),
+       lty = 1,
+       lwd = 1.619)
+
+mtext(side = 3,
+      "Quarterly PI head-count and turnover\n(scaled)",
+      line = 1.33,
+      cex=1.3,
+      font = 2)
+
+ticks <- seq(from = 0, to = nrow(turnover_qt), length.out = 9)
+axis(side = 1,
+     at = ticks,
+     las =2,
+     labels = turnover_qt[ticks+1 ,"label"])
+
+
+
+```
+
+```{r}
+
+plot(1,
+     ylim = c(min(yr_sc),max(yr_sc)),
+     xlim = c(0,nrow(yr_sc)),
+     type = "n",
+     xaxt = "n",
+     xlab = "",
+     ylab = ""
+)
+
+lines(yr_sc[,1], col = "sienna", lwd = 2)
+lines(yr_sc[,3], col = "darkorange2")
+
+legend("topleft",
+       legend = c("Active PIs","Turn-over"),
+       col = c("sienna","darkorange2"),
+       lty = 1,
+       lwd = 1.619)
+
+mtext(side = 3,
+      "Yearly PI head-count and turnover\n(scaled)",
+      line = 1.33,
+      cex=1.3,
+      font = 2)
+
+ticks <- seq(from = 0, to = nrow(turnover_yr), length.out = 9)
+axis(side = 1,
+     at = ticks,
+     las =2,
+     labels = turnover_yr[ticks+1 ,"label"])
+
+
+```
+
+Discussion points:    
+
+  - Turnover is calculated as the number of exits divided by the average head count of active researchers per period.
+  - This calculation and graphic needs the same due diligence as noted previously (axis labels shifted and double-check of interval aggregations.)    
+  - The general trend of increasing turnover, spiking last year, is somewhat alarming.  It may be worthwhile to compare PI turnover to turnover by all faculty.   
+
+# TURNOVER BY COLLEGE
+
+```{r}
+
+colleges <- unique(prepData$college)
+collegePIs <- lapply(colleges, function(x) unique(prepData$PROPOSAL_PI_EMPLID[prepData$college == x]))
+names(collegePIs) <- colleges
+
+collegeTurnover <- lapply(collegePIs, function(x){
+  
+  calculateTurnover(data=retData[retData$PI_EMPLID %in% x,] , interval = "year")
+  
+})
+
+```
+
+
+```{r}
+
+# Kruskal-wallis
+
+cT <- unlist( lapply(collegeTurnover, function(df) df[["to"]]))
+
+kruskal.test(cT ~ names(cT))
+
+cT.frame <- do.call(rbind, collegeTurnover)
+cT.frame$college <- sub("\\..*", "", row.names(cT.frame))
+
+college.kW <- kruskal.test(to ~ college, data = cT.frame)
+
+```
+
+
+```{r}
+
+plot(1, 
+     type = "n", 
+     ylim = c(0.,0.3),  #c(-4,4), 
+     xlim = c(2013,2026),
+     xaxt = "n",
+     xlab = "",
+     ylab = "turnover")
+lapply(collegeTurnover, function(x){
+  lines((x[,"to"]), x = as.numeric(x[,"label"]), col = "gray40")
+  
+})
+
+ticks <- seq(from = 2013, to = 2026, by = 2)
+axis(side = 1,
+     at = ticks,
+     las =2,
+     labels = ticks)
+
+legend("topleft", legend = paste("p-value of", round(college.kW$p.value,2)), text.col = "red", bty = "n")
+
+mtext(side = 3,
+      text = "Turnover does not vary greatly by college",
+      cex = 1.3,
+      line= 2,
+      font = 2)
+
+mtext(side = 3,
+      text = "(according to the Kruskal-Wallis test)",
+      cex = 1,
+      line = 0.5,
+      font = 3)
+
+
+```
+
+
+Discussion points:    
+
+  - Why do these lines end at different points?
+  - This is a good graphic for plotly (enables hover-over)
+  - Kruskal-Wallis test is a pretty rough check   
+# TURNOVER BY COMPLEX CLUSTER
+
+
+```{r}
+
+complex_clusters <- levels(prepData$complex_cluster)
+
+complexPIs <- lapply(complex_clusters, function(x) unique(prepData$PROPOSAL_PI_EMPLID[prepData$complex_cluster == x]))
+names(complexPIs) <- complex_clusters
+
+complexTurnover <- lapply(complexPIs, function(x){
+  
+  calculateTurnover(data=retData[retData$PI_EMPLID %in% x,] , interval = "year")
+  
+})
+
+```
+
+```{r}
+
+# Kruskal-wallis
+
+compT.frame <- do.call(rbind, complexTurnover)
+compT.frame$complex_cluster <- sub("\\..*", "", row.names(compT.frame))
+
+complex.kW <- kruskal.test(to ~ complex_cluster, data = compT.frame)
+
+```
+
+
+```{r}
+
+plot(1, 
+     type = "n", 
+     ylim = c(0.,0.1),  #c(-4,4), 
+     xlim = c(2013,2026),
+     xaxt = "n",
+     xlab = "",
+     ylab = "turnover")
+lapply(complexTurnover, function(x){
+  lines((x[,"to"]), x = as.numeric(x[,"label"]), col = "gray40")
+  
+})
+
+ticks <- seq(from = 2013, to = 2026, by = 2)
+axis(side = 1,
+     at = ticks,
+     las =2,
+     labels = ticks)
+
+legend("topleft", legend = paste("p-value of", round(complex.kW$p.value,2)), text.col = "red", bty = "n")
+
+mtext(side = 3,
+      text = "Turnover does not vary greatly by cluster",
+      cex = 1.3,
+      line= 2,
+      font = 2)
+
+mtext(side = 3,
+      text = "(according to the Kruskal-Wallis test)",
+      cex = 1,
+      line = 0.5,
+      font = 3)
+
+
+```
+
+Discussion points:    
+
+  - Why do these lines end at different points?
+  - This is a good graphic for plotly (enables hover-over)
+  - Kruskal-Wallis test is a pretty rough check
+    * It isn't taking the time series into account
+  - I'd like to add the cluster colors
+
+
+
+# DATA DESCRIPTION
+
+```{r include=TRUE}
+
+skim(retData)
+
+```

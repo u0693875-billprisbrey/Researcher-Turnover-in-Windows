@@ -1,0 +1,254 @@
+---
+output:
+  html_document:
+    keep_md: true
+---
+
+
+```{r include = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE, fig.height=7, fig.width=10)
+
+# adjust graphic parameters
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+```
+
+
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+
+source(here::here("Prep scripts", "Adjusting prepData and loading things.R"))
+
+###############
+## LIBRARIES ##
+###############
+
+library(viridis)
+
+######################
+## CALCULATE PER PI ##
+######################
+
+piEmplid <- calculateWinRates(data = prepData, categoryColumn = "PROPOSAL_PI_EMPLID", functionList = list(mean = mean, median = median)) |> (\(x){ x[[1]] })()
+# really starting to hate the list nature and why do I want "call" ?
+
+piEmplid$count.total <- apply(piEmplid[,c("win.count","loss.count")], 1, sum, na.rm = TRUE )
+piEmplid$sum.total <- apply(piEmplid[,c("win.sum","loss.sum")], 1, sum, na.rm = TRUE )
+
+##########
+## PREP ##
+##########
+
+piEmplid$emplid <- row.names(piEmplid)
+filterThreeCount <- piEmplid$count.total > 3
+piMap <- data.frame(college = row.names(piEmplid), abbrv = row.names(piEmplid), color = NA, pch = 19, cex = 0.3 )
+
+
+```
+
+
+
+
+
+```{r identify.natural.breaks}
+
+
+proposal_count_clusters <- table(piEmplid$count.total) |>
+  as.data.frame() |>
+    (\(x){data.frame(proposals = as.numeric(as.character(x[,1])), pi = x[,2])  })() |>
+  # scale() |>
+  dist(method = "canberra") |>
+  hclust() |>
+  #plot() 
+  cutree(k=8) 
+  #cutree(h = 0.68)
+
+# manual cleaning of the long tail
+breaks <- which(!duplicated(proposal_count_clusters))
+
+proposal_count_clusters[30:45] <- 6
+proposal_count_clusters[46:84] <- 7
+
+
+breaks <- which(!duplicated(proposal_count_clusters))
+
+```
+
+# Filtering based on the count of proposals per principal investigator
+
+### EXECUTIVE SUMMARY
+
+Using the natural breaks identified in clustering the counts of proposals per principal investigators, 1,264 principal investigators submitting three or fewer proposals are filtered out.  1,672 principal investigators submitting four or more proposals are kept for further clustering.
+
+```{r}
+
+
+# Display and put the breaks in
+
+par(oma = c(0,0,3,0),
+  mar = c(5,5,4,1),
+    bg = "ivory",
+    fg = "gray10")
+
+table(piEmplid$count.total) |> 
+  barplot(xaxt = "n",
+          yaxt = "n")
+
+rect(xleft = par("usr")[1], 
+    ybottom = par("usr")[3], 
+    xright = par("usr")[2], 
+    ytop = par("usr")[4],
+    col = "gray95", 
+    border = NA)
+
+grid(nx = NA, ny = NULL, col = "gray10", lwd = 0.618)
+
+par(new = TRUE)
+
+theBar <- table(piEmplid$count.total) |> 
+  barplot(col = proposal_count_clusters,
+          las = 1,
+          cex.axis = 1.2,
+          cex.names = 1.2
+          )
+
+mtext(text = c("Clusters shown", 
+               "Count of PI's",
+               "Number of proposals submitted per PI"
+               ),
+      side = c(3,2,1),
+      font = c(1,1,1),
+      cex = c(2,1.3,1.3),
+      line = c(1.309,3.3,3)
+      
+      )
+
+
+mtext(text = expression(bold("Count of PI's submitting " * italic(x) * " proposals")),
+      side = 3,
+      font = 2,
+      cex = 2,
+      line = 0.309,
+      outer = TRUE
+      )
+
+text(x = theBar[breaks][1],
+     y = table(piEmplid$count.total)[breaks][1] - 20,
+     labels = paste0(table(piEmplid$count.total)[breaks][1], " PI's submitted ", breaks[1], " proposal."),
+     col = "red",
+     pos = 4,
+     cex = 1.0,
+     xpd = TRUE)
+
+text(x = theBar[breaks][2:4],
+     y = table(piEmplid$count.total)[breaks][2:4],
+     labels = paste0(table(piEmplid$count.total)[breaks][2:4], " PI's submitted ", breaks[2:4], " proposals."),
+     col = "red",
+     pos = 4,
+     cex = 1.0,
+     xpd = TRUE)
+
+text(x = theBar[breaks][5:(length(breaks))],
+     y = c(45,30,25),    # table(piEmplid$count.total)[breaks][5:(length(breaks))],
+     labels = table(piEmplid$count.total)[breaks][5:(length(breaks))],
+     col = "red",
+     pos = 4,
+     cex = 1.2,
+     xpd = TRUE)
+
+legend("topright",
+       pch = 15,
+       pt.cex = 2,
+       col = 1:8,
+       legend = c("1","2 to 3", "4 to 7", "8 to 19", "20 to 29", "30 to ~45", ">46"),
+       title = "Clusters\nProposal counts per PI",
+       bty = "n")
+
+```
+
+
+```{r}
+
+# filter graphic
+
+par(oma = c(0,0,0,0),
+    mar = c(5,5,4,1),
+    bg = "ivory",
+    fg = "gray10")
+
+table(piEmplid$count.total) |> 
+  barplot(xaxt = "n",
+          yaxt = "n")
+
+rect(xleft = par("usr")[1], 
+    ybottom = par("usr")[3], 
+    xright = par("usr")[2], 
+    ytop = par("usr")[4],
+    col = "gray95", 
+    border = NA)
+
+grid(nx = NA, ny = NULL, col = "gray10", lwd = 0.618)
+
+par(new = TRUE)
+
+theBar <- table(piEmplid$count.total) |> 
+  barplot(col = c(rep("coral",2), rep("darkcyan",4) ) [proposal_count_clusters],
+          las = 1,
+          cex.axis = 1.2,
+          cex.names = 1.2
+          )
+
+mtext(text = c("Filter shown",
+               "Count of PI's",
+               "Number of proposals submitted per PI"
+               ),
+      side = c(3,2,1),
+      font = c(2,1,1),
+      cex = c(2,1.3,1.3),
+      line = c(1.309,3.3,3)
+      
+      )
+
+text(x = theBar[breaks][2], 
+     y = table(piEmplid$count.total)[breaks][2] - 20,
+     labels = paste( format(sum(table(piEmplid$count.total)[1:3]),big.mark = ","), "PIs submitting three or fewer proposals are removed"),
+     col = "coral",
+     pos = 4,
+     cex = 1.2,
+     xpd = TRUE  
+       )
+
+text(x = theBar[breaks][3], 
+     y = table(piEmplid$count.total)[breaks][3] - 20,
+     labels = paste( format(sum(table(piEmplid$count.total)[4: length(table(piEmplid$count.total))]),big.mark = ",") , "PIs submitting four or more proposals are kept"),
+     col = "darkcyan",
+     pos = 4,
+     cex = 1.2,
+     xpd = TRUE  
+       )
+
+
+legend("topright",
+       pch = 15,
+       pt.cex = 2,
+       col = c("coral","darkcyan"),
+       legend = c("Removed","kept"),
+       title = "Filter",
+       bty = "n")
+
+
+
+```
+

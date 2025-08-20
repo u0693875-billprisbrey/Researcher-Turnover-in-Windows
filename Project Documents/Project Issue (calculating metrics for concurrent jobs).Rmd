@@ -1,0 +1,48 @@
+---
+title: "Project Issue (Calculating Metrics for Concurrent Jobs)"
+author: "Bill Prisbrey"
+date: "2025-08-12"
+output:
+  html_document:
+    keep_md: true
+---
+
+***STATUS:***  Resolution in progress
+
+***ISSUE NAME:***  Calculating metrics for concurrent jobs    
+***ISSUE ID:*** 003
+
+***DATE IDENTIFIED:***  27 June 2025    
+
+***DESCRIPTION:***  
+
+Many employees have concurrent jobs that are inconsistently designated in the data.  This complicates an accurate measure of headcount.   
+
+Because the concurrent jobs have been inconsistently handled, a number of special cases to manage different situations need to be developed.
+
+***IMPACT LEVEL:***   
+
+  High/Critical.  This threatens project viability.    
+
+***PROJECT IMPACT:***   
+
+  Many HR metrics require an accurate calculation of the headcount as a denominator.  Retention and turnover are scaled as a percentage.  An inability to accurately tabulate headcount over time prevents accurate calculation of HR metrics like retention.
+  
+***ASSIGNED TO:*** Bill Prisbrey   
+
+***ACTION PLAN OR RESOLUTION STRATEGY:***     
+
+Divide the various individuals into different regimes and develop custom algorithmic treatment to identify university- and job- level exits and entries.
+  
+***LOG:***    
+
+*27 June 2025:*  Brian Gelsinger and Daniel Hinojosa explained the "EMPL_RCD" or employee record field. 
+
+Employee records identify concurrent positions.  They should have their own complete set of job actions (such as rehire (REH) and terminate (TER).)  The employee records starts at 0 where 1 is the first concurrent job.  If the employee exits job/employee record 0, then employee record 1 continues. If the employee starts another concurrent position, then this second position will be added as employee record 0 again.  Concurrent positions are added at the lowest employee record available.  Because they are not unique identifiers, HR will add the job code, job description, and department.
+  Some actions will apply across all jobs/employee records, causing the apparent duplication.  For example, a "leave" would apply to  both concurrent positions.
+
+*15 July 2025:*  Bill Prisbrey publishes a Shiny app that explores headcount over time for employees with no concurrent jobs.
+
+*7 Aug 2025:* Bill Prisbrey updates Dave Howell and Greg Francom with the report, "Status update on headcount tally."  He finds that the combinations of ACTION records and the EMPL_RCD field have been inconsistently used over the years and by various departments, resulting in confusion and complexity.  He is working to separate the various individual workforce journeys into different regimes requiring unique treatment to adequately identify university-level and job-level boundary actions.
+
+

@@ -1,0 +1,37 @@
+From: KAIDON MAX SPENCER <kaidon.spencer@utah.edu> 
+Sent: Monday, June 9, 2025 5:17 PM
+To: Bill Prisbrey <Bill.Prisbrey@utah.edu>
+Cc: DAVID RUSSELL HOWELL <dave.howell@utah.edu>; Greg Francom <greg.francom@utah.edu>; Gratiana Fu <gratiana.fu@utah.edu>
+Subject: Academic Age Dataset
+
+Hi Bill,
+
+I’ve granted the dataset over to the DATASCIENCE schema. The object is VPR_DIMENSIONS.DS_UU_ACADEMIC_AGE.
+In order to see the dimensions <-> emplid mapping confidence and description, you can run the following:
+
+select distinct
+               confidence,
+               confidence_desc
+from vpr_dimensions.dimensions_crosswalk
+order by confidence
+;
+
+The following query should contain the datapoints we discussed earlier today. I also added first/last/total grants from the Dimensions dataset since it was readily available and thought it may be of use to you. 
+select
+               dc.emplid,
+               daa.first_pub_yr,
+               daa.last_pub_yr,
+               daa.total_publications,
+               daa.first_pub_title,
+               daa.first_pub_id,
+               daa.first_grant_yr,
+               daa.last_grant_yr,
+               daa.total_grants,
+               dc.dim_id,
+               dc.confidence,
+               dc.confidence_desc
+from vpr_dimensions.dimensions_crosswalk dc
+left join vpr_dimensions.ds_uu_academic_age daa on daa.uu_researcher_dim_id = dc.dim_id
+where confidence <> 'W'
+;
+Let me know if you have any issues accessing these objects. Note, there is no guarantee that all of the PIs are represented here. I haven’t done that analysis yet, and am not sure what proportion of the PI population we’ve currently mapped to Dimension profiles, although I suspect the majority have been mapped. 
