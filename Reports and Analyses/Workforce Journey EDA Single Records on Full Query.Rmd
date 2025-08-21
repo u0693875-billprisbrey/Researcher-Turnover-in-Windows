@@ -148,16 +148,13 @@ filterTwoCount <- fullEmplid$count.total >= 2
 
 # Obtain journey data
 
-keyring::keyring_unlock(keyring = "BIPR", password = "Excelsior!")
-
 library(DBI)
 con.ds <- DBI::dbConnect(odbc::odbc(), 
                          Driver = "oracle", 
                          Host = "ocm-campus01.it.utah.edu", 
-                         SVC = keyring::key_list(keyring = "BIPR")[1, 1],
-                         UID = keyring::key_list(keyring = "BIPR")[1, 2],
-                         PWD = keyring::key_get(keyring = "BIPR", 
-                         service = keyring::key_list(keyring = "BIPR")[1,1]),
+                         SVC = "biprodusr.sys.utah.edu",
+                         UID = Sys.getenv("userid"),
+                         PWD = Sys.getenv("pwd"),
                          Port = 2080)
 
 journeyQuery <- "select * from ds_hr.EMPL_AGE_RANGE_ACTION_MV_V WHERE EFFDT < TO_DATE('2025-08-01', 'YYYY-MM-DD') " # a view of the query
