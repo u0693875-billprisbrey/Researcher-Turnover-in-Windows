@@ -150,9 +150,10 @@ filterTwoCount <- fullEmplid$count.total >= 2
 
 library(DBI)
 con.ds <- DBI::dbConnect(odbc::odbc(), 
-                         Driver = "oracle", 
-                         Host = "ocm-campus01.it.utah.edu", 
-                         SVC = "biprodusr.sys.utah.edu",
+                         Driver = "Oracle in OraClient19Home1", 
+                        # Host = "ocm-campus01.it.utah.edu", 
+                        # SVC = "biprodusr.sys.utah.edu",
+                        DBQ = "//ocm-campus01.it.utah.edu:2080/biprodusr.sys.utah.edu",
                          UID = Sys.getenv("userid"),
                          PWD = Sys.getenv("pwd"),
                          Port = 2080)
