@@ -48,6 +48,6 @@ Possibilities include:
 *8 August 2025:*  A benchmark script comparing Workbench and laptop showed the laptop was twenty times slower on some tests.   
 *21 August 2025:*  A report took 3.5min to run on Workbench and 1.9 hours on the laptop.    
 
-*23 Augsut 2025:* Posit Workbench enterprise license expired.    
+*23 August 2025:* Posit Workbench enterprise license expired.    
 
 
