@@ -170,6 +170,7 @@ assignSimpleModifications <- function(data){
   # First, sort data by EFFDT in ascending order
   
   data <- data[order(data$EFFDT),]
+  data$EFFDT <- as.Date(data$EFFDT)
   
   # First, aggregate dates by employment record
   boundaryDates <- aggregate(EFFDT ~ EMPLID + boundary + EMPL_RCD, data = data, min)
@@ -189,8 +190,40 @@ assignSimpleModifications <- function(data){
   # ok, what's my logic
   
   # check EFFDT.entry_0 should be the minimum value
-  all(boundaryDates_very_wide[,"EFFDT.entry_0"] == apply(boundaryDates_very_wide[,-1]), 1, min)
+  checkFail <- which(boundaryDates_very_wide[,"EFFDT.entry_0"] != apply(boundaryDates_very_wide[,-1], 1, min, na.rm=TRUE))
   # apply is messing with the "date" format and it's not working very well
+  
+  # length(checkFail) # 10 
+  
+  # I guess I deal with these a little differently?
+  
+  # nah, this will work great
+  
+  # the logic is that if the entry date
+  # is the minimum of the entry dates per EMPLID,
+  # then append the word ", university" to the entry
+  
+  # calculate minimum entry date per emplid
+  
+  aggFilter <- data$boundary == "entry" & !is.na(data$boundary)
+  minEntry <- aggregate(EFFDT ~ EMPLID, data = data[aggFilter, ], min)
+  minEntry$min_entry <- "min_entry"
+  
+  data2 <- merge(data, minEntry, by = c("EMPLID","EFFDT"), all.x = TRUE)
+  
+  data2$boundary_type <- ifelse(data2$min_entry == "min_entry", paste(data2$boundary_type, ", university", sep = ""),data2$boundary_type)
+  
+  # ok, that's great! 
+  # I can do the same for the maximum date . . . 
+  # unless they are currently employed
+  
+  aggFilter <- data$boundary == "exit" & !is.na(data$boundary)
+  maxExit <- aggregate(EFFDT ~ EMPLID, data = data[aggFilter, ], max)
+  maxExit$max_exit <- "max_exit"
+  
+  data3 <- merge(data2, maxExit, by = c("EMPLID","EFFDT"), all.x = TRUE)
+  
+  data3$boundary_type <- ifelse(data3$max_exit == "max_exit", paste(data3$boundary_type, ", university", sep = ""),data3$boundary_type)
   
   
 }
@@ -202,4 +235,65 @@ assignSimpleModifications <- function(data){
 
 # I like "boundaryDates_wide" .... looks good ...
 # but don't I want it on one row?
+
+# What's my check for this?
+
+
+assignSimpleModifications <- function(data){
+  
+  # where data is the journey data for workers with these conditions:
+  #   concurrent journey
+  #   minimalist regime (max two entries and two employment records)
+  #   no workbreaks or leave
+  
+  # This executes after "assignBoundaries"
+  
+  # First, modify data 
+  # sort data by EFFDT in ascending order
+  # re-assign EFFDT class
+  
+  data <- data[order(data$EFFDT),]
+  data$EFFDT <- as.Date(data$EFFDT)
+  
+  # calculate minimum entry date per emplid
+  
+  aggFilter <- data$boundary == "entry" & !is.na(data$boundary)
+  minEntry <- aggregate(EFFDT ~ EMPLID, data = data[aggFilter, ], min)
+  minEntry$min_entry <- "min_entry"
+  
+  # calculate maximum exit date per emplid
+  
+  aggFilter <- data$boundary == "exit" & !is.na(data$boundary)
+  maxExit <- aggregate(EFFDT ~ EMPLID, data = data[aggFilter, ], max)
+  maxExit$max_exit <- "max_exit"
+  
+  
+  # merge values back into data
+  
+  data <- merge(data, minEntry, by = c("EMPLID","EFFDT"), all.x = TRUE)
+  data <- merge(data, maxExit, by = c("EMPLID","EFFDT"), all.x = TRUE)
+  
+  # append "university" value if it's the minimum or maximum
+  
+  data$boundary_type <- ifelse(data$min_entry == "min_entry", paste(data$boundary_type, ", university", sep = ""), data$boundary_type)
+  data$boundary_type <- ifelse(data$max_exit == "max_exit", paste(data$boundary_type, ", university", sep = ""), data$boundary_type)
+  
+  # delete the extra columns
+  data$min_entry <- NULL
+  data$max_exit <- NULL
+  
+  # return the modified data
+  
+  return(data)
+  
+}
+
+
+####################
+## 3-PLUS ENTRIES ##
+####################
+
+# Next, I will attempt to look at the EMPLIDs of 
+# two records and three-plus entries, and no other breaks or leaves
+
 
