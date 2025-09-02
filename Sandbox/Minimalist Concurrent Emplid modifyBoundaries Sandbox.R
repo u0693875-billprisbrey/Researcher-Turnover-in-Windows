@@ -98,6 +98,9 @@ assignBoundaries <- function(data) {
 concurrentJourney <- readRDS(here::here("Data", "concurrentJourney.rds"))
 journeyPopulation <- readRDS(here::here("Data", "journeyPopulation.rds"))
 minimalistEMPLIDs <- readRDS(here::here("Data", "minimalist_concurrent_emplids.rds"))
+concurrentEMPLIDs <- readRDS(here::here("Data", "concurrentEMPLIDs.rds"))
+exclusiveEMPLIDs <- readRDS(here::here("Data", "exclusiveEMPLIDs.rds"))
+oobEMPLIDs <- readRDS(here::here("Data", "out_of_bounds_concurrent_emplids.rds"))
 
 #############
 ## PROCESS ##
@@ -295,5 +298,115 @@ assignSimpleModifications <- function(data){
 
 # Next, I will attempt to look at the EMPLIDs of 
 # two records and three-plus entries, and no other breaks or leaves
+
+simp3PopFilter <- !journeyPopulation$EMPLID %in% minimalistEMPLIDs & 
+  !journeyPopulation$EMPLID %in% exclusiveEMPLIDs & 
+  !journeyPopulation$EMPLID %in% oobEMPLIDs &
+  journeyPopulation$RECORDS_PER_EMPLID == 2 &
+  journeyPopulation$WORKBREAK == "not_wb" & 
+  journeyPopulation$LEAVE == "not_leave"
+
+simp3EMPLIDs <- journeyPopulation$EMPLID[simp3PopFilter] # EMPLID's with 3+ entries, max 2 records, no breaks or leaves
+
+library(skimr)
+skim(journeyPopulation[journeyPopulation$EMPLID %in% simp3EMPLIDs, "RECORDS_PER_EMPLID"])
+
+table(journeyPopulation[journeyPopulation$EMPLID %in% simp3EMPLIDs, "RECORDS_PER_EMPLID"])
+#  1    2    3    4    5    6    7    8    9   10   11   12 
+# 13 5971 2403  519  104   37   17   11    6    2    2    2 
+
+# the 1 value probably had an HCJ
+# why so many 2 values though? Shouldn't they be in "minimalist?
+# no, because they have more than 2 entries -- the people I'm looking for
+
+# I need to whittle down to just the 5,971 with the 2 empl records
+
+table(journeyPopulation[journeyPopulation$EMPLID %in% simp3EMPLIDs, "RECORDS_PER_EMPLID"])
+
+2 
+5971
+
+# DONE!  o.k., good !
+# ok, let's see who we can do for them
+
+
+simp3J <- concurrentJourney[concurrentJourney$EMPLID %in% simp3EMPLIDs,] |> # emplids with simplest concurrent journey
+  assignBoundaries()
+
+data <- simp3J
+
+# test ID's
+
+simp3picks <- sample(simp3EMPLIDs, 20)
+
+# > simp3picks
+# [1] "00364067" "00032553" "00884644" "01311938" "00176699"
+# [6] "00551008" "00507286" "06005635" "00376291" "00285246"
+# [11] "00369928" "00243071" "00714284" "00963048" "00175416"
+# [16] "06019029" "00963589" "00284980" "00496910" "00870819"
+
+
+assignSimple3Modifications <- function(data){
+  
+  # where data is the journey data for workers with these conditions:
+  #   concurrent journey
+  #   max two employment records
+  #   three or more entries
+  #   no workbreaks or leave
+  
+  # This executes after "assignBoundaries"
+  
+  # First, modify data 
+  # sort data by EFFDT in ascending order
+  # re-assign EFFDT class
+  
+  data <- data[order(data$EFFDT),]
+  data$EFFDT <- as.Date(data$EFFDT)
+  
+  # minimum entry date is a university entry
+
+  # calculate minimum entry date per emplid
+  
+  aggFilter <- data$boundary == "entry" & !is.na(data$boundary)
+  minEntry <- aggregate(EFFDT ~ EMPLID, data = data[aggFilter, ], min)
+  minEntry$min_entry <- "min_entry"  
+  
+  # merge values back into data
+  data <- merge(data, minEntry, by = c("EMPLID","EFFDT"), all.x = TRUE)
+  
+  # append "university" value if it's the minimum or maximum
+  data$boundary_type <- ifelse(data$min_entry == "min_entry", paste(data$boundary_type, ", university", sep = ""), data$boundary_type)
+  
+  # Investigate re-shapes 
+  # First, aggregate dates by employment record
+  boundaryDates <- aggregate(EFFDT ~ EMPLID + boundary + EMPL_RCD, data = data, min)
+  
+  # Reshape
+  boundaryDates$ID <- paste(boundaryDates$EMPLID, boundaryDates$EMPL_RCD, sep="_")
+  boundaryDates_wide <- reshape(boundaryDates, direction = "wide", idvar = "ID", timevar = "boundary",
+                                v.names = c("EFFDT")) 
+  
+  boundaryDates$record_boundary <- paste(boundaryDates$boundary, boundaryDates$EMPL_RCD, sep = "_")
+  boundaryDates_very_wide <- reshape(boundaryDates[,-which(colnames(boundaryDates) %in% c("ID", "boundary", "EMPL_RCD") )], 
+                                     direction = "wide", 
+                                     idvar = "EMPLID", 
+                                     timevar = c("record_boundary") ,
+                                     v.names = c("EFFDT")) 
+  
+}
+
+# ok, we have a new regime that 0000006 belongs to
+# Looks like they are a student before 2013,
+# and got re-hired long after 2013.
+# I should create a regime for this
+
+# question is, should I create it now?
+# Or keep working on this one?
+
+# Looks like a pretty high proportion of my random samples
+# are pre-2013 students.
+# Maybe I'll just create that regime, as it will probably be 
+# easier anyway.
+
 
 
