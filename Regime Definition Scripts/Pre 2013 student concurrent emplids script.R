@@ -111,7 +111,7 @@ identifyStudents$student <- ifelse(grepl("TER|RET", identifyStudents$max_actions
 studentEMPLIDs <- identifyStudents$EMPLID[identifyStudents$student == "student"]
 
 # manually check some of these
-sample(studentEMPLIDs, 20)
+# sample(studentEMPLIDs, 20)
 
 # [1] "00072017" "00068752" "00620987" "00150729"
 # [5] "00431232" "00209980" "00084335" "00555061"
@@ -155,16 +155,11 @@ sample(studentEMPLIDs, 20)
 # And I can save a "maybeStudents" list, that will be double-checked 
 # against other methods or something.
 
-# I'd also like to look at the 00000006 situation
+possibleStudentEmplids <- studentEMPLIDs
 
-# What's the longest gap between activities?
+saveRDS(possibleStudentEmplids, here::here("Data","possible_student_concurrent_emplids.rds"))
 
-aggregate(EFFDT ~ EMPLID, data = concurrentJourney, )
 
-# man I do this all the time.  Here I am walking through this logic again.
-
-# seems like I should be able to do it quickly.
-# or copy and paste what I'd figured out previously.
 
 
 

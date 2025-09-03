@@ -1,0 +1,26 @@
+Brute Force and to-do musings
+9.3.2023
+
+The concurrent jobs are really tough for me.  I keep double-counting entries and exits, as sometimes the concurrent jobs overlap and 
+sometimes they don't.
+
+I don't have an easy way to identify "university" boundary events,
+
+But, what if I used an approach that I'm calling "brute force" ?  That is, per EMPLID, I create a dataframe that has every single day as one column.  Then I have a "university" column, that adds if there is an entry and subtracts if there is an exit.  It is paired with a column per EMPL_RCD of exits and entries.
+
+The logic is such that it can never be a one or a zero -- it simply won't allow it.  
+
+Or, if it becomes one of these out-of-bounds values, then it's a flag to investigate.  It could be a kind of double-check as well.
+
+I worry that it will take a long time to calculate.
+
+But I think this is worth pursuing.
+
+
+3 things to do--
+- Brute force per EMPLID
+- Time between actions
+- Max entry before 2013
+
+- But I might just need to turn this into its own project.
+This is not becoming even a simple fix.
