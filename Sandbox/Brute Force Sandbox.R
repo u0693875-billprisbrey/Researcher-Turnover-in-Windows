@@ -335,4 +335,214 @@ emplid1 <- data.frame(
 #      - Extract the start/stop dates?
 #      - Or create the large daily matrix of 1/0's?
 
+###############################
+## COMING BACK ON 10/10/2025 ##
+###############################
+
+# So now I have start/stops 1 thru 3....
+# I am going to plot these on my plotJourney graphics and see what I've got
+# Looks very reasonable.
+
+# I'm pretty sure I want the start/stop dates per EMPLID
+# I'm not sure what to do with them or how to use them
+# ...but I'm going to start by extracting them for my list cj_diff
+
+
+
+par(mfrow =c(2,1), mar = c(2.5,2,1,1) )
+
+plot(y = forceFit[,"delta.cum"],
+     x = forceFit[,"EFFDT"],
+     type = "b",cex = 0.75, lty = 1, col = "brown")
+lines(y = forceFit[,"force"], 
+      x = forceFit[,"EFFDT"],
+      type = "b", cex = 0.35, lty = 1, col = "skyblue")
+
+abline( v = starts1,
+        lwd = 2,
+        col = "green")
+
+abline( v = stops1,
+        lwd = 2,
+        col = "red")
+
+theData |>
+  assignBoundaries() |>
+  plotJourney()
+
+
+
+##
+par(mfrow =c(2,1), mar = c(2.5,2,1,1) )
+
+plot(y = forceFit2[,"delta.cum"],
+     x = forceFit2[,"EFFDT"],
+     type = "b",cex = 0.75, lty = 1, col = "brown")
+lines(y = forceFit2[,"force"], 
+      x = forceFit2[,"EFFDT"],
+      type = "b", cex = 0.35, lty = 1, col = "skyblue")
+
+abline( v = starts2,
+        lwd = 2,
+        col = "green")
+
+abline( v = stops2,
+        lwd = 2,
+        col = "red")
+
+theData2 |>
+  assignBoundaries() |>
+  plotJourney()
+
+##
+par(mfrow =c(2,1), mar = c(2.5,2,1,1) )
+
+plot(y = forceFit3[,"delta.cum"],
+     x = forceFit3[,"EFFDT"],
+     type = "b",cex = 0.75, lty = 1, col = "brown")
+lines(y = forceFit3[,"force"], 
+      x = forceFit3[,"EFFDT"],
+      type = "b", cex = 0.35, lty = 1, col = "skyblue")
+
+abline( v = starts3,
+        lwd = 2,
+        col = "green")
+
+abline( v = stops3,
+        lwd = 2,
+        col = "red")
+
+theData3 |>
+  assignBoundaries() |>
+  plotJourney()
+
+# I like those plots and they were a nice review.
+
+# I have developed a function "extractUniversityBoundaries" (you can find it in the sandbox)
+# and now I need to use this to calculate deltaHeadcount.
+
+# FIRST, recombine cj_diff into one data frame per employee
+
+# Extract the unique emplids
+
+emplids <- names(cj_diff) |>
+  (\(x){
+    gsub("\\.[[:digit:]]+$",
+         "",
+         x)
+  })() |> 
+  unique()
+
+
+# This takes a few minutes
+cjEmplids <- lapply(emplids, function(emplid) {
+  
+  list_positions <- grep(emplid, names(cj_diff))
+  
+  full_frame <- do.call(rbind, cj_diff[list_positions])  
+  
+  return(full_frame)
+  
+}  )
+names(cjEmplids) <- emplids
+
+extractUniversityBoundaries <- function(data){
+  
+  # where data is the HR activity per EMPLID
+  
+  # calculate the daily head count per EMPLID
+  
+  daily_head_count_per_emplid <-  data |>
+    assignBoundaries() |>
+    (\(x){deltaHeadCount(data = x,
+                         minDate = min(x$EFFDT),
+                         maxDate = max(x$EFFDT)
+    )})()
+  
+  # Force the cumulative delta head count to 0 or 1
+  daily_head_count_per_emplid$force <- pmax(0, pmin(1, daily_head_count_per_emplid$delta.cum))
+  
+  # Identify changes in that force fit delta
+  daily_head_count_per_emplid$change <- c(0, diff(daily_head_count_per_emplid$force))
+  
+  # Identify starts (delta values of +1)
+  starts <- daily_head_count_per_emplid$EFFDT[daily_head_count_per_emplid$change == 1]
+  
+  # First day adjustment for starts
+  if (daily_head_count_per_emplid$force[1] == 1) {
+    starts <- c(daily_head_count_per_emplid$EFFDT[1], starts)
+  }
+  
+  # Identify stops (delta values of -1)
+  stops  <- daily_head_count_per_emplid$EFFDT[daily_head_count_per_emplid$change == -1]
+  
+  # return as a list
+  return(list(starts = starts, stops = stops))
+  
+}
+
+universityBoundaries <- lapply(cjEmplids[1:10], extractUniversityBoundaries)
+names(universityBoundaries) <- names(cjEmplids[1:10])
+
+testData <- do.call(rbind, cjEmplids[1:10])
+
+source(here::here("Functions", "Turnover Functions.R"))
+
+testData |>
+  assignBoundaries() |>
+  deltaHeadCount(
+    minDate = min(testData$EFFDT),
+    maxDate = max(testData$EFFDT),
+    calendar = "day",
+    initial_count = 0
+) |>
+  dim()
+
+# ok, nice enough
+# looks like where it needs work is in "assignBoundaries"
+
+testData |>
+  assignBoundaries() |>
+  calculateMetrics() |>
+  plotMetrics()
+
+# man, why is it being so difficult?
+
+
+testBoundaries <- testData |>
+  assignBoundaries() 
+
+testMetrics <- testData |>
+  assignBoundaries() |>
+  (\(x){ 
+  calculateMetrics(data = x, minDate = min(testData$EFFDT))
+  })()
+
+# ugh
+# At this point I just want SOMETHING to work
+
+testDelta <- testData |>
+  assignBoundaries() |>
+  (\(x){ 
+  deltaHeadCount(data = x,
+                 minDate = min(testData$EFFDT),
+                 maxDate = max(testData$EFFDT))
+  })()
+
+deltaPlot(testDelta) # AT LEAST THAT WORKS !
+ 
+# I think I want an "assignUniversityBoundaries" function
+#  that.... hold on ....
+
+# I have two choices---
+# I can either modify my DATA or I can modify my FUNCTION
+# and if I modify my DATA, I'll need a function that does that
+
+# This is going to take a little thinking.
+
+
+   
+
+
+
 
