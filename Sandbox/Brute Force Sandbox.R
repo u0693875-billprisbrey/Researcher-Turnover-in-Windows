@@ -540,9 +540,53 @@ deltaPlot(testDelta) # AT LEAST THAT WORKS !
 
 # This is going to take a little thinking.
 
+# I think I'll just append "university" to the existing boundary types
+# I guess
 
+# that will happen after "assignBoundaries"
+
+
+modifyBoundaries <- function(data, university_dates_list){
+  
+  # where data is the output from "assignBoundaries"
+  # for developing the function
+  # data <- testBoundaries
+  # university_dates_list <- universityBoundaries
+  
+  # ok, this is some fun data manipulation
+  # maybe I turn that list of vectors into a data frame?
+  
+  
+  
+  
+  
+}
    
 
+> momo <-data.frame(start = universityBoundaries[[1]]["starts"],
+                    +            stop = universityBoundaries[[1]]["stops"])
+Error in data.frame(start = universityBoundaries[[1]]["starts"], stop = universityBoundaries[[1]]["stops"]) : 
+  arguments imply differing number of rows: 4, 3
+
+> # yeah
+  
+momo <- data.frame(EFFDT = c(
+  universityBoundaries[[1]][["starts"]],
+  universityBoundaries[[1]][["stops"]]),
+  univ_boundary = c(rep("start", length (universityBoundaries[[1]][["starts"]] )),
+               rep("stop", length(universityBoundaries[[1]][["stops"]]))   )
+)  |>
+  (\(x){x[order(x$EFFDT),]})()
+momo$EMPLID <- rep(names(universityBoundaries)[1], nrow(momo))
+
+# o.k., nice
+# nice, nice
+
+# a little clunky, but I can probably clean that up
+
+# o.k.
+# now I think we'd merge that into the Boundaries data frame
+# and it's a new column, "univ_boundary"
 
 
 
