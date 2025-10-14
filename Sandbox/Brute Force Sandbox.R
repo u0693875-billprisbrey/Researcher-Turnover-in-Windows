@@ -826,6 +826,22 @@ Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
   
 # that'll take a little thinking to get through.  
   
+##
+# Or not that much thinking.
+# Why "assignBoundaries", and why merge?
+# Maybe I can do.call(rbind, universityBoundaries) and just calculate metrics
+# and plot that.
   
-  
+univCalc <- univBound |>
+  (\(x){ 
+    calculateMetrics_univ(data = x)
+  })()
+
+plotMetrics_univ(univCalc)
+
+# wow, ok, that's simple  
+
+# wow, o.k., ... I guess we're good!
+
+
 
