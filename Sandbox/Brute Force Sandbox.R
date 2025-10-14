@@ -588,5 +588,244 @@ momo$EMPLID <- rep(names(universityBoundaries)[1], nrow(momo))
 # now I think we'd merge that into the Boundaries data frame
 # and it's a new column, "univ_boundary"
 
+##########################
+## UPTAKE on 10.13.2025 ##
+##########################
 
+##########
+## LOAD ##
+##########
+
+cj_diff <- readRDS(here::here("Data", "concurrentJourney_timeDiff.rds") )
+
+###############
+## FUNCTIONS ##
+###############
+
+source(here::here("Functions", "Brute Force Functions.R"))
+
+emplids <- names(cj_diff) |>
+  (\(x){
+    gsub("\\.[[:digit:]]+$",
+         "",
+         x)
+  })() |> 
+  unique()
+
+# THIS ONE TAKES ABOUT 10min --- and I could probably find
+# whre I broke out "cj_diff" instead of re-combining it here.
+
+cjEmplids <- lapply(emplids, function(emplid) {
+  
+  list_positions <- grep(emplid, names(cj_diff))
+  
+  full_frame <- do.call(rbind, cj_diff[list_positions])  
+  
+  return(full_frame)
+  
+}  )
+names(cjEmplids) <- emplids
+
+universityBoundaries <- lapply(cjEmplids[1:10], extractUniversityBoundaries)
+names(universityBoundaries) <- names(cjEmplids[1:10])
+
+# This is awkward.  I should pull in the name in the "extract" function with an 
+# additional argument or something
+
+names_vector <- names(universityBoundaries)
+
+universityBoundaries <- lapply(names_vector, function(nm) {
+  df <- universityBoundaries[[nm]]
+  df$EMPLID <- nm
+  df
+})
+names(universityBoundaries) <- names_vector  # keep original names
+
+
+univBound <- do.call(rbind, universityBoundaries)
+
+testData <- do.call(rbind, cjEmplids[1:10])
+
+source(here::here("Functions", "Turnover Functions.R"))
+
+testBoundaries <- testData |>
+  assignBoundaries() |>
+  (\(x){merge(x, univBound, by = c("EFFDT","EMPLID"), all.x = TRUE)})()
+
+# ok, great
+# Now---- what?
+# I need to modify calculateMetrics to use this new field,
+# is what!
+
+# let's try deltaHeadCount_univ to this
+
+testDelta <- testBoundaries |>
+  (\(x){ 
+    deltaHeadCount_univ(data = x,
+                   minDate = min(testData$EFFDT),
+                   maxDate = max(testData$EFFDT))
+  })()
+
+source(here::here("Functions", "Turnover Functions.R"))
+deltaPlot(testDelta) # works great!  Huh
+
+# let's try "calculateMetrics"
+
+testCalc <- testBoundaries |> 
+  (\(x){ 
+    calculateMetrics_univ(data = x,
+                        minDate = min(x$EFFDT),
+                        maxDate = max(x$EFFDT))
+  })()
+
+# debugging this
+deltaHeadCount_univ(
+  minDate = ymd("1995-02-21"),  # initial_date,
+  maxDate = ymd("1995-02-20"),   # initial_max, # HUH?
+  calendar =  "day",
+  data =  # data
+) 
+
+# So I'm supposed to pass in larger data sets
+
+# rather than fix that, let's do this
+
+##############################
+## ALL CONCURRENT EMPLOYEES ##
+##############################
+
+universityBoundaries <- lapply(cjEmplids, extractUniversityBoundaries)
+names(universityBoundaries) <- names(cjEmplids)
+
+# several of these have zero rows for some reason
+zeroRow <- sapply(universityBoundaries, nrow) == 0
+# -which(names_vector %in% c("00076345", "00091371", "00722429" )) 
+
+names_vector <- names(universityBoundaries)
+universityBoundaries <- lapply(names_vector[!zeroRow], function(nm) {
+  df <- universityBoundaries[[nm]]
+  df$EMPLID <- nm
+  df
+})
+names(universityBoundaries) <- names_vector[!zeroRow]  # keep original names
+
+univBound <- do.call(rbind, universityBoundaries)
+
+cjData <- do.call(rbind, cjEmplids[!zeroRow])
+
+cjBoundaries <- cjData |>
+  assignBoundaries() |>
+  (\(x){merge(x, univBound, by = c("EFFDT","EMPLID"), all.x = TRUE)})()
+
+
+cjCalc <- cjBoundaries |> 
+  (\(x){ 
+    calculateMetrics_univ(data = x,
+                          minDate = min(x$EFFDT),
+                          maxDate = max(x$EFFDT))
+  })()
+
+cjCalc <- cjBoundaries |>
+  (\(x){ 
+    calculateMetrics_univ(data = x)
+  })()
+
+plotMetrics_univ(cjCalc)
+
+# well, it looks like something.
+
+# the big problem is that the head count exceeds 40,000
+# when my unique count of emplids is only 32,000.
+
+# So I know I have an error
+
+# Plotting a few more, because why not
+
+cjBoundaries |>
+  (\(x){ 
+    calculateMetrics_univ(data = x,
+                          minDate = ymd("2015-01-01") # "1960-01-01"
+                          
+                          )
+  })() |>
+  plotMetrics_univ()
+
+# o.k., let's do some trouble-shooting.
+
+# View(cjEmplids[[1]])
+# well isn't that weird
+# no data after 2020-06-16, but no termination either 
+
+# I am going to look into a different data source and see what I find
+
+prepData <- readRDS(here::here("Data", "prepData17Apr2025.rds") )
+cleanData <- readRDS(here::here("Data", "cleanData17Apr2025.rds") )
+
+jPop <- readRDS(here::here("Data", "journeyPopulation.rds")) 
+
+# maybe I'll just need to query it directly
+
+################
+## CONNECTION ##
+################
+
+library(DBI)
+con.ds <- DBI::dbConnect(odbc::odbc(), 
+                         Driver = "Oracle in OraClient19Home1", 
+                         # Host = "ocm-campus01.it.utah.edu", 
+                         # SVC = "biprodusr.sys.utah.edu",
+                         DBQ = "//ocm-campus01.it.utah.edu:2080/biprodusr.sys.utah.edu",
+                         UID = Sys.getenv("userid"),
+                         PWD = Sys.getenv("pwd"),
+                         Port = 2080)
+
+
+###########
+## QUERY ##
+###########
+
+emplidQuery <- "
+ SELECT *
+ FROM ds_hr.EMPL_AGE_RANGE_ACTION_MV_V
+ WHERE EMPLID = '00000006'"
+
+
+startTime <- Sys.time()
+emplidJourney <- dbGetQuery(con.ds, emplidQuery)
+endTime <- Sys.time()
+print(paste("emplidJourney:", endTime-startTime)) 
+
+####
+
+# So--- yeah, that's the data I have on '00000006'
+# No data after 2020, when s/he was last an adjunct professor
+# and no termination
+
+# This still doesn't explain how I got a headcount higher
+# than the unique EMPLID's.
+
+# who is my HR contact again?  -- text message sent to Brian K Gelsinger
+
+# next, let's iterate through the EMPLID's and see who has a delta-cum greater than 1
+
+# I guess I'm looking for more starts than stops
+checkFrame <- lapply(universityBoundaries, function(x) {table(x$univ_boundary)})
+
+theDiff <- unlist(sapply(checkFrame, diff))
+
+> summary(theDiff)
+Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+-1.0000  0.0000  0.0000 -0.1785  0.0000  0.0000 
+> # max of ZERO.  Z.E.R.O.
+
+# names(theDiff) <- sub("\\.stop$", "", names(theDiff))
+
+# Error is happening in the merge,
+# when they have multiple actions on a day.
+# DUH.
+  
+# that'll take a little thinking to get through.  
+  
+  
+  
 

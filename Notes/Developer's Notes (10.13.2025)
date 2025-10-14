@@ -1,0 +1,15 @@
+Developer's Notes
+
+
+10.13.2025 --
+To Do List
+
+- Adjust "individual journey" app as follows: 
+  - Add a "key" graphic or legend that explains all the symbols 
+  - Add the "brute force" fit graphic 
+- Create a new column called "university boundaries" 
+  - After "assignBoundaries", create and apply "modifyBoundaries" that creates the "univ_bound" column
+    - If the EMPLID only has a single job / no concurrent jobs, then use exit/entry values (?? I gues? ??)  
+  - Adjust the "calculateMetrics" and/or "deltaHeadCount" and "plotMetrics" as needed to use the "start/stop" values in this column  
+  
+  

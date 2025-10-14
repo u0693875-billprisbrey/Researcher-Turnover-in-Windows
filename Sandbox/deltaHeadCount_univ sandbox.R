@@ -1,126 +1,9 @@
-# Brute Force Functions
+# deltaHeadCount_univ sandbox
 
-# assignBoundaries and plotJourney was taken from the individual journey app
-# deltaHeadCount was originally from "Turnover Functions"
+# PURPOSE:  This is a modification to "deltaHeadCount" to use
+# the new column, "univ_boundary"
 
-assignBoundaries <- function(data) {
-  
-  # where data is "actionReasonFrame"
-  
-  # This takes the "data" and assigns entry/exit boundaries.
-  # It also assigns plotting parameters.
-  
-  # I might have to do this in waves or sections to manage current and non-concurrent jobs; 
-  # it may need another function to merge this with
-  # the journeyData using some more complicated logic than just a join
-  
-  # I need complete flexibility around plot values
-  
-  ###############
-  ## DATA PREP ##
-  ###############
-  
-  data$boundary <- NA
-  data$boundary_type <- NA
-  data$shape_color <- NA
-  data$shape_shape <- NA
-  data$shape_size <- NA
-  
-  ########################
-  ## NO CONCURRENT JOBS ##
-  ########################
-  
-  primeEntryFilter <- data$ACTION %in% c("HIR", "REH")
-  primeExitFilter <- data$ACTION %in% c("TER", "RET", "RWP")
-  
-  data$boundary[primeEntryFilter] <- "entry"
-  data$boundary[primeExitFilter] <- "exit"
-  data$boundary_type[primeEntryFilter|primeExitFilter] <- "primary"
-  
-  # Break entry or exit
-  
-  breakEntryFilter <- data$ACTION %in% c("RWB")
-  breakExitFilter <- data$ACTION %in% c("SWB")
-  
-  data$boundary[breakEntryFilter] <- "entry"
-  data$boundary[breakExitFilter] <- "exit"
-  data$boundary_type[breakEntryFilter|breakExitFilter] <- "break"
-  
-  # Leave entry or exit
-  
-  leaveEntryFilter <- data$ACTION %in% c("RFL")
-  leaveExitFilter <- data$ACTION %in% c("LOA","LTO", "PLA") & !(data$ACTION_REASON %in% c("EXT"))
-  
-  data$boundary[leaveEntryFilter] <- "entry"
-  data$boundary[leaveExitFilter] <- "exit"
-  data$boundary_type[leaveEntryFilter|leaveExitFilter] <- "leave"  
-  
-  #################
-  ## PLOT VALUES ##
-  #################
-  
-  # COLOR
-  
-  data$shape_color[is.na(data$boundary_type)] <- "plum1"
-  data$shape_color[data$boundary_type == "primary" & !is.na(data$boundary_type)] <- "chocolate"
-  data$shape_color[data$boundary_type == "break" & !is.na(data$boundary_type)] <- "steelblue"
-  data$shape_color[data$boundary_type == "leave" & !is.na(data$boundary_type)] <- "coral"
-  data$shape_color[data$ACTION == "REH"] <- "chocolate4"
-  data$shape_color[data$ACTION_REASON == "HCJ"] <- "mediumorchid1"
-  
-  # SHAPE
-  
-  data$shape_shape[is.na(data$boundary)] <- 1
-  data$shape_shape[data$boundary == "entry" & !is.na(data$boundary)] <- 13
-  data$shape_shape[data$boundary == "exit" & !is.na(data$boundary)] <- 19
-  data$shape_shape[data$ACTION == "REH"] <- 10
-  
-  
-  # SIZE
-  
-  data$shape_size[is.na(data$boundary_type)] <- 0.75
-  data$shape_size[data$boundary_type == "primary" & !is.na(data$boundary_type)] <- 2
-  data$shape_size[data$boundary_type == "break" & !is.na(data$boundary_type)] <- 1
-  data$shape_size[data$boundary_type == "leave" & !is.na(data$boundary_type)] <- 1  
-  
-  return(data)
-}
-
-plotJourney <- function(data, plotMap){
-  
-  # where data is the journeyData for a single EMPLID
-  # where plotMap is the actionFrame or actionReasonFrame with color, shape, and size specified
-  
-  # merge plotMap if necessary
-  
-  if(!all(c("shape_color", "shape_shape", "shape_size") %in% colnames(data))) {
-    timeLine <- merge(data, plotMap, by = c("ACTION", "ACTION_REASON") , all.x = TRUE)
-  } else {timeLine <- data}
-  
-  # create jitter
-  yPos <- ave(as.numeric(timeLine$EFFDT), timeLine$EFFDT, FUN = function(dates) {
-    n <- length(dates)
-    if (n == 1) {
-      return(1)  # single point: no jitter
-    } else {
-      # Evenly spaced jitter around y = 1
-      jitter_values <- seq(0.9, 1.1, length.out = n)
-      return(jitter_values)
-    }
-  })
-  
-  # draw the plot
-  
-  plot(y = yPos + timeLine$EMPL_RCD,
-       x = as.Date(timeLine$EFFDT),
-       pch = timeLine[,"shape_shape"],
-       col = timeLine[,"shape_color"],
-       cex = timeLine[,"shape_size"]
-  )
-  
-}
-
-deltaHeadCount <- function(minDate, 
+deltaHeadCount_univ <- function(minDate, 
                            maxDate,
                            calendar = "day",
                            initial_count = 0,
@@ -169,7 +52,7 @@ deltaHeadCount <- function(minDate,
     hrDates$adjDate <- hrDates$EFFDT
     
     # Aggregate hire and termination actions
-    theActions <- aggregate(one ~ boundary+EFFDT, data = data, sum)
+    theActions <- aggregate(one ~ univ_boundary+EFFDT, data = data, sum)
     
     # prepare for merge
     # theActions$EFFDT <- as.Date(theActions$EFFDT)
@@ -196,8 +79,8 @@ deltaHeadCount <- function(minDate,
     hrDates$adjDate <- paste(isoyear(hrDates$EFFDT), sprintf("%02d", isoweek(hrDates$EFFDT)), sep = "-W")
     
     # aggregate
-    theActions <- aggregate(one ~ boundary+paste(isoyear(EFFDT), sprintf("%02d", isoweek(EFFDT)), sep = "-W"), data = data, sum)
-    names(theActions)[!names(theActions) %in% c("boundary", "one")] <- "adjDate"
+    theActions <- aggregate(one ~ univ_boundary+paste(isoyear(EFFDT), sprintf("%02d", isoweek(EFFDT)), sep = "-W"), data = data, sum)
+    names(theActions)[!names(theActions) %in% c("univ_boundary", "one")] <- "adjDate"
     
   }
   
@@ -214,8 +97,8 @@ deltaHeadCount <- function(minDate,
     
     
     # aggregate
-    theActions <- aggregate(one ~ boundary + format(EFFDT, "%Y-%m"), data = data, sum)
-    names(theActions)[!names(theActions) %in% c("boundary", "one")] <- "adjDate"
+    theActions <- aggregate(one ~ univ_boundary + format(EFFDT, "%Y-%m"), data = data, sum)
+    names(theActions)[!names(theActions) %in% c("univ_boundary", "one")] <- "adjDate"
   }
   
   if(calendar == "quarter"){
@@ -236,8 +119,8 @@ deltaHeadCount <- function(minDate,
     hrDates$adjDate <- paste(year(hrDates$EFFDT), quarter(hrDates$EFFDT), sep = "-Q")
     
     # aggregate
-    theActions <- aggregate(one ~ boundary+paste(year(EFFDT), quarter(EFFDT), sep = "-Q"), data = data, sum)
-    names(theActions)[!names(theActions) %in% c("boundary", "one")] <- "adjDate"
+    theActions <- aggregate(one ~ univ_boundary+paste(year(EFFDT), quarter(EFFDT), sep = "-Q"), data = data, sum)
+    names(theActions)[!names(theActions) %in% c("univ_boundary", "one")] <- "adjDate"
     
   }
   
@@ -253,16 +136,16 @@ deltaHeadCount <- function(minDate,
     hrDates$adjDate <- year(hrDates$EFFDT) 
     
     # aggregate
-    theActions <- aggregate(one ~ boundary+year(EFFDT), data = data, sum)
-    names(theActions)[!names(theActions) %in% c("boundary", "one")] <- "adjDate"
+    theActions <- aggregate(one ~ univ_boundary+year(EFFDT), data = data, sum)
+    names(theActions)[!names(theActions) %in% c("univ_boundary", "one")] <- "adjDate"
   }
   
   # merge 
   
-  hrDates <- merge(hrDates, theActions[theActions$boundary == "exit",-which(colnames(theActions) %in% c("boundary", "EFFDT"))], by = "adjDate", all.x = TRUE, sort=FALSE)
-  names(hrDates)[names(hrDates) == "one"] <- "exit"
-  hrDates <- merge(hrDates, theActions[theActions$boundary == "entry",-which(colnames(theActions) %in% c("boundary", "EFFDT"))], by = "adjDate", all.x = TRUE, sort=FALSE)
-  names(hrDates)[names(hrDates) == "one"] <- "entry"
+  hrDates <- merge(hrDates, theActions[theActions$univ_boundary == "stop",-which(colnames(theActions) %in% c("univ_boundary", "EFFDT"))], by = "adjDate", all.x = TRUE, sort=FALSE)
+  names(hrDates)[names(hrDates) == "one"] <- "stop"
+  hrDates <- merge(hrDates, theActions[theActions$univ_boundary == "start",-which(colnames(theActions) %in% c("univ_boundary", "EFFDT"))], by = "adjDate", all.x = TRUE, sort=FALSE)
+  names(hrDates)[names(hrDates) == "one"] <- "start"
   
   # restore chronological order 
   hrDates <- hrDates[order(hrDates$adjDate),] # uh oh.  I need to keep the EFFDT,  I guess
@@ -271,7 +154,7 @@ deltaHeadCount <- function(minDate,
   hrDates[is.na(hrDates)] <- 0
   
   # calculate delta
-  hrDates$delta <- hrDates$entry - hrDates$exit
+  hrDates$delta <- hrDates$start - hrDates$stop
   
   # calculate delta cumulative
   hrDates$delta.cum <- cumsum(hrDates$delta) + initial_count
@@ -440,57 +323,3 @@ deltaHeadCount <- function(minDate,
   }
   
 }
-
-extractUniversityBoundaries <- function(data){
-  
-  # where data is the HR activity per EMPLID
-  
-  # calculate the daily head count per EMPLID
-  
-  daily_head_count_per_emplid <-  data |>
-    assignBoundaries() |>
-    (\(x){deltaHeadCount(data = x,
-                         minDate = min(x$EFFDT),
-                         maxDate = max(x$EFFDT)
-    )})()
-  
-  # Force the cumulative delta head count to 0 or 1
-  daily_head_count_per_emplid$force <- pmax(0, pmin(1, daily_head_count_per_emplid$delta.cum))
-  
-  # Identify changes in that force fit delta
-  daily_head_count_per_emplid$change <- c(0, diff(daily_head_count_per_emplid$force))
-  
-  # Identify starts (delta values of +1)
-  starts <- daily_head_count_per_emplid$EFFDT[daily_head_count_per_emplid$change == 1]
-  
-  # First day adjustment for starts
-  if (daily_head_count_per_emplid$force[1] == 1) {
-    starts <- c(daily_head_count_per_emplid$EFFDT[1], starts)
-  }
-  
-  # Identify stops (delta values of -1)
-  stops  <- daily_head_count_per_emplid$EFFDT[daily_head_count_per_emplid$change == -1]
-  
-  # return as a list
-  # return(list(starts = starts, stops = stops))
-  
-  # return as a dataframe
-  as.Frame <- data.frame(EFFDT = c(starts,
-                                   stops),
-                         univ_boundary = c(rep("start", length(starts)),
-                                           rep("stop", length(stops)))
-  ) |>
-    (\(x){x[order(x$EFFDT),]})()
-  
-  # I'm going to have to find a way to add the EMPLID
-  # Maybe as a second argument?
-  # Or in a separate function? ?? Awkward! 
-  # as.Frame$EMPLID <- rep("jollyGood", nrow(as.Frame))
-  # momo$EMPLID <- rep(names(universityBoundaries)[1], nrow(momo))
-  
-  return(as.Frame)
-}
-
-# From "Extract University Boundaries using Brute Force sandbox.R
-# universityBoundaries <- lapply(cjEmplids[1:10], extractUniversityBoundaries)
-# names(universityBoundaries) <- names(cjEmplids[1:10])

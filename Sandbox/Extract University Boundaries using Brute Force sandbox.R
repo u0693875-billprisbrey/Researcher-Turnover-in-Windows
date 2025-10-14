@@ -110,8 +110,17 @@ extractUniversityBoundaries <- function(data){
   stops  <- daily_head_count_per_emplid$EFFDT[daily_head_count_per_emplid$change == -1]
     
   # return as a list
-  return(list(starts = starts, stops = stops))
+  # return(list(starts = starts, stops = stops))
   
+  # return as a dataframe
+  as.Frame <- data.frame(EFFDT = c(starts,
+                                   stops),
+    univ_boundary = c(rep("start", length(starts)),
+                      rep("stop", length(stops)))
+  ) |>
+    (\(x){x[order(x$EFFDT),]})()
+
+  return(as.Frame)
 }
 
 universityBoundaries <- lapply(cjEmplids[1:10], extractUniversityBoundaries)
