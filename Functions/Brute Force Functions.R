@@ -494,3 +494,52 @@ extractUniversityBoundaries <- function(data){
 # From "Extract University Boundaries using Brute Force sandbox.R
 # universityBoundaries <- lapply(cjEmplids[1:10], extractUniversityBoundaries)
 # names(universityBoundaries) <- names(cjEmplids[1:10])
+
+forceFitPlot <- function(data, fitLine = TRUE) {
+  
+  forceFit <- data |>
+    assignBoundaries() |>
+    (\(x){deltaHeadCount(data = x,
+                         minDate = min(x$EFFDT),
+                         maxDate = max(x$EFFDT)
+    )})()
+  
+  forceFit$force <- pmax(0, pmin(1, forceFit$delta.cum))
+  
+  plot(y = forceFit[,"delta.cum"],
+       x = forceFit[,"EFFDT"],
+       type = "b",cex = 0.75, lty = 1, col = "brown")
+  if(fitLine) {
+    lines(y = forceFit[,"force"], 
+          x = forceFit[,"EFFDT"],
+          type = "b", cex = 0.35, lty = 1, col = "skyblue")
+  }
+}
+
+addVerticals <- function(data){
+  
+  # This adds vertical lines to the plot from "plotJourney" from the 
+  # starts and stops of the university boundaries as determined by the 
+  # brute force fit approximation
+  
+  # Call "plotJourney" first.
+  
+  # where data is from univBound, or the data frame with the brute force
+  # starts and stops
+  
+  # This can be used to filter the data appropriately
+  # plotFilter <- grepl("00810875", row.names(univBound))
+  
+  abline(v = data$EFFDT[data$univ_boundary == "start"],
+         lwd = 2,
+         lty = "dotted",
+         col = brewer.pal(3, "Dark2")[1] #   "green"
+  )
+  abline(v = data$EFFDT[data$univ_boundary == "stop"],
+         lwd = 2,
+         lty = "solid",
+         col = brewer.pal(3, "Dark2")[2] # "red"
+  )
+  
+  
+}
