@@ -80,8 +80,8 @@ assignBoundaries <- function(data) {
   
   data$shape_size[is.na(data$boundary_type)] <- 0.75
   data$shape_size[data$boundary_type == "primary" & !is.na(data$boundary_type)] <- 2
-  data$shape_size[data$boundary_type == "break" & !is.na(data$boundary_type)] <- 1
-  data$shape_size[data$boundary_type == "leave" & !is.na(data$boundary_type)] <- 1  
+  data$shape_size[data$boundary_type == "break" & !is.na(data$boundary_type)] <- 1.5
+  data$shape_size[data$boundary_type == "leave" & !is.na(data$boundary_type)] <- 1.5  
   
   return(data)
 }

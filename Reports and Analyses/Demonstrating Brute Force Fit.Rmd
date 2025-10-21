@@ -1362,6 +1362,278 @@ journeyPopulation |>
 
 #### **EXCLUSIVE JOURNEY**
 
+```{r}
+
+
+
+exc_wb_lv <- journeyPopulation$EMPLID[journeyPopulation$PI &
+                                           journeyPopulation$singleJob &
+                                           journeyPopulation$wb &
+                                           journeyPopulation$lv
+                                           ]
+
+exc_nwb_nlv <- journeyPopulation$EMPLID[journeyPopulation$PI &
+                                           journeyPopulation$singleJob &
+                                           !journeyPopulation$wb &
+                                           !journeyPopulation$lv
+                                           ]
+
+exc_wb_nlv <- journeyPopulation$EMPLID[journeyPopulation$PI &
+                                           journeyPopulation$singleJob &
+                                           journeyPopulation$wb &
+                                           !journeyPopulation$lv
+                                           ]
+
+exc_nwb_lv <- journeyPopulation$EMPLID[journeyPopulation$PI &
+                                           journeyPopulation$singleJob &
+                                           !journeyPopulation$wb &
+                                           journeyPopulation$lv
+                                           ]
+
+exclusivePopulation <- list(exc_wb_lv, exc_nwb_nlv, exc_wb_nlv, exc_nwb_lv)
+
+set.seed(99)
+excSample <- sapply(exclusivePopulation, function(x){sample(x,1)} )
+
+# Plot it
+
+par(mfrow = c(5,1), mar = c(0,2,2,1))
+
+plotJourneyKey()
+
+for(pi in excSample) {
+  
+ex_diff[[paste(pi,"0", sep = ".")]] |>
+  assignBoundaries() |>
+  plotJourney()  
+  
+}
+
+
+
+
+
+
+
+ex_diff[[paste(selectPI,"0", sep = ".")]] |>
+  assignBoundaries() |>
+  plotJourney()
+
+
+
+```
+
+#### **CONCURRENT JOURNEY**
+
+***No work break, no leave***
+
+```{r}
+
+conc_nwb_nlv <- journeyPopulation$EMPLID[journeyPopulation$PI &
+                                           !journeyPopulation$singleJob &
+                                           !journeyPopulation$wb &
+                                           !journeyPopulation$lv
+                                           ]
+
+
+# sample(conc_nwb_nlv,1)
+selectPI <- "00954937"
+
+par(mfrow= c(2,1))
+
+cjEmplids[[selectPI]] |>
+  assignBoundaries() |>
+  plotJourney()
+
+cjEmplids[[selectPI]] |>
+  forceFitPlot(fitLine = FALSE)
+
+cjEmplids[[selectPI]] |>
+  forceFitPlot(fitLine = TRUE)
+
+cjEmplids[[selectPI]] |>
+  assignBoundaries() |>
+  plotJourney()
+
+addVerticals(univBound[grep(selectPI, row.names(univBound)),])
+
+```
+
+
+
+***Work break, no leave***
+
+
+```{r}
+
+conc_wb_nlv <- journeyPopulation$EMPLID[journeyPopulation$PI &
+                                           !journeyPopulation$singleJob &
+                                           journeyPopulation$wb &
+                                           !journeyPopulation$lv
+                                           ]
+
+
+# sample(conc_wb_nlv,1)
+selectPI <- "00292990"
+
+par(mfrow= c(2,1))
+
+cjEmplids[[selectPI]] |>
+  assignBoundaries() |>
+  plotJourney()
+
+cjEmplids[[selectPI]] |>
+  forceFitPlot(fitLine = FALSE)
+
+cjEmplids[[selectPI]] |>
+  forceFitPlot(fitLine = TRUE)
+
+cjEmplids[[selectPI]] |>
+  assignBoundaries() |>
+  plotJourney()
+
+addVerticals(univBound[grep(selectPI, row.names(univBound)),])
+
+```
+
+
+***No work break, leave***
+
+
+```{r}
+
+conc_nwb_lv <- journeyPopulation$EMPLID[journeyPopulation$PI &
+                                           !journeyPopulation$singleJob &
+                                           !journeyPopulation$wb &
+                                           journeyPopulation$lv
+                                           ]
+
+
+# sample(conc_nwb_lv,1)
+selectPI <- "00244272"
+
+par(mfrow= c(2,1))
+
+cjEmplids[[selectPI]] |>
+  assignBoundaries() |>
+  plotJourney()
+
+cjEmplids[[selectPI]] |>
+  forceFitPlot(fitLine = FALSE)
+
+cjEmplids[[selectPI]] |>
+  forceFitPlot(fitLine = TRUE)
+
+cjEmplids[[selectPI]] |>
+  assignBoundaries() |>
+  plotJourney()
+
+addVerticals(univBound[grep(selectPI, row.names(univBound)),])
+
+```
+
+
+***Work break and leave***  
+
+```{r}
+
+conc_wb_lv <- journeyPopulation$EMPLID[journeyPopulation$PI &
+                                           !journeyPopulation$singleJob &
+                                           journeyPopulation$wb &
+                                           journeyPopulation$lv
+                                           ]
+
+
+# sample(conc_wb_lv,1)
+selectPI <- "00028851"
+
+par(mfrow= c(2,1))
+
+cjEmplids[[selectPI]] |>
+  assignBoundaries() |>
+  plotJourney()
+
+cjEmplids[[selectPI]] |>
+  forceFitPlot(fitLine = FALSE)
+
+cjEmplids[[selectPI]] |>
+  forceFitPlot(fitLine = TRUE)
+
+cjEmplids[[selectPI]] |>
+  assignBoundaries() |>
+  plotJourney()
+
+addVerticals(univBound[grep(selectPI, row.names(univBound)),])
+
+```
+
+
+
+### Headcount Metrics 
+
+#### **PI's WITH EXCLUSIVE JOBS**
+
+```{r}
+
+
+```
+
+
+#### **PI's WITH CONCURRENT JOBS**
+
+```{r}
+
+
+univBound |>
+  (\(x){ 
+    calculateMetrics_univ(data = x)
+  })() |> 
+  plotMetrics_univ()
+
+
+```
+
+#### **ALL PI's**
+
+```{r}
+
+
+```
+
+### Explain HeadCount
+
+```{r}
+
+explainHeadCount()
+
+```  
+
+'Exit' condition needs to be modified to accommodate the transfer to volunteer positions
+
+*Per Brian Gelsinger, Teams message on 14 Oct 2025:*
+
+I can't remember if we included the field UU_BEN_IND in the SQL we provided, but that would be my recommendation to use. A Benefit Indicator of "30 " means that job code is considered "Non-Employee". I'm happy to add that field to the SQL if you'd like, but below is a list of all the job codes in Ben Ind 30, so you could just try excluding those job codes as well. I've also provided the current headcount of employees in these job codes
+ 
+Job Code	Job Title	UU Ben Ind	UU Ben Ind Descr	Count Distinct EE
+0233	Field Instructor	30	Non-Employee	15
+6000	Volunteer Staff	30	Non-Employee	21
+6001	Volunteer Faculty	30	Non-Employee	34
+6002	Adjunct Professor	30	Non-Employee	474
+6003	Adjunct Associate Professor	30	Non-Employee	371
+6004	Adjunct Assistant Professor	30	Non-Employee	748
+6005	Adjunct Instructor	30	Non-Employee	588
+6006	Shared Faculty (Unpaid)	30	Non-Employee	17
+6100	Univ Asia Staff	30	Non-Employee	56
+6102	Adjunct Professor (Ext)	30	Non-Employee	134
+6103	Adjunct Assoc Professor (Ext)	30	Non-Employee	126
+6104	Adjunct Asst Professor (Ext)	30	Non-Employee	784
+6105	Adjunct Instructor (Ext)	30	Non-Employee	416
+7993	Surviving Spouse	30	Non-Employee	0
+9261	COBRA Beneficiary	30	Non-Employee	0
+799999	Volunteer Staff	30	Non-Employee	0 
+
+#### **EXCLUSIVE JOURNEY**  
+
 ***No work break, no leave***
 
 
@@ -1377,7 +1649,9 @@ exc_nwb_nlv <- journeyPopulation$EMPLID[journeyPopulation$PI &
 # sample(exc_nwb_nlv,1)
 selectPI <- "06025740"
 
-par(mfrow= c(2,1))
+par(mfrow= c(3,1))
+
+plotJourneyKey()
 
 ex_diff[[paste(selectPI,"0", sep = ".")]] |>
   assignBoundaries() |>
@@ -1385,6 +1659,8 @@ ex_diff[[paste(selectPI,"0", sep = ".")]] |>
 
 ex_diff[[paste(selectPI,"0", sep = ".")]] |>
   forceFitPlot(fitLine = FALSE)
+
+par(mfrow= c(2,1))
 
 ex_diff[[paste(selectPI,"0", sep = ".")]] |>
   forceFitPlot(fitLine = TRUE)
@@ -1533,209 +1809,4 @@ text(0.5, 0.5, "University boundaries not calculated")
 ```
 
 
-
-
-#### **CONCURRENT JOURNEY**
-
-***No work break, no leave***
-
-```{r}
-
-conc_nwb_nlv <- journeyPopulation$EMPLID[journeyPopulation$PI &
-                                           !journeyPopulation$singleJob &
-                                           !journeyPopulation$wb &
-                                           !journeyPopulation$lv
-                                           ]
-
-
-# sample(conc_nwb_nlv,1)
-selectPI <- "00954937"
-
-par(mfrow= c(2,1))
-
-cjEmplids[[selectPI]] |>
-  assignBoundaries() |>
-  plotJourney()
-
-cjEmplids[[selectPI]] |>
-  forceFitPlot(fitLine = FALSE)
-
-cjEmplids[[selectPI]] |>
-  forceFitPlot(fitLine = TRUE)
-
-cjEmplids[[selectPI]] |>
-  assignBoundaries() |>
-  plotJourney()
-
-addVerticals(univBound[grep(selectPI, row.names(univBound)),])
-
-```
-
-
-
-***Work break, no leave***
-
-
-```{r}
-
-conc_wb_nlv <- journeyPopulation$EMPLID[journeyPopulation$PI &
-                                           !journeyPopulation$singleJob &
-                                           journeyPopulation$wb &
-                                           !journeyPopulation$lv
-                                           ]
-
-
-# sample(conc_wb_nlv,1)
-selectPI <- "00292990"
-
-par(mfrow= c(2,1))
-
-cjEmplids[[selectPI]] |>
-  assignBoundaries() |>
-  plotJourney()
-
-cjEmplids[[selectPI]] |>
-  forceFitPlot(fitLine = FALSE)
-
-cjEmplids[[selectPI]] |>
-  forceFitPlot(fitLine = TRUE)
-
-cjEmplids[[selectPI]] |>
-  assignBoundaries() |>
-  plotJourney()
-
-addVerticals(univBound[grep(selectPI, row.names(univBound)),])
-
-```
-
-
-
-
-***No work break, leave***
-
-
-```{r}
-
-conc_nwb_lv <- journeyPopulation$EMPLID[journeyPopulation$PI &
-                                           !journeyPopulation$singleJob &
-                                           !journeyPopulation$wb &
-                                           journeyPopulation$lv
-                                           ]
-
-
-# sample(conc_nwb_lv,1)
-selectPI <- "00244272"
-
-par(mfrow= c(2,1))
-
-cjEmplids[[selectPI]] |>
-  assignBoundaries() |>
-  plotJourney()
-
-cjEmplids[[selectPI]] |>
-  forceFitPlot(fitLine = FALSE)
-
-cjEmplids[[selectPI]] |>
-  forceFitPlot(fitLine = TRUE)
-
-cjEmplids[[selectPI]] |>
-  assignBoundaries() |>
-  plotJourney()
-
-addVerticals(univBound[grep(selectPI, row.names(univBound)),])
-
-```
-
-
-***Work break and leave***  
-
-```{r}
-
-conc_wb_lv <- journeyPopulation$EMPLID[journeyPopulation$PI &
-                                           !journeyPopulation$singleJob &
-                                           journeyPopulation$wb &
-                                           journeyPopulation$lv
-                                           ]
-
-
-# sample(conc_wb_lv,1)
-selectPI <- "00028851"
-
-par(mfrow= c(2,1))
-
-cjEmplids[[selectPI]] |>
-  assignBoundaries() |>
-  plotJourney()
-
-cjEmplids[[selectPI]] |>
-  forceFitPlot(fitLine = FALSE)
-
-cjEmplids[[selectPI]] |>
-  forceFitPlot(fitLine = TRUE)
-
-cjEmplids[[selectPI]] |>
-  assignBoundaries() |>
-  plotJourney()
-
-addVerticals(univBound[grep(selectPI, row.names(univBound)),])
-
-```
-
-
-
-### Headcount Metrics 
-
-#### **EXCLUSIVE JOURNEY**
-
-```{r}
-
-
-```
-
-
-#### **CONCURRENT JOURNEY**
-
-```{r}
-
-
-univBound |>
-  (\(x){ 
-    calculateMetrics_univ(data = x)
-  })() |> 
-  plotMetrics_univ()
-
-
-```
-
-### Explain HeadCount
-
-```{r}
-
-explainHeadCount()
-
-```  
-
-'Exit' condition needs to be modified to accommodate the transfer to volunteer positions
-
-*Per Brian Gelsinger, Teams message on 14 Oct 2025:*
-
-I can't remember if we included the field UU_BEN_IND in the SQL we provided, but that would be my recommendation to use. A Benefit Indicator of "30 " means that job code is considered "Non-Employee". I'm happy to add that field to the SQL if you'd like, but below is a list of all the job codes in Ben Ind 30, so you could just try excluding those job codes as well. I've also provided the current headcount of employees in these job codes
- 
-Job Code	Job Title	UU Ben Ind	UU Ben Ind Descr	Count Distinct EE
-0233	Field Instructor	30	Non-Employee	15
-6000	Volunteer Staff	30	Non-Employee	21
-6001	Volunteer Faculty	30	Non-Employee	34
-6002	Adjunct Professor	30	Non-Employee	474
-6003	Adjunct Associate Professor	30	Non-Employee	371
-6004	Adjunct Assistant Professor	30	Non-Employee	748
-6005	Adjunct Instructor	30	Non-Employee	588
-6006	Shared Faculty (Unpaid)	30	Non-Employee	17
-6100	Univ Asia Staff	30	Non-Employee	56
-6102	Adjunct Professor (Ext)	30	Non-Employee	134
-6103	Adjunct Assoc Professor (Ext)	30	Non-Employee	126
-6104	Adjunct Asst Professor (Ext)	30	Non-Employee	784
-6105	Adjunct Instructor (Ext)	30	Non-Employee	416
-7993	Surviving Spouse	30	Non-Employee	0
-9261	COBRA Beneficiary	30	Non-Employee	0
-799999	Volunteer Staff	30	Non-Employee	0
 
