@@ -508,12 +508,24 @@ forceFitPlot <- function(data, fitLine = TRUE) {
   
   plot(y = forceFit[,"delta.cum"],
        x = forceFit[,"EFFDT"],
+       ylab = "cumulative headcount",
+       xlab = "",
        type = "b",cex = 0.75, lty = 1, col = "brown")
   if(fitLine) {
     lines(y = forceFit[,"force"], 
           x = forceFit[,"EFFDT"],
           type = "b", cex = 0.35, lty = 1, col = "skyblue")
   }
+  
+  legend("topleft",
+         legend = c("cum headcount","force fit"),
+         lty = 1,
+         lwd = 3,
+         col = c("brown","skyblue"),
+         inset = c(0,-0.5),
+         xpd = TRUE
+         )
+  
 }
 
 addVerticals <- function(data){
