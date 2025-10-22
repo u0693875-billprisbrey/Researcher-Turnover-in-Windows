@@ -5,6 +5,9 @@ date: "2025-10-21"
 output:
   html_document:
     keep_md: true
+params:
+  showPI: true
+  showAll: false
 ---
 
 
@@ -110,7 +113,7 @@ journeyPopulation$singleJob <- journeyPopulation$HCJ == "not_hcj" & journeyPopul
 
 ### Population breakdown by journey characteristics 
 
-```{r}
+```{r eval=params$showPI}
 
 ################
 ## FLOWHCHART ##
@@ -145,11 +148,49 @@ journeyPopulation |>
 
 ```
 
+
+```{r eval=params$showAll}
+
+################
+## FLOWHCHART ##
+################
+
+library(flowchart)
+
+# Showing split between concurrent and non-concurrent jobs
+
+journeyPopulation |>
+  as_fc(label = "Workforce population", text_fs = 12) |>
+  #fc_filter(PI, label = "Principal investigators", show_exc = TRUE) |>
+  #fc_split(PI, label = c("Not PI", "PI")) |>
+  fc_split(singleJob, label = c("Concurrent jobs", "No concurrent jobs"), bg_fill = "ivory", text_fs = 12) |> 
+  fc_draw()
+
+
+journeyPopulation |>
+  (\(x){x[!x$singleJob,]})() |>
+  as_fc(label = "Concurrent jobs", text_fs = 12) |>
+  fc_split(wb, label = c("No work break", "Work break"), bg_fill = "mintcream", text_fs = 12) |>
+  fc_split(lv, label = c("No leave", "leave"), bg_fill = "plum1", text_fs = 12) |>
+  fc_draw()
+
+
+journeyPopulation |>
+  (\(x){x[x$singleJob,]})() |>
+  as_fc(label = "Exclusive jobs", text_fs = 12) |>
+  fc_split(wb, label = c("No work break", "Work break"), bg_fill = "mintcream", text_fs = 12) |>
+  fc_split(lv, label = c("No leave", "leave"), bg_fill = "plum1", text_fs = 12) |>
+  fc_draw()
+
+```
+
+
+
 ### Individual journeys 
 
 #### **EXCLUSIVE JOURNEY**
 
-```{r}
+```{r eval=params$showPI}
 
 
 
@@ -197,130 +238,17 @@ exc_diff[[paste(pi,"0", sep = ".")]] |>
 
 addVerticals(univBound[grep(pi, row.names(univBound)),])
   
-exc_diff[[paste(selectPI,"0", sep = ".")]] |>
+exc_diff[[paste(pi,"0", sep = ".")]] |>
   forceFitPlot(fitLine = TRUE)    
 
 }
-
-
-
-
 
 ```
 
 #### **CONCURRENT JOURNEY**
 
-***No work break, no leave***
 
-```{r}
-
-conc_nwb_nlv <- journeyPopulation$EMPLID[journeyPopulation$PI &
-                                           !journeyPopulation$singleJob &
-                                           !journeyPopulation$wb &
-                                           !journeyPopulation$lv
-                                           ]
-
-
-# sample(conc_nwb_nlv,1)
-selectPI <- "00954937"
-
-par(mfrow= c(2,1))
-
-cjEmplids[[selectPI]] |>
-  assignBoundaries() |>
-  plotJourney()
-
-cjEmplids[[selectPI]] |>
-  forceFitPlot(fitLine = FALSE)
-
-cjEmplids[[selectPI]] |>
-  forceFitPlot(fitLine = TRUE)
-
-cjEmplids[[selectPI]] |>
-  assignBoundaries() |>
-  plotJourney()
-
-addVerticals(univBound[grep(selectPI, row.names(univBound)),])
-
-```
-
-
-
-***Work break, no leave***
-
-
-```{r}
-
-conc_wb_nlv <- journeyPopulation$EMPLID[journeyPopulation$PI &
-                                           !journeyPopulation$singleJob &
-                                           journeyPopulation$wb &
-                                           !journeyPopulation$lv
-                                           ]
-
-
-# sample(conc_wb_nlv,1)
-selectPI <- "00292990"
-
-par(mfrow= c(2,1))
-
-cjEmplids[[selectPI]] |>
-  assignBoundaries() |>
-  plotJourney()
-
-cjEmplids[[selectPI]] |>
-  forceFitPlot(fitLine = FALSE)
-
-cjEmplids[[selectPI]] |>
-  forceFitPlot(fitLine = TRUE)
-
-cjEmplids[[selectPI]] |>
-  assignBoundaries() |>
-  plotJourney()
-
-addVerticals(univBound[grep(selectPI, row.names(univBound)),])
-
-```
-
-
-***No work break, leave***
-
-
-```{r}
-
-conc_nwb_lv <- journeyPopulation$EMPLID[journeyPopulation$PI &
-                                           !journeyPopulation$singleJob &
-                                           !journeyPopulation$wb &
-                                           journeyPopulation$lv
-                                           ]
-
-
-# sample(conc_nwb_lv,1)
-selectPI <- "00244272"
-
-par(mfrow= c(2,1))
-
-cjEmplids[[selectPI]] |>
-  assignBoundaries() |>
-  plotJourney()
-
-cjEmplids[[selectPI]] |>
-  forceFitPlot(fitLine = FALSE)
-
-cjEmplids[[selectPI]] |>
-  forceFitPlot(fitLine = TRUE)
-
-cjEmplids[[selectPI]] |>
-  assignBoundaries() |>
-  plotJourney()
-
-addVerticals(univBound[grep(selectPI, row.names(univBound)),])
-
-```
-
-
-***Work break and leave***  
-
-```{r}
+```{r eval=params$showPI}
 
 conc_wb_lv <- journeyPopulation$EMPLID[journeyPopulation$PI &
                                            !journeyPopulation$singleJob &
@@ -328,71 +256,99 @@ conc_wb_lv <- journeyPopulation$EMPLID[journeyPopulation$PI &
                                            journeyPopulation$lv
                                            ]
 
+conc_nwb_nlv <- journeyPopulation$EMPLID[journeyPopulation$PI &
+                                           !journeyPopulation$singleJob &
+                                           !journeyPopulation$wb &
+                                           !journeyPopulation$lv
+                                           ]
 
-# sample(conc_wb_lv,1)
-selectPI <- "00028851"
+conc_wb_nlv <- journeyPopulation$EMPLID[journeyPopulation$PI &
+                                           !journeyPopulation$singleJob &
+                                           journeyPopulation$wb &
+                                           !journeyPopulation$lv
+                                           ]
 
-par(mfrow= c(2,1))
+conc_nwb_lv <- journeyPopulation$EMPLID[journeyPopulation$PI &
+                                           !journeyPopulation$singleJob &
+                                           !journeyPopulation$wb &
+                                           journeyPopulation$lv
+                                           ]
 
-cjEmplids[[selectPI]] |>
+concurrentPopulation <- list(conc_wb_lv, conc_nwb_nlv, conc_wb_nlv, conc_nwb_lv)
+
+set.seed(99)
+concSample <- sapply(concurrentPopulation, function(x){sample(x,1)} )
+
+# Plot it
+
+par(mfrow = c(1,1))
+plotJourneyKey()
+
+par(mfrow = c(2,1), mar = c(0,2,2,1))
+
+for(pi in concSample) {
+  
+cjEmplids[[pi]] |>
   assignBoundaries() |>
   plotJourney()
 
-cjEmplids[[selectPI]] |>
-  forceFitPlot(fitLine = FALSE)
-
-cjEmplids[[selectPI]] |>
+addVerticals(univBound[grep(pi, row.names(univBound)),])
+  
+cjEmplids[[pi]] |>
   forceFitPlot(fitLine = TRUE)
 
-cjEmplids[[selectPI]] |>
-  assignBoundaries() |>
-  plotJourney()
+}
 
-addVerticals(univBound[grep(selectPI, row.names(univBound)),])
+
+
 
 ```
+
 
 
 
 ### Headcount Metrics 
 
-#### **PI's WITH EXCLUSIVE JOBS**
+#### **EXCLUSIVE JOBS**
 
-```{r}
+```{r eval=params$showPI}
 
 univBound_exc |>
   (\(x){x$EMPLID <- gsub("\\.[[:digit:]]+$", "", row.names(x)); return(x) })() |>
   (\(x){x[x$EMPLID %in% piEMPLIDs, ] })() |> 
     calculateMetrics_univ(minDate = ymd("2010-01-01")) |>
-  plotMetrics_univ(plotList = c("cumulative", "delta.count"))
+  plotMetrics_univ(plotList = c("cumulative", "delta.count"), title_mtext_params = list(
+  text = "PI's with exclusive jobs"
+  ))
 
 ```
 
 
-#### **PI's WITH CONCURRENT JOBS**
+#### **CONCURRENT JOBS**
 
-```{r}
+```{r eval=params$showPI}
 
 
 univBound_cj |>
   (\(x){x$EMPLID <- gsub("\\.[[:digit:]]+$", "", row.names(x)); return(x) })() |>
   (\(x){x[x$EMPLID %in% piEMPLIDs, ] })() |> 
     calculateMetrics_univ(minDate = ymd("2010-01-01")) |>
-  plotMetrics_univ(plotList = c("cumulative", "delta.count"))
+  plotMetrics_univ(plotList = c("cumulative", "delta.count"), title_mtext_params = list(
+  text = "PI's with concurrent jobs"))
 
 
 ```
 
-#### **ALL PI's**
+#### **FULL POPULATION**
 
-```{r}
+```{r eval=params$showPI}
 
 univBound |>
   (\(x){x$EMPLID <- gsub("\\.[[:digit:]]+$", "", row.names(x)); return(x) })() |>
   (\(x){x[x$EMPLID %in% piEMPLIDs, ] })() |> 
     calculateMetrics_univ(minDate = ymd("2010-01-01")) |>
-  plotMetrics_univ(plotList = c("cumulative", "delta.count"))
-
+  plotMetrics_univ(plotList = c("cumulative", "delta.count"), title_mtext_params = list(
+  text = "All PI's"))
 
 ```
 
@@ -427,6 +383,9 @@ Job Code	Job Title	UU Ben Ind	UU Ben Ind Descr	Count Distinct EE
 7993	Surviving Spouse	30	Non-Employee	0
 9261	COBRA Beneficiary	30	Non-Employee	0
 799999	Volunteer Staff	30	Non-Employee	0 
+
+
+# Old stuff
 
 #### **EXCLUSIVE JOURNEY**  
 
@@ -601,6 +560,151 @@ plot(x=0.5,
 
 text(0.5, 0.5, "University boundaries not calculated")
 
+
+```
+
+
+#### **CONCURRENT JOURNEY**
+
+***No work break, no leave***
+
+```{r eval=params$showPI}
+
+conc_nwb_nlv <- journeyPopulation$EMPLID[journeyPopulation$PI &
+                                           !journeyPopulation$singleJob &
+                                           !journeyPopulation$wb &
+                                           !journeyPopulation$lv
+                                           ]
+
+
+# sample(conc_nwb_nlv,1)
+selectPI <- "00954937"
+
+par(mfrow= c(2,1))
+
+cjEmplids[[selectPI]] |>
+  assignBoundaries() |>
+  plotJourney()
+
+cjEmplids[[selectPI]] |>
+  forceFitPlot(fitLine = FALSE)
+
+cjEmplids[[selectPI]] |>
+  forceFitPlot(fitLine = TRUE)
+
+cjEmplids[[selectPI]] |>
+  assignBoundaries() |>
+  plotJourney()
+
+addVerticals(univBound[grep(selectPI, row.names(univBound)),])
+
+```
+
+
+
+***Work break, no leave***
+
+
+```{r}
+
+conc_wb_nlv <- journeyPopulation$EMPLID[journeyPopulation$PI &
+                                           !journeyPopulation$singleJob &
+                                           journeyPopulation$wb &
+                                           !journeyPopulation$lv
+                                           ]
+
+
+# sample(conc_wb_nlv,1)
+selectPI <- "00292990"
+
+par(mfrow= c(2,1))
+
+cjEmplids[[selectPI]] |>
+  assignBoundaries() |>
+  plotJourney()
+
+cjEmplids[[selectPI]] |>
+  forceFitPlot(fitLine = FALSE)
+
+cjEmplids[[selectPI]] |>
+  forceFitPlot(fitLine = TRUE)
+
+cjEmplids[[selectPI]] |>
+  assignBoundaries() |>
+  plotJourney()
+
+addVerticals(univBound[grep(selectPI, row.names(univBound)),])
+
+```
+
+
+***No work break, leave***
+
+
+```{r}
+
+conc_nwb_lv <- journeyPopulation$EMPLID[journeyPopulation$PI &
+                                           !journeyPopulation$singleJob &
+                                           !journeyPopulation$wb &
+                                           journeyPopulation$lv
+                                           ]
+
+
+# sample(conc_nwb_lv,1)
+selectPI <- "00244272"
+
+par(mfrow= c(2,1))
+
+cjEmplids[[selectPI]] |>
+  assignBoundaries() |>
+  plotJourney()
+
+cjEmplids[[selectPI]] |>
+  forceFitPlot(fitLine = FALSE)
+
+cjEmplids[[selectPI]] |>
+  forceFitPlot(fitLine = TRUE)
+
+cjEmplids[[selectPI]] |>
+  assignBoundaries() |>
+  plotJourney()
+
+addVerticals(univBound[grep(selectPI, row.names(univBound)),])
+
+```
+
+
+***Work break and leave***  
+
+```{r}
+
+conc_wb_lv <- journeyPopulation$EMPLID[journeyPopulation$PI &
+                                           !journeyPopulation$singleJob &
+                                           journeyPopulation$wb &
+                                           journeyPopulation$lv
+                                           ]
+
+
+# sample(conc_wb_lv,1)
+selectPI <- "00028851"
+
+par(mfrow= c(2,1))
+
+cjEmplids[[selectPI]] |>
+  assignBoundaries() |>
+  plotJourney()
+
+cjEmplids[[selectPI]] |>
+  forceFitPlot(fitLine = FALSE)
+
+cjEmplids[[selectPI]] |>
+  forceFitPlot(fitLine = TRUE)
+
+cjEmplids[[selectPI]] |>
+  assignBoundaries() |>
+  plotJourney()
+
+addVerticals(univBound[grep(selectPI, row.names(univBound)),])
 
 ```
 

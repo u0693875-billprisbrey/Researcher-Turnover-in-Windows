@@ -5,6 +5,9 @@ date: "2025-10-21"
 output:
   html_document:
     keep_md: true
+params:
+  showPI: true
+  showAll: false
 ---
 
 
@@ -30,81 +33,43 @@ output:
 
 ![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-6-1.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-6-2.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-6-3.png)<!-- -->
 
+
+
+
+
+
 ### Individual journeys 
 
 #### **EXCLUSIVE JOURNEY**
 
-***No work break, no leave***
-
-
-![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-7-1.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-7-2.png)<!-- -->
-
-
-
-***Work break, no leave***
-
-
-![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-8-1.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-8-2.png)<!-- -->
-
-
-***No work break, leave***
-
-
-![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-9-1.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-9-2.png)<!-- -->
-
-
-
-
-***Work break and leave***  
-
-
-![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-10-1.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-10-2.png)<!-- -->
-
-
-
+![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-8-1.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-8-2.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-8-3.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-8-4.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-8-5.png)<!-- -->
 
 #### **CONCURRENT JOURNEY**
 
-***No work break, no leave***
 
-![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-11-1.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-11-2.png)<!-- -->
+![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-9-1.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-9-2.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-9-3.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-9-4.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-9-5.png)<!-- -->
 
-
-
-***Work break, no leave***
-
-
-![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-12-1.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-12-2.png)<!-- -->
-
-
-
-
-***No work break, leave***
-
-
-![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-13-1.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-13-2.png)<!-- -->
-
-
-***Work break and leave***  
-
-![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-14-1.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-14-2.png)<!-- -->
 
 
 
 ### Headcount Metrics 
 
-#### **EXCLUSIVE JOURNEY**
+#### **EXCLUSIVE JOBS**
+
+![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
 
 
+#### **CONCURRENT JOBS**
 
+![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
 
-#### **CONCURRENT JOURNEY**
+#### **FULL POPULATION**
 
-![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
+![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
 
 ### Explain HeadCount
 
-![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-17-1.png)<!-- -->
+![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
 
 'Exit' condition needs to be modified to accommodate the transfer to volunteer positions
 
@@ -128,5 +93,63 @@ Job Code	Job Title	UU Ben Ind	UU Ben Ind Descr	Count Distinct EE
 6105	Adjunct Instructor (Ext)	30	Non-Employee	416
 7993	Surviving Spouse	30	Non-Employee	0
 9261	COBRA Beneficiary	30	Non-Employee	0
-799999	Volunteer Staff	30	Non-Employee	0
+799999	Volunteer Staff	30	Non-Employee	0 
+
+
+# Old stuff
+
+#### **EXCLUSIVE JOURNEY**  
+
+***No work break, no leave***
+
+
+![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-14-1.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-14-2.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-14-3.png)<!-- -->
+
+
+
+***Work break, no leave***
+
+
+![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-15-1.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-15-2.png)<!-- -->
+
+
+***No work break, leave***
+
+
+![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-16-1.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-16-2.png)<!-- -->
+
+
+
+
+***Work break and leave***  
+
+
+![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-17-1.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-17-2.png)<!-- -->
+
+
+#### **CONCURRENT JOURNEY**
+
+***No work break, no leave***
+
+![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-18-1.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-18-2.png)<!-- -->
+
+
+
+***Work break, no leave***
+
+
+![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-19-1.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-19-2.png)<!-- -->
+
+
+***No work break, leave***
+
+
+![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-20-1.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-20-2.png)<!-- -->
+
+
+***Work break and leave***  
+
+![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-21-1.png)<!-- -->![](Demonstrating-Brute-Force-Fit_files/figure-html/unnamed-chunk-21-2.png)<!-- -->
+
+
 
