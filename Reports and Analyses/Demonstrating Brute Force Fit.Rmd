@@ -10,6 +10,7 @@ output:
 
 ```{r include=FALSE}
 
+
 # Author's notes:
 
 # I want a handful of flowcharts showing the breakdown of the individual journey,
@@ -49,11 +50,14 @@ oldPar <- par(cex.main = 3,
 journeyPopulation <- readRDS(here::here("Data", "journeyPopulation.rds") )
 piEMPLIDs <- readRDS(here::here("Data", "piEMPLIDs.rds") )
 
-ex_diff <- readRDS(here::here("Data", "exclusiveJourney_timeDiff.rds") )
+exc_diff <- readRDS(here::here("Data", "exclusiveJourney_timeDiff.rds") )
 cj_diff <- readRDS(here::here("Data", "concurrentJourney_timeDiff.rds") )
-cjEmplids <- readRDS(here::here("Data", "Journey Activity from Brute Force Fit Approximation for Concurrent Journey Employees.rds"))
-univBound <- readRDS(here::here("Data", "Brute Force Fit Approximation for Concurrent Journey Employees.rds") )
 
+cjEmplids <- readRDS(here::here("Data", "Journey Activity from Brute Force Fit Approximation for Concurrent Journey Employees.rds"))
+excEmplids <- readRDS(here::here("Data", "Journey Activity from Brute Force Fit Approximation for Exclusive Journey Employees.rds"))
+
+univBound_cj <- readRDS(here::here("Data", "Brute Force Fit Approximation for Concurrent Journey Employees.rds") )
+univBound_exc <- readRDS(here::here("Data", "Brute Force Fit Approximation for Exclusive Journey Employees.rds") )
 
 source(here::here("Functions", "Turnover Functions.R"))
 source(here::here("Functions", "Brute Force Functions.R"))
@@ -82,6 +86,10 @@ library(RColorBrewer)
 ##########
 ## PREP ##
 ##########
+
+# Full journey data set
+univBound <- rbind(univBound_cj, univBound_exc)
+
 
 # flowchart conditionals
 journeyPopulation$wb <- journeyPopulation$WORKBREAK == "wb"
@@ -176,27 +184,25 @@ excSample <- sapply(exclusivePopulation, function(x){sample(x,1)} )
 
 # Plot it
 
-par(mfrow = c(3,1), mar = c(0,2,2,1))
-
-for(pi in excSample) {
-  
-ex_diff[[paste(pi,"0", sep = ".")]] |>
-  assignBoundaries() |>
-  plotJourney()  
-  
-}
-
 par(mfrow = c(1,1))
 plotJourneyKey()
 
-
-
-
-
-
-ex_diff[[paste(selectPI,"0", sep = ".")]] |>
+par(mfrow = c(2,1), mar = c(0,2,2,1))
+#
+for(pi in excSample) {
+  
+exc_diff[[paste(pi,"0", sep = ".")]] |>
   assignBoundaries() |>
   plotJourney()
+
+addVerticals(univBound[grep(pi, row.names(univBound)),])
+  
+exc_diff[[paste(selectPI,"0", sep = ".")]] |>
+  forceFitPlot(fitLine = TRUE)    
+
+}
+
+
 
 
 
@@ -354,6 +360,11 @@ addVerticals(univBound[grep(selectPI, row.names(univBound)),])
 
 ```{r}
 
+univBound_exc |>
+  (\(x){x$EMPLID <- gsub("\\.[[:digit:]]+$", "", row.names(x)); return(x) })() |>
+  (\(x){x[x$EMPLID %in% piEMPLIDs, ] })() |> 
+    calculateMetrics_univ(minDate = ymd("2010-01-01")) |>
+  plotMetrics_univ(plotList = c("cumulative", "delta.count"))
 
 ```
 
@@ -363,11 +374,11 @@ addVerticals(univBound[grep(selectPI, row.names(univBound)),])
 ```{r}
 
 
-univBound |>
-  (\(x){ 
-    calculateMetrics_univ(data = x)
-  })() |> 
-  plotMetrics_univ()
+univBound_cj |>
+  (\(x){x$EMPLID <- gsub("\\.[[:digit:]]+$", "", row.names(x)); return(x) })() |>
+  (\(x){x[x$EMPLID %in% piEMPLIDs, ] })() |> 
+    calculateMetrics_univ(minDate = ymd("2010-01-01")) |>
+  plotMetrics_univ(plotList = c("cumulative", "delta.count"))
 
 
 ```
@@ -375,6 +386,12 @@ univBound |>
 #### **ALL PI's**
 
 ```{r}
+
+univBound |>
+  (\(x){x$EMPLID <- gsub("\\.[[:digit:]]+$", "", row.names(x)); return(x) })() |>
+  (\(x){x[x$EMPLID %in% piEMPLIDs, ] })() |> 
+    calculateMetrics_univ(minDate = ymd("2010-01-01")) |>
+  plotMetrics_univ(plotList = c("cumulative", "delta.count"))
 
 
 ```
@@ -432,16 +449,16 @@ par(mfrow= c(3,1))
 
 plotJourneyKey()
 
-ex_diff[[paste(selectPI,"0", sep = ".")]] |>
+exc_diff[[paste(selectPI,"0", sep = ".")]] |>
   assignBoundaries() |>
   plotJourney()
 
-ex_diff[[paste(selectPI,"0", sep = ".")]] |>
+exc_diff[[paste(selectPI,"0", sep = ".")]] |>
   forceFitPlot(fitLine = FALSE)
 
 par(mfrow= c(2,1))
 
-ex_diff[[paste(selectPI,"0", sep = ".")]] |>
+exc_diff[[paste(selectPI,"0", sep = ".")]] |>
   forceFitPlot(fitLine = TRUE)
 
 plot(x=0.5,
@@ -477,14 +494,14 @@ selectPI <- "00703457"
 
 par(mfrow= c(2,1))
 
-ex_diff[[paste(selectPI,"0", sep = ".")]] |>
+exc_diff[[paste(selectPI,"0", sep = ".")]] |>
   assignBoundaries() |>
   plotJourney()
 
-ex_diff[[paste(selectPI,"0", sep = ".")]] |>
+exc_diff[[paste(selectPI,"0", sep = ".")]] |>
   forceFitPlot(fitLine = FALSE)
 
-ex_diff[[paste(selectPI,"0", sep = ".")]] |>
+exc_diff[[paste(selectPI,"0", sep = ".")]] |>
   forceFitPlot(fitLine = TRUE)
 
 plot(x=0.5,
@@ -519,14 +536,14 @@ selectPI <- "06022652"
 
 par(mfrow= c(2,1))
 
-ex_diff[[paste(selectPI,"0", sep = ".")]] |>
+exc_diff[[paste(selectPI,"0", sep = ".")]] |>
   assignBoundaries() |>
   plotJourney()
 
-ex_diff[[paste(selectPI,"0", sep = ".")]] |>
+exc_diff[[paste(selectPI,"0", sep = ".")]] |>
   forceFitPlot(fitLine = FALSE)
 
-ex_diff[[paste(selectPI,"0", sep = ".")]] |>
+exc_diff[[paste(selectPI,"0", sep = ".")]] |>
   forceFitPlot(fitLine = TRUE)
 
 plot(x=0.5,
@@ -563,14 +580,14 @@ selectPI <- "06012575"
 
 par(mfrow= c(2,1))
 
-ex_diff[[paste(selectPI,"0", sep = ".")]] |>
+exc_diff[[paste(selectPI,"0", sep = ".")]] |>
   assignBoundaries() |>
   plotJourney()
 
-ex_diff[[paste(selectPI,"0", sep = ".")]] |>
+exc_diff[[paste(selectPI,"0", sep = ".")]] |>
   forceFitPlot(fitLine = FALSE)
 
-ex_diff[[paste(selectPI,"0", sep = ".")]] |>
+exc_diff[[paste(selectPI,"0", sep = ".")]] |>
   forceFitPlot(fitLine = TRUE)
 
 plot(x=0.5,

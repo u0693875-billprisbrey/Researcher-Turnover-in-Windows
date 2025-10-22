@@ -1469,12 +1469,12 @@ plotMetrics_univ <- function(data,
 }
 
 
-calculateMetrics_univ <- function(initial_count=NA, 
+calculateMetrics_univ <- function(data,
+                                  initial_count=NA, 
                                   initial_date=NA,
                                   calendar = "day",
                                   minDate = ymd(paste(year(today()), "01","01", sep = "-")),
-                                  maxDate = today(),
-                                  data
+                                  maxDate = today()
 ){
   
   # This calculates various HR metrics: the counts and rates of people entering, stoping, and the net change
@@ -1616,11 +1616,12 @@ calculateMetrics_univ <- function(initial_count=NA,
   
 }
 
-deltaHeadCount_univ <- function(minDate, 
+deltaHeadCount_univ <- function(data, 
+                                minDate, 
                                 maxDate,
                                 calendar = "day",
-                                initial_count = 0,
-                                data) {
+                                initial_count = 0
+                                ) {
   
   # where data is journeyData or retData
   # where minDate and maxDate are self-explanatory and work best as class "Date", or 

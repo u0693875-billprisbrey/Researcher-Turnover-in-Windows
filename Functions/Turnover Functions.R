@@ -719,12 +719,12 @@ deltaPlot <- function(data,
 }
 
 
-calculateMetrics <- function(initial_count=NA, 
+calculateMetrics <- function(data,
+                             initial_count=NA, 
                              initial_date=NA,
                              calendar = "day",
                              minDate = ymd(paste(year(today()), "01","01", sep = "-")),
-                             maxDate = today(),
-                             data
+                             maxDate = today()
 ){
   
   # This calculates various HR metrics: the counts and rates of people entering, exiting, and the net change
