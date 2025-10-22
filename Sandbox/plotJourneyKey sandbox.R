@@ -5,6 +5,12 @@
 
 plotJourneyKey <- function(legendMap = NA) {
   
+  old_par <- par(no.readonly = TRUE)
+  on.exit(par(old_par))
+  
+  par(fig = c(0, 1, 0, 0.33), mar = c(0,0,0,0), oma = c(0,0,0,0))
+  
+
   if(is.na(legendMap)) {
     
     legendMap <- list(color = data.frame(color = c("plum1",
@@ -64,8 +70,8 @@ plotJourneyKey <- function(legendMap = NA) {
        bty = "n"
        )
   
-  legend(title = "Colors",
-    "left",
+colorLegend <- legend(title = "Colors",
+    x =0, y =1,
          legend = legendMap[["color"]][["explanation"]], 
          col = legendMap[["color"]][["color"]],
          pt.cex = 2.5,
@@ -73,39 +79,49 @@ plotJourneyKey <- function(legendMap = NA) {
          inset = c(0.1,0)
          )
   
-  legend(title = "Shapes",
-         "center",
+shapeLegend <-  legend(title = "Shapes",
+         # x =0.2, y =1,
+         x = colorLegend$rect$left + colorLegend$rect$w + 0.02,  
+         y = 1, # leg1$rect$top,
          legend = legendMap[["shape"]][["explanation"]], 
          pch = legendMap[["shape"]][["shape"]],
          pt.cex = 2.5,
          col = rep("grey30", nrow(legendMap[["shape"]]))
          )
   
-  legend(title = "Sizes",
-         "right",
+sizeLegend <-  legend(title = "Sizes",
+         # x =0.33, y =1,
+         x = shapeLegend$rect$left + shapeLegend$rect$w + 0.02,  
+         y = 1, 
          legend = legendMap[["size"]][["explanation"]], 
          pt.cex = legendMap[["size"]][["size"]],
          pch = 19,
          col = rep("grey30", nrow(legendMap[["shape"]])),
          inset = c(0.1,0)
   )
+
+univLegend <- legend(title = "University boundaries",
+       x = sizeLegend$rect$left + sizeLegend$rect$w + 0.02,
+       y = 1,
+       # x =0.5, y =1,
+       legend = c("start", "stop"),
+       lty = c("dotted","solid"),
+       col = brewer.pal(3, "Dark2")[1:2],
+       lwd = 3
+)
   
   
   legend(title = "Special",
-         "bottom",
+        #  x =0.66, y =1,
+        x = univLegend$rect$left + univLegend$rect$w + 0.02,
+        y=1,
          legend = c("Rehire", "Hire concurrent job"),
          pt.cex = c(2, 2),
          pch = c(10, 13),
          col = c("chocolate4", "mediumorchid1")
   )
   
-  legend(title = "University boundaries",
-         "bottomleft",
-         legend = c("start", "stop"),
-         lty = c("dotted","solid"),
-         col = brewer.pal(3, "Dark2")[1:2],
-         lwd = 3
-         )
+
   
 mtext("Journey key",
       side = 3,
