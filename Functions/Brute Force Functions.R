@@ -86,11 +86,21 @@ assignBoundaries <- function(data) {
   return(data)
 }
 
-plotJourney <- function(data, plotMap){
+plotJourney <- function(data, plotMap,
+                        plot_params = list(),
+                        title_params = list()){
   
   # where data is the journeyData for a single EMPLID
   # where plotMap is the actionFrame or actionReasonFrame with color, shape, and size specified
   
+  # capture and restore incoming graphical parameters
+  default_plot_params <- list(mar = c(2,4,3,1))
+  
+  plot_params <- modifyList(default_plot_params, plot_params)
+  
+  incoming.par <- do.call(par, plot_params)
+  on.exit(par(incoming.par))
+
   # merge plotMap if necessary
   
   if(!all(c("shape_color", "shape_shape", "shape_size") %in% colnames(data))) {
@@ -134,7 +144,17 @@ plotJourney <- function(data, plotMap){
   })
   
   # add background rectangles of alternating light colors
+  y_vals <- sort(unique(timeLine$EMPL_RCD))
+  jitter_buffer <- 0.11 * (usr[4] - usr[3])
   
+  # Draw alternating rectangles
+  for (i in seq_along(y_vals)) {
+    rect(xleft = usr[1], xright = usr[2],
+         ybottom = y_vals[i] - jitter_buffer,
+         ytop = y_vals[i] + jitter_buffer,
+         col = c("gray99", "gray95")[i %% 2 + 1],
+         border = NA)
+  }
   
   # draw the plot      
   points(y = yPos + timeLine$EMPL_RCD,
@@ -160,7 +180,145 @@ plotJourney <- function(data, plotMap){
   #       cex = c(2, 0.75, 1,1)
   #        )
   
+  default_title_params <- list(
+    side = c(3),
+    text = unique(data$EMPLID),
+    line = c(0.4),
+    cex = c(2),
+    font = c(2)
+  )
   
+  title_params <- modifyList(default_title_params, title_params)
+  do.call(mtext, title_params)
+  
+}
+
+
+plotJourneyKey <- function(legendMap = NA) {
+  
+  # I'm not clear on why this doesn't play nicely with par(mfrow=c(2,1)) call
+  # before calling this function -- it always plots on its own device
+  
+  incoming.par <- par(mar = c(0,0,3,0), oma = c(0,0,0,0)) # fig = c(0, 1, 0, 0.33), 
+  on.exit(par(incoming.par))
+  
+  if(is.na(legendMap)) {
+    
+    legendMap <- list(color = data.frame(color = c("plum1",
+                                                   "chocolate",
+                                                   "steelblue",
+                                                   "coral"
+                                                   #   "chocolate4",
+                                                   #   "mediumorchid1"
+    ),
+    explanation = c(
+      "not boundary",
+      "primary",
+      "break",
+      "leave"
+      #   "re-hire",
+      #   "hire concurrent job"
+    )),
+    shape = data.frame(shape = c(
+      1,
+      13,
+      19
+    ),
+    explanation = c(
+      "not boundary",
+      "entry",
+      "exit"
+    )
+    ),
+    size = data.frame(size = c(
+      0.75,
+      2,
+      1.5,
+      1.5
+    ),
+    explanation = c(
+      "not boundary",
+      "primary",
+      "break",
+      "leave"
+    )
+    
+    )
+    )
+    
+  }
+  
+  # Create empty plot
+  
+  plot(x = 0.5,
+       xlim = c(0,1),
+       ylim = c(0,1),
+       xlab = "",
+       ylab = "",
+       xaxt ="n",
+       yaxt = "n",
+       type = "n",
+       bty = "n"
+  )
+  
+  colorLegend <- legend(title = "Colors",
+                        x =0, y =1,
+                        legend = legendMap[["color"]][["explanation"]], 
+                        col = legendMap[["color"]][["color"]],
+                        pt.cex = 2.5,
+                        pch = rep(15, nrow(legendMap[["color"]])),
+                        inset = c(0.1,0)
+  )
+  
+  shapeLegend <-  legend(title = "Shapes",
+                         # x =0.2, y =1,
+                         x = colorLegend$rect$left + colorLegend$rect$w + 0.02,  
+                         y = 1, # leg1$rect$top,
+                         legend = legendMap[["shape"]][["explanation"]], 
+                         pch = legendMap[["shape"]][["shape"]],
+                         pt.cex = 2.5,
+                         col = rep("grey30", nrow(legendMap[["shape"]]))
+  )
+  
+  sizeLegend <-  legend(title = "Sizes",
+                        # x =0.33, y =1,
+                        x = shapeLegend$rect$left + shapeLegend$rect$w + 0.02,  
+                        y = 1, 
+                        legend = legendMap[["size"]][["explanation"]], 
+                        pt.cex = legendMap[["size"]][["size"]],
+                        pch = 19,
+                        col = rep("grey30", nrow(legendMap[["shape"]])),
+                        inset = c(0.1,0)
+  )
+  
+  univLegend <- legend(title = "University boundaries",
+                       x = sizeLegend$rect$left + sizeLegend$rect$w + 0.02,
+                       y = 1,
+                       # x =0.5, y =1,
+                       legend = c("start", "stop"),
+                       lty = c("dotted","solid"),
+                       col = brewer.pal(3, "Dark2")[1:2],
+                       lwd = 3
+  )
+  
+  
+  legend(title = "Special",
+         #  x =0.66, y =1,
+         x = univLegend$rect$left + univLegend$rect$w + 0.02,
+         y=1,
+         legend = c("Rehire", "Hire concurrent job"),
+         pt.cex = c(2, 2),
+         pch = c(10, 13),
+         col = c("chocolate4", "mediumorchid1")
+  )
+  
+  
+  
+  mtext("Journey key",
+        side = 3,
+        line = 1.5,
+        font = 2,
+        cex = 1.5)  
   
 }
 

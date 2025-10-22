@@ -5,11 +5,8 @@
 
 plotJourneyKey <- function(legendMap = NA) {
   
-  old_par <- par(no.readonly = TRUE)
-  on.exit(par(old_par))
-  
-  par(fig = c(0, 1, 0, 0.33), mar = c(0,0,0,0), oma = c(0,0,0,0))
-  
+  incoming.par <- par(mar = c(0,0,3,0), oma = c(0,0,0,0)) # fig = c(0, 1, 0, 0.33), 
+  on.exit(par(incoming.par))
 
   if(is.na(legendMap)) {
     
