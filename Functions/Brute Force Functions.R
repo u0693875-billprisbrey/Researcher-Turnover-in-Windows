@@ -97,28 +97,59 @@ plotJourney <- function(data, plotMap){
     timeLine <- merge(data, plotMap, by = c("ACTION", "ACTION_REASON") , all.x = TRUE)
   } else {timeLine <- data}
   
+
+# establish the plot without the jitter
+  plot(y = timeLine$EMPL_RCD,
+       ylim = range(timeLine$EMPL_RCD) + c(-0.5,0.5),
+       x = as.Date(timeLine$EFFDT),
+       ylab = "Concurrent jobs (EMPL_RCD)",
+       xlab = "",
+       pch = timeLine[,"shape_shape"],
+       col = timeLine[,"shape_color"],
+       cex = timeLine[,"shape_size"],
+       yaxt = "n",
+       type = "n"
+  )  
+
+# get plot limits
+  usr <- par("usr")
+  y_range <- usr[4] - usr[3]  
+
+  
   # create jitter
   yPos <- ave(as.numeric(timeLine$EFFDT), timeLine$EFFDT, FUN = function(dates) {
     n <- length(dates)
     if (n == 1) {
-      return(1)  # single point: no jitter
+      return(0)  # single point: no jitter
     } else {
+      
+      jitter_range <- 0.1 * y_range
+      jitter_values <- seq(-jitter_range, jitter_range, length.out = n)
+      return(0+jitter_values)
+      
       # Evenly spaced jitter around y = 1
-      jitter_values <- seq(0.9, 1.1, length.out = n)
-      return(jitter_values)
+      #  jitter_values <- seq(0.9, 1.1, length.out = n)
+      #  return(jitter_values)
     }
   })
   
-  # draw the plot
+  # add background rectangles of alternating light colors
   
-  plot(y = yPos + timeLine$EMPL_RCD,
+  
+  # draw the plot      
+  points(y = yPos + timeLine$EMPL_RCD,
        x = as.Date(timeLine$EFFDT),
        ylab = "Concurrent jobs (EMPL_RCD)",
        xlab = "Date [EFFDT]",
        pch = timeLine[,"shape_shape"],
        col = timeLine[,"shape_color"],
-       cex = timeLine[,"shape_size"]
+       cex = timeLine[,"shape_size"],
   )
+  
+  axis(side = 2, at = seq(floor(min(yPos + timeLine$EMPL_RCD)), 
+                          ceiling(max(yPos + timeLine$EMPL_RCD)), 
+                          by = 1),
+       las = 2)
   
   # legend
   # Legend might need to be an entire separate graphic
