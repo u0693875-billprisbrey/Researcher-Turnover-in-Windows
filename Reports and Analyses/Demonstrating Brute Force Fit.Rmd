@@ -105,6 +105,8 @@ journeyPopulation$singleJob <- journeyPopulation$HCJ == "not_hcj" & journeyPopul
 
 ```
 
+`r if(params$showPI) "This text will only appear with PI graphics."`
+`r if(params$showPI) "This text will only appear with ALL graphics."`
 
 **PURPOSE:**
 
@@ -245,6 +247,65 @@ exc_diff[[paste(pi,"0", sep = ".")]] |>
 
 ```
 
+
+
+```{r eval=params$showAll}
+
+
+
+exc_wb_lv <- journeyPopulation$EMPLID[#journeyPopulation$PI &
+                                           journeyPopulation$singleJob &
+                                           journeyPopulation$wb &
+                                           journeyPopulation$lv
+                                           ]
+
+exc_nwb_nlv <- journeyPopulation$EMPLID[#journeyPopulation$PI &
+                                           journeyPopulation$singleJob &
+                                           !journeyPopulation$wb &
+                                           !journeyPopulation$lv
+                                           ]
+
+exc_wb_nlv <- journeyPopulation$EMPLID[#journeyPopulation$PI &
+                                           journeyPopulation$singleJob &
+                                           journeyPopulation$wb &
+                                           !journeyPopulation$lv
+                                           ]
+
+exc_nwb_lv <- journeyPopulation$EMPLID[#journeyPopulation$PI &
+                                           journeyPopulation$singleJob &
+                                           !journeyPopulation$wb &
+                                           journeyPopulation$lv
+                                           ]
+
+exclusivePopulation <- list(exc_wb_lv, exc_nwb_nlv, exc_wb_nlv, exc_nwb_lv)
+
+set.seed(99)
+excSample <- sapply(exclusivePopulation, function(x){sample(x,1)} )
+
+# Plot it
+
+par(mfrow = c(1,1))
+plotJourneyKey()
+
+par(mfrow = c(2,1), mar = c(0,2,2,1))
+#
+for(pi in excSample) {
+  
+exc_diff[[paste(pi,"0", sep = ".")]] |>
+  assignBoundaries() |>
+  plotJourney()
+
+addVerticals(univBound[grep(pi, row.names(univBound)),])
+  
+exc_diff[[paste(pi,"0", sep = ".")]] |>
+  forceFitPlot(fitLine = TRUE)    
+
+}
+
+```
+
+
+
 #### **CONCURRENT JOURNEY**
 
 
@@ -306,6 +367,63 @@ cjEmplids[[pi]] |>
 
 
 
+```{r eval=params$showAll}
+
+conc_wb_lv <- journeyPopulation$EMPLID[#journeyPopulation$PI &
+                                           !journeyPopulation$singleJob &
+                                           journeyPopulation$wb &
+                                           journeyPopulation$lv
+                                           ]
+
+conc_nwb_nlv <- journeyPopulation$EMPLID[#journeyPopulation$PI &
+                                           !journeyPopulation$singleJob &
+                                           !journeyPopulation$wb &
+                                           !journeyPopulation$lv
+                                           ]
+
+conc_wb_nlv <- journeyPopulation$EMPLID[#journeyPopulation$PI &
+                                           !journeyPopulation$singleJob &
+                                           journeyPopulation$wb &
+                                           !journeyPopulation$lv
+                                           ]
+
+conc_nwb_lv <- journeyPopulation$EMPLID[#journeyPopulation$PI &
+                                           !journeyPopulation$singleJob &
+                                           !journeyPopulation$wb &
+                                           journeyPopulation$lv
+                                           ]
+
+concurrentPopulation <- list(conc_wb_lv, conc_nwb_nlv, conc_wb_nlv, conc_nwb_lv)
+
+set.seed(99)
+concSample <- sapply(concurrentPopulation, function(x){sample(x,1)} )
+
+# Plot it
+
+par(mfrow = c(1,1))
+plotJourneyKey()
+
+par(mfrow = c(2,1), mar = c(0,2,2,1))
+
+for(pi in concSample) {
+  
+cjEmplids[[pi]] |>
+  assignBoundaries() |>
+  plotJourney()
+
+addVerticals(univBound[grep(pi, row.names(univBound)),])
+  
+cjEmplids[[pi]] |>
+  forceFitPlot(fitLine = TRUE)
+
+}
+
+
+
+
+```
+
+
 
 ### Headcount Metrics 
 
@@ -324,6 +442,21 @@ univBound_exc |>
 ```
 
 
+```{r eval=params$showAll}
+
+univBound_exc |>
+  (\(x){x$EMPLID <- gsub("\\.[[:digit:]]+$", "", row.names(x)); return(x) })() |>
+#  (\(x){x[x$EMPLID %in% piEMPLIDs, ] })() |> 
+    calculateMetrics_univ(minDate = ymd("2010-01-01")) |>
+  plotMetrics_univ(plotList = c("cumulative", "delta.count"), title_mtext_params = list(
+  text = "All employees with exclusive jobs"
+  ))
+
+```
+
+
+
+
 #### **CONCURRENT JOBS**
 
 ```{r eval=params$showPI}
@@ -339,6 +472,22 @@ univBound_cj |>
 
 ```
 
+
+```{r eval=params$showAll}
+
+
+univBound_cj |>
+  (\(x){x$EMPLID <- gsub("\\.[[:digit:]]+$", "", row.names(x)); return(x) })() |>
+#  (\(x){x[x$EMPLID %in% piEMPLIDs, ] })() |> 
+    calculateMetrics_univ(minDate = ymd("2010-01-01")) |>
+  plotMetrics_univ(plotList = c("cumulative", "delta.count"), title_mtext_params = list(
+  text = "All employees with concurrent jobs"))
+
+
+```
+
+
+
 #### **FULL POPULATION**
 
 ```{r eval=params$showPI}
@@ -349,6 +498,17 @@ univBound |>
     calculateMetrics_univ(minDate = ymd("2010-01-01")) |>
   plotMetrics_univ(plotList = c("cumulative", "delta.count"), title_mtext_params = list(
   text = "All PI's"))
+
+```
+
+```{r eval=params$showAll}
+
+univBound |>
+  (\(x){x$EMPLID <- gsub("\\.[[:digit:]]+$", "", row.names(x)); return(x) })() |>
+  (\(x){x[x$EMPLID %in% piEMPLIDs, ] })() |> 
+    calculateMetrics_univ(minDate = ymd("2010-01-01")) |>
+  plotMetrics_univ(plotList = c("cumulative", "delta.count"), title_mtext_params = list(
+  text = "All employees"))
 
 ```
 
