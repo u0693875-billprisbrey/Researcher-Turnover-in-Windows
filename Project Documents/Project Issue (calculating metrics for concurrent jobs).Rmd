@@ -32,7 +32,9 @@ Because the concurrent jobs have been inconsistently handled, a number of specia
 
 ***ACTION PLAN OR RESOLUTION STRATEGY:***     
 
-Divide the various individuals into different regimes and develop custom algorithmic treatment to identify university- and job- level exits and entries.
+Plan A:  Divide the various individuals into different regimes and develop custom algorithmic treatment to identify university- and job- level exits and entries.  
+
+Plan B:  "Brute force fit" approximation: calculate the cumulative headcount over each individual's workforce journey.  Never allow the headcount to exceed one or zero, and extract the dates where it changes. 
   
 ***LOG:***    
 
@@ -44,5 +46,8 @@ Employee records identify concurrent positions.  They should have their own comp
 *15 July 2025:*  Bill Prisbrey publishes a Shiny app that explores headcount over time for employees with no concurrent jobs.
 
 *7 Aug 2025:* Bill Prisbrey updates Dave Howell and Greg Francom with the report, "Status update on headcount tally."  He finds that the combinations of ACTION records and the EMPL_RCD field have been inconsistently used over the years and by various departments, resulting in confusion and complexity.  He is working to separate the various individual workforce journeys into different regimes requiring unique treatment to adequately identify university-level and job-level boundary actions.
+
+*23 Oct 2025:* While developing custom algorithms per regime, Bill developed a "brute force" algorithm where the cumulative headcount is calculated per individual and constrained to values of one or zero.  Then the dates of change are extracted as university-level boundary events.  This algorithm should work for all individuals across all regimes.  However, in a presentation to HR (Kirsten Allen and Brian Gelsinger) the resulting headcount was too high.  Brian will provide snapshot data, or lists of employees (EMPLID's) active in January and July going back five or ten years.  Bill will focus on the Chemical Engineering department to improve his algorithm.  
+
 
 

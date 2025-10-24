@@ -1,0 +1,19 @@
+PI Turnover: Review headcount approximation
+"Demonstrating Brute Force Fit" report
+Meeting Notes
+10/23/2025
+
+Attendance:  Kirsten Allen, Brian Gelsinger, David Howell, Bill Prisbrey 
+
+Action Items: 
+
+- Brian will provide a SQL query that will provide a list of EMPLIDs and basic fields like department or college on snapshot dates (Jan/July) going back five to ten years.  Estimated completion date of Friday 10/31/2025. 
+- Bill will proceed with the next steps, including using the snapshot data as a validation data set, focusing on the chemical engineering department.   
+
+
+Notes:  
+
+- Bill reviewed the "Demonstrating Brute Force Fit" report with the team.  
+- The resulting headcount is too high: Brian's dashboard shows ~30,000 current employees while the headcount estimate shows about ~40,000 current employees. 
+- Brian will provide snapshot data to guide improving the algorithm.  
+
