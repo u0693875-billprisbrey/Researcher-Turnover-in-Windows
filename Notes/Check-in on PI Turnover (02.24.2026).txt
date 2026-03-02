@@ -1,0 +1,70 @@
+Reaching out to HR
+2.24.2026
+
+(Note:  Move this to the correct project when it is pulled over from GitHub.)
+
+PURPOSE: Check in on current status of HR projects and organization after Topyrik’s and Allen’s departure
+PROCESS: 
+ Discuss organization, objectives, and priorities
+PAYOFF: 
+  Bill has clarity on objectives and priorities
+
+PEOPLE: 
+Bill Prisbrey and Brian Gelsinger, who forwarded this to Daniel Hinojosa, Danielle Vu, and Jessica Williamson
+
+SUMMARY:   
+- My intention was to briefly check in with Brian Gelsinger, who is the last person I had contact with on my turn-over project and who I worked with on the snapshot query, in support of this assignment item lingering from last November: 
+   "PI Turnover:  Review snapshot query from HR and write summary before pausing project"
+- Brian invited Daniel Hinojosa, Danielle Vu, and Jessica Williamson
+- Daniel Hinojosa clarified that he is the new manager of workforce analytics and I should direct all requests to him.
+- Jessica replaces Tatiana/Kirsten, and will be meeting with Liz Conder in March to discuss projects and coordination
+- Meeting concluded after 15min.  Turnover project nor queries were discussed.	
+
+
+NOTES: 	
+
+This meeting was forwarded to three more people-- Brian's boss  Daniel, and Daniel's boss Jessica
+
+Bill:  Self-introduction of overview of career and two HR projects (gender pay equity audit and PI turnover.)	 
+Daniel Hinojosa:  He is now the MANAGER over the workforce team	
+Danielle Vu - Analyst 
+Jessica Williamson -- new Sr Director replacing Tatiana/Kirsten
+
+Daniel: Career Advancement project is occupying us.  We've hired two new comp managers on UCareer project
+
+Jessica: Scheduled a meeting with Liz Conder to introduce the two new compensation managers just to make sure Jessica understands the working relationship with UAIR
+
+Sarah Tice (works with Jeff Herring) says we have a good relationship with UAIR.
+
+Jessica asks if I have any contact with Health Sciences that came out of UMG, or Heidi Konzart --> No, nothing to do with health sciences
+
+DANIEL HINOJOSA: 
+Still same Role -- provide any HR data sets that I need or SQL code or different definitions.   That job mission is still the same.	Still reach out to me (Daniel H) for any HR data needs.	
+
+UCareer -- our major priority.  Gearing up to do another mass update in a few months.  Getting data ready for that; got all of our UCareer stuff into People Soft.  Busy with UCareer for the next 5 or 6 years.
+
+Ad hoc stuff:  Coming up on "Transparency" season.  For me, personally, and Brian and Danny, new comp managers will have a whole new input on things they need built.  Reports and dashboards for putting that out there.
+
+New managers will have input on what they need and want.  One is very into analytics.  Haven't tried to deal too much with comp too much (Tatiana did it.)  So trying to get some new input.	
+
+Bill: Didn't mean this to be a big formal meeting -- just wanted to find out what's going on over there !
+
+Jessica:  Meeting with Liz soon and will discuss what's going on.  
+
+-- Meeting ends -- 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 

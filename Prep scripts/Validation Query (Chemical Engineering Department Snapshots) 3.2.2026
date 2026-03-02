@@ -1,0 +1,92 @@
+Validation query
+Note written on 2 March 2026.
+
+The following is a query sent by Brian Gelsinger on 10.31.2025.
+
+This was meant to be a validation set restricted in scope to a single department
+in order to inform the development of the "brute force" algorithm to estimate headcount.
+
+As of 2 March 2026, it has not been used due to re-organization and shifting priorities.
+
+Copying from the email message: 
+
+Hi Bill,
+
+Attached is the SQL for job data as of 01/01 and 07/01 of each year from 2020 to current for employees in Dept ID 00055 Chemical Engineering as of the snapshot dates.
+
+Also, after reviewing the original SQL that was provided, I did confirm that Hospital employees were included.
+
+Let me know if you have any questions, and have a great weekend.
+
+Thanks!
+
+
+
+
+SELECT DISTINCT B.AS_OF_DATE, A.EMPLID, C.NAME, A.EMPL_RCD
+    , A.FTE
+    , A.JOBCODE, D.DESCR JOBTITLE
+    , A.DEPTID, CASE WHEN E.DEPTID IS NULL THEN 'INACTIVE' ELSE E.DEPTNAME END DEPT_NAME
+    , CASE WHEN  D.UU_BEN_IND = '01' OR  A.JOBCODE IN ('6001', '6002', '6003', '6004', '6005', '6102', '6103', '6104', '6105') THEN 'Faculty' ELSE 'Staff' END FACULTY_FLAG
+    , CASE WHEN SUM( A.FTE) OVER (PARTITION BY  A.EMPLID, B.AS_OF_DATE)>= .75 THEN 'Full-Time' ELSE 'Part-Time' END FULL_TIME_STATUS
+    , H.HIRE_DT, H.REHIRE_DT,H.TERMINATION_DT, H.SERVICE_DT
+    
+FROM PS_JOB A
+    
+    JOIN 
+    (SELECT DISTINCT TO_DATE(
+      (EXTRACT(YEAR FROM BD.HIRE_DT) 
+      || '-'
+      ||Case when EXTRACT(MONTH FROM BD.HIRE_DT) < 10
+          then '0'||EXTRACT(MONTH FROM BD.HIRE_DT)
+          else TO_CHAR(EXTRACT(MONTH FROM BD.HIRE_DT)) end
+      ||'-01')
+      ,'YYYY-MM-DD') AS_OF_DATE
+FROM PS_UU_EMPLOYMENT BD
+WHERE (BD.HIRE_DT BETWEEN (SYSDATE-2190) AND SYSDATE) 
+ORDER BY TO_DATE(
+      (EXTRACT(YEAR FROM BD.HIRE_DT) 
+      || '-'
+      ||Case when EXTRACT(MONTH FROM BD.HIRE_DT) < 10
+          then '0'||EXTRACT(MONTH FROM BD.HIRE_DT)
+          else TO_CHAR(EXTRACT(MONTH FROM BD.HIRE_DT)) end
+      ||'-01')
+      ,'YYYY-MM-DD')) B
+  
+
+        ON (A.EFFDT <= B.AS_OF_DATE)
+    
+    
+    JOIN PS_PERSON_NAME C
+        ON (C.EMPLID = A.EMPLID)
+    JOIN PS_JOBCODE_TBL D
+        ON (D.JOBCODE = A.JOBCODE)
+    LEFT OUTER JOIN HRBI_2023_TREE_TBL E
+        ON (E.DEPTID = A.DEPTID)
+    JOIN PS_UU_EMPLOYMENT H
+        ON (H.EMPLID = A.EMPLID)
+   
+
+WHERE SUBSTR(B.AS_OF_DATE,4,3)IN ('JUL','JAN')
+    AND A.EMPL_STATUS IN ('A', 'L', 'P', 'S', 'W')
+    AND A.DEPTID NOT IN ('00824', '00825', '00826', '00827', '01144', '01147', '90139') -- Benefit's Only Depts
+    AND A.JOBCODE NOT IN ('9229', '9230', '9233', '9234', '9235', '9238', '9239', '9240', '9241', '9243', '9244', '9250', '9254', '9256', '9257', '7993') -- Benefit's Only Job Codes
+    AND A.DEPTID = '00055'     
+    
+    AND A.EFFDT = (SELECT MAX(A_ED.EFFDT)--Job as of DATE
+        FROM PS_JOB A_ED
+        WHERE A.EMPLID = A_ED.EMPLID
+        AND A.EMPL_RCD = A_ED.EMPL_RCD
+        AND A_ED.EFFDT <= B.AS_OF_DATE)
+    AND A.EFFSEQ = (SELECT MAX(A_ES.EFFSEQ)
+        FROM PS_JOB A_ES
+        WHERE A.EMPLID = A_ES.EMPLID
+        AND A.EMPL_RCD = A_ES.EMPL_RCD
+        AND A.EFFDT = A_ES.EFFDT)--max effseq
+    AND D.EFFDT = (SELECT MAX(D_ED.EFFDT)
+        FROM PS_JOBCODE_TBL D_ED
+        WHERE D.JOBCODE = D_ED.JOBCODE
+        AND D_ED.EFFDT <= SYSDATE)-- Job code data as of SYSDATE
+ 
+
+ORDER BY B.AS_OF_DATE, A.EMPLID, A.EMPL_RCD
